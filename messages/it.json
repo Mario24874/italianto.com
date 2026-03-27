@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "home": "Inizio",
+    "features": "Funzioni",
+    "pricing": "Prezzi",
+    "about": "Chi siamo",
+    "contact": "Contatto",
+    "signIn": "Accedi",
+    "signUp": "Inizia gratis",
+    "myClassroom": "La mia aula"
+  },
+  "hero": {
+    "badge": "La piattaforma di italiano più completa",
+    "title": "Impara l'italiano con l'intelligenza artificiale",
+    "subtitle": "Traduttore intelligente, coniugatore, pratica di pronuncia, dialoghi generati dall'IA e un tutore conversazionale.",
+    "ctaPrimary": "Inizia gratis",
+    "ctaSecondary": "Scopri le app",
+    "stats": {
+      "students": "Studenti",
+      "apps": "App",
+      "rating": "Valutazione",
+      "lessons": "Lezioni"
+    }
+  },
+  "features": {
+    "badge": "Funzionalità",
+    "title": "Tutto ciò che ti serve per l'italiano",
+    "subtitle": "Un ecosistema completo di strumenti educativi alimentati dall'IA."
+  },
+  "pricing": {
+    "badge": "Prezzi",
+    "title": "Scegli il tuo piano, inizia oggi",
+    "subtitle": "Inizia gratis e aggiorna quando vuoi. Senza contratti.",
+    "monthly": "Mensile",
+    "annual": "Annuale",
+    "free": "Inizia gratis",
+    "choosePlan": "Scegli",
+    "disclaimer": "Tutti i piani includono l'accesso a ItaliantoApp e Dialogue Studio."
+  },
+  "footer": {
+    "tagline": "La piattaforma integrata per imparare l'italiano con l'intelligenza artificiale.",
+    "madeWith": "Fatto con amore per l'italiano",
+    "location": "La Ensenada, Yaracuy, Venezuela",
+    "copyright": "Tutti i diritti riservati."
+  }
+}

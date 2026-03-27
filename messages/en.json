@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "pricing": "Pricing",
+    "about": "About",
+    "contact": "Contact",
+    "signIn": "Sign in",
+    "signUp": "Get started free",
+    "myClassroom": "My classroom"
+  },
+  "hero": {
+    "badge": "The most complete Italian learning platform",
+    "title": "Learn Italian with artificial intelligence",
+    "subtitle": "Smart translator, conjugator, pronunciation practice, AI-generated dialogues and a conversational tutor.",
+    "ctaPrimary": "Get started free",
+    "ctaSecondary": "See the apps",
+    "stats": {
+      "students": "Students",
+      "apps": "Apps",
+      "rating": "Rating",
+      "lessons": "Lessons"
+    }
+  },
+  "features": {
+    "badge": "Features",
+    "title": "Everything you need for Italian",
+    "subtitle": "A complete ecosystem of AI-powered educational tools."
+  },
+  "pricing": {
+    "badge": "Pricing",
+    "title": "Choose your plan, start today",
+    "subtitle": "Start free and upgrade when you need. No contracts.",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "free": "Get started free",
+    "choosePlan": "Choose",
+    "disclaimer": "All plans include access to ItaliantoApp and Dialogue Studio."
+  },
+  "footer": {
+    "tagline": "The all-in-one platform to learn Italian with artificial intelligence.",
+    "madeWith": "Fatto con amore per l'italiano",
+    "location": "La Ensenada, Yaracuy, Venezuela",
+    "copyright": "All rights reserved."
+  }
+}

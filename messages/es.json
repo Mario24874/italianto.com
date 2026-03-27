@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "features": "Funciones",
+    "pricing": "Precios",
+    "about": "Nosotros",
+    "contact": "Contacto",
+    "signIn": "Entrar",
+    "signUp": "Comenzar gratis",
+    "myClassroom": "Mi aula"
+  },
+  "hero": {
+    "badge": "La plataforma de italiano más completa",
+    "title": "Aprende italiano con inteligencia artificial",
+    "subtitle": "Traductor inteligente, conjugador, práctica de pronunciación, diálogos generados con IA y un tutor conversacional.",
+    "ctaPrimary": "Comenzar gratis",
+    "ctaSecondary": "Ver las apps",
+    "stats": {
+      "students": "Estudiantes",
+      "apps": "Apps",
+      "rating": "Rating",
+      "lessons": "Lecciones"
+    }
+  },
+  "features": {
+    "badge": "Funcionalidades",
+    "title": "Todo lo que necesitas para el italiano",
+    "subtitle": "Un ecosistema completo de herramientas educativas impulsadas por IA."
+  },
+  "pricing": {
+    "badge": "Precios",
+    "title": "Elige tu plan, empieza hoy",
+    "subtitle": "Comienza gratis y actualiza cuando lo necesites. Sin contratos.",
+    "monthly": "Mensual",
+    "annual": "Anual",
+    "free": "Comenzar gratis",
+    "choosePlan": "Elegir",
+    "disclaimer": "Todos los planes incluyen acceso a ItaliantoApp y Dialogue Studio."
+  },
+  "footer": {
+    "tagline": "La plataforma integral para aprender italiano con inteligencia artificial.",
+    "madeWith": "Fatto con amore per l'italiano",
+    "location": "La Ensenada, Yaracuy, Venezuela",
+    "copyright": "Todos los derechos reservados."
+  },
+  "dashboard": {
+    "welcome": "Benvenuto",
+    "yourApps": "Tus aplicaciones",
+    "platformSections": "Secciones de la plataforma",
+    "upgradeCta": "Desbloquea todo el potencial",
+    "upgradeDesc": "Con un plan de pago accedes al Tutor AI, diálogos ilimitados y más.",
+    "viewPlans": "Ver planes"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "users": "Usuarios",
+    "subscriptions": "Suscripciones",
+    "analytics": "Analíticas",
+    "sales": "Ventas",
+    "coupons": "Cupones",
+    "content": "Contenido",
+    "sessions": "Sesiones"
+  }
+}
