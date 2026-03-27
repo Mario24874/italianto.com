@@ -19,7 +19,7 @@ export function Pricing() {
   const planTranslations = t.pricing.plans
 
   return (
-    <section id="precios" className="py-24 relative overflow-hidden bg-bg-dark-2/30">
+    <section id="precios" className="py-24 relative overflow-hidden bg-bg-light-2/30 dark:bg-bg-dark-2/30">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-verde-700/30 to-transparent" />
 
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -48,13 +48,13 @@ export function Pricing() {
             </p>
 
             {/* Billing Toggle */}
-            <div className="inline-flex items-center gap-3 bg-verde-950/60 border border-verde-900/50 rounded-2xl p-1.5">
+            <div className="inline-flex items-center gap-3 bg-verde-100/60 dark:bg-verde-950/60 border border-verde-300/50 dark:border-verde-900/50 rounded-2xl p-1.5">
               <button
                 onClick={() => setIsAnnual(false)}
                 className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
                   !isAnnual
-                    ? 'bg-verde-800/60 text-verde-100 shadow-sm'
-                    : 'text-verde-500 hover:text-verde-400'
+                    ? 'bg-verde-200/80 dark:bg-verde-800/60 text-verde-900 dark:text-verde-100 shadow-sm'
+                    : 'text-verde-600 dark:text-verde-500 hover:text-verde-700 dark:hover:text-verde-400'
                 }`}
               >
                 {t.pricing.monthly}
@@ -63,8 +63,8 @@ export function Pricing() {
                 onClick={() => setIsAnnual(true)}
                 className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
                   isAnnual
-                    ? 'bg-verde-800/60 text-verde-100 shadow-sm'
-                    : 'text-verde-500 hover:text-verde-400'
+                    ? 'bg-verde-200/80 dark:bg-verde-800/60 text-verde-900 dark:text-verde-100 shadow-sm'
+                    : 'text-verde-600 dark:text-verde-500 hover:text-verde-700 dark:hover:text-verde-400'
                 }`}
               >
                 {t.pricing.annual}
@@ -112,10 +112,10 @@ export function Pricing() {
                 <div
                   className={`h-full rounded-2xl border p-6 flex flex-col transition-all duration-300 hover:-translate-y-1 ${
                     plan.highlighted
-                      ? 'border-verde-600/60 bg-gradient-to-b from-verde-950/80 to-bg-dark-2 shadow-brand'
+                      ? 'border-verde-600/60 bg-gradient-to-b from-verde-100/80 dark:from-verde-950/80 to-bg-light-2 dark:to-bg-dark-2 shadow-brand'
                       : plan.id === 'maestro'
-                      ? 'border-amber-700/40 bg-gradient-to-b from-amber-950/30 to-bg-dark-2'
-                      : 'border-verde-900/40 bg-bg-dark-2/60'
+                      ? 'border-amber-700/40 bg-gradient-to-b from-amber-50/80 dark:from-amber-950/30 to-bg-light-2 dark:to-bg-dark-2'
+                      : 'border-verde-200/40 dark:border-verde-900/40 bg-bg-light-2/60 dark:bg-bg-dark-2/60'
                   }`}
                 >
                   {/* Plan Header */}

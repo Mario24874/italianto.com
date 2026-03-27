@@ -39,7 +39,7 @@ export function Footer() {
   }
 
   return (
-    <footer className="border-t border-verde-900/30 bg-bg-dark pt-16 pb-8">
+    <footer className="border-t border-verde-200/30 dark:border-verde-900/30 bg-bg-light dark:bg-bg-dark pt-16 pb-8">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Top: Brand + Links */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-14">
@@ -127,7 +127,7 @@ export function Footer() {
         </div>
 
         {/* Bottom: Copyright + Social */}
-        <div className="border-t border-verde-900/30 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="border-t border-verde-200/30 dark:border-verde-900/30 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-verde-600 text-center sm:text-left">
             © {year} Italianto. {t.footer.rights}
           </p>

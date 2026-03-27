@@ -139,10 +139,15 @@ body {
 }
 
 .glass-dark {
-  background: rgba(6, 13, 7, 0.6);
+  background: rgba(240, 250, 240, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(46, 125, 50, 0.2);
+  border: 1px solid rgba(46, 125, 50, 0.15);
+}
+
+.dark .glass-dark {
+  background: rgba(6, 13, 7, 0.6);
+  border-color: rgba(46, 125, 50, 0.2);
 }
 
 /* ─── Gradient text utility ────────────────────────────────────────────── */
@@ -242,6 +247,20 @@ body {
   inset: 0;
   background: linear-gradient(to bottom, rgba(6,13,7,0.4) 0%, rgba(6,13,7,0.85) 100%);
 }
+
+/* ─── Light mode overrides ─────────────────────────────────────────────── */
+/* Near-white verde text → dark green in light mode for readability */
+html:not(.dark) .text-verde-50  { color: var(--color-verde-900); }
+html:not(.dark) .text-verde-100 { color: var(--color-verde-900); }
+html:not(.dark) .text-verde-200 { color: var(--color-verde-800); }
+html:not(.dark) .text-verde-300 { color: var(--color-verde-700); }
+html:not(.dark) .text-verde-400 { color: var(--color-verde-700); }
+html:not(.dark) .text-verde-500 { color: var(--color-verde-600); }
+html:not(.dark) .text-verde-600 { color: var(--color-verde-700); }
+
+/* Section backgrounds: dark → light */
+html:not(.dark) .bg-bg-dark   { background-color: var(--color-bg-light); }
+html:not(.dark) .bg-bg-dark-2 { background-color: var(--color-bg-light-2); }
 
 /* ─── Animate on scroll (base) ─────────────────────────────────────────── */
 .aos-hidden {

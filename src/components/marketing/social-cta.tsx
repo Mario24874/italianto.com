@@ -53,7 +53,7 @@ export function SocialCta() {
           fill
           className="object-cover opacity-8"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-bg-dark via-bg-dark/90 to-bg-dark" />
+        <div className="absolute inset-0 bg-gradient-to-b from-bg-light dark:from-bg-dark via-bg-light/90 dark:via-bg-dark/90 to-bg-light dark:to-bg-dark" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

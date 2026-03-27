@@ -9,7 +9,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-2xl border border-verde-900/50 bg-bg-dark-2/80 text-verde-100',
+      'rounded-2xl border border-verde-200/50 dark:border-verde-900/50 bg-bg-light-2/80 dark:bg-bg-dark-2/80',
       hoverable &&
         'transition-all duration-300 hover:border-verde-700/60 hover:shadow-card-hover hover:-translate-y-0.5 cursor-pointer',
       className
@@ -92,7 +92,7 @@ const SpotlightCard = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn('spotlight-card rounded-2xl border border-verde-900/50 bg-bg-dark-2/80', className)}
+      className={cn('spotlight-card rounded-2xl border border-verde-200/50 dark:border-verde-900/50 bg-bg-light-2/80 dark:bg-bg-dark-2/80', className)}
       onMouseMove={handleMouseMove}
       {...props}
     />

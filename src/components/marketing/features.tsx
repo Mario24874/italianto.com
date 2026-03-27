@@ -34,7 +34,7 @@ export function Features() {
   const { t } = useLanguage()
 
   return (
-    <section id="funciones" className="py-24 bg-bg-dark-2/50 relative overflow-hidden">
+    <section id="funciones" className="py-24 bg-bg-light-2/50 dark:bg-bg-dark-2/50 relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-verde-700/40 to-transparent" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -90,7 +90,7 @@ export function Features() {
                         fill
                         className="object-cover opacity-15 group-hover:opacity-20 group-hover:scale-105 transition-all duration-700"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-bg-dark-2 via-bg-dark-2/80 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-bg-light-2 dark:from-bg-dark-2 via-bg-light-2/80 dark:via-bg-dark-2/80 to-transparent" />
                     </div>
                   )}
                   <div className="relative z-10">

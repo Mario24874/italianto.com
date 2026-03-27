@@ -93,8 +93,8 @@ export function Header() {
                 className={cn(
                   'px-3 py-2 rounded-lg text-sm font-medium transition-all',
                   pathname === href || (href !== '/' && pathname.startsWith(href))
-                    ? 'text-verde-300 bg-verde-950/60'
-                    : 'text-verde-400/80 hover:text-verde-300 hover:bg-verde-950/40'
+                    ? 'text-verde-700 dark:text-verde-300 bg-verde-100/80 dark:bg-verde-950/60'
+                    : 'text-verde-600/80 dark:text-verde-400/80 hover:text-verde-700 dark:hover:text-verde-300 hover:bg-verde-100/60 dark:hover:bg-verde-950/40'
                 )}
               >
                 {label}
@@ -126,8 +126,8 @@ export function Header() {
                       className={cn(
                         'w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-all',
                         lang === l.code
-                          ? 'text-verde-300 bg-verde-950/60'
-                          : 'text-verde-400 hover:text-verde-300 hover:bg-verde-950/40'
+                          ? 'text-verde-700 dark:text-verde-300 bg-verde-100/80 dark:bg-verde-950/60'
+                          : 'text-verde-600 dark:text-verde-400 hover:text-verde-700 dark:hover:text-verde-300 hover:bg-verde-100/60 dark:hover:bg-verde-950/40'
                       )}
                     >
                       <span>{l.flag}</span>
@@ -185,7 +185,7 @@ export function Header() {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-verde-900/30 py-4 space-y-1">
+          <div className="md:hidden border-t border-verde-200/40 dark:border-verde-900/30 py-4 space-y-1">
             {navLinks.map(({ label, href }) => (
               <Link
                 key={href}
@@ -194,8 +194,8 @@ export function Header() {
                 className={cn(
                   'flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
                   pathname === href
-                    ? 'text-verde-300 bg-verde-950/60'
-                    : 'text-verde-400/80 hover:text-verde-300 hover:bg-verde-950/40'
+                    ? 'text-verde-700 dark:text-verde-300 bg-verde-100/80 dark:bg-verde-950/60'
+                    : 'text-verde-600/80 dark:text-verde-400/80 hover:text-verde-700 dark:hover:text-verde-300 hover:bg-verde-100/60 dark:hover:bg-verde-950/40'
                 )}
               >
                 {label}
@@ -211,8 +211,8 @@ export function Header() {
                   className={cn(
                     'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
                     lang === l.code
-                      ? 'bg-verde-800/40 text-verde-300 ring-1 ring-verde-700'
-                      : 'text-verde-500 hover:text-verde-300 hover:bg-verde-950/40'
+                      ? 'bg-verde-200/60 dark:bg-verde-800/40 text-verde-700 dark:text-verde-300 ring-1 ring-verde-400 dark:ring-verde-700'
+                      : 'text-verde-600 dark:text-verde-500 hover:text-verde-700 dark:hover:text-verde-300 hover:bg-verde-100/60 dark:hover:bg-verde-950/40'
                   )}
                 >
                   <span>{l.flag}</span>
