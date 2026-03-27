@@ -17,6 +17,7 @@ export interface Database {
           plan_type?: PlanType
         }
         Update: Partial<Omit<UserRow, 'id' | 'created_at'>>
+        Relationships: []
       }
       subscriptions: {
         Row: SubscriptionRow
@@ -41,23 +42,31 @@ export interface Database {
           coupon_id?: string | null
         }
         Update: Partial<Omit<SubscriptionRow, 'id' | 'created_at'>>
+        Relationships: []
       }
       usage_metrics: {
         Row: UsageMetricRow
         Insert: Omit<UsageMetricRow, 'id' | 'recorded_at'>
         Update: never
+        Relationships: []
       }
       coupons: {
         Row: CouponRow
         Insert: Omit<CouponRow, 'id' | 'created_at' | 'times_used'>
         Update: Partial<Omit<CouponRow, 'id' | 'created_at'>>
+        Relationships: []
       }
       app_sessions: {
         Row: AppSessionRow
         Insert: Omit<AppSessionRow, 'id'>
         Update: Partial<Omit<AppSessionRow, 'id'>>
+        Relationships: []
       }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }
 
