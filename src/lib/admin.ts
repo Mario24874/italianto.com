@@ -1,4 +1,5 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 
 export async function isAdmin(): Promise<boolean> {
   try {
@@ -26,6 +27,6 @@ export async function isAdmin(): Promise<boolean> {
 export async function requireAdmin(): Promise<void> {
   const admin = await isAdmin()
   if (!admin) {
-    throw new Error('Unauthorized: Admin access required')
+    redirect('/dashboard')
   }
 }

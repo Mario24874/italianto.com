@@ -22,22 +22,15 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect()
   }
 
-  // Proteger rutas de admin
+  // Proteger rutas de admin: solo verificar autenticación en middleware.
+  // La autorización por email se valida en cada página con requireAdmin().
   if (isAdminRoute(req)) {
-    const { userId, sessionClaims } = await auth()
+    const { userId } = await auth()
 
     if (!userId) {
       const signInUrl = new URL('/sign-in', req.url)
       signInUrl.searchParams.set('redirect_url', req.url)
       return NextResponse.redirect(signInUrl)
-    }
-
-    // Verificar admin via sessionClaims o header
-    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim())
-    const userEmail = sessionClaims?.email as string | undefined
-
-    if (!userEmail || !adminEmails.includes(userEmail)) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
     }
   }
 
