@@ -119,7 +119,7 @@ export default function ContactoPage() {
                   </label>
                   <input
                     type="text"
-                    name="from_name"
+                    name="user_name"
                     required
                     className="w-full rounded-xl bg-verde-950/30 border border-verde-800/40 px-4 py-2.5 text-sm text-verde-100 placeholder-verde-700 focus:outline-none focus:border-verde-600 transition-colors"
                     placeholder="Mario García"
@@ -131,7 +131,7 @@ export default function ContactoPage() {
                   </label>
                   <input
                     type="email"
-                    name="from_email"
+                    name="user_email"
                     required
                     className="w-full rounded-xl bg-verde-950/30 border border-verde-800/40 px-4 py-2.5 text-sm text-verde-100 placeholder-verde-700 focus:outline-none focus:border-verde-600 transition-colors"
                     placeholder="mario@ejemplo.com"
@@ -141,14 +141,13 @@ export default function ContactoPage() {
 
               <div>
                 <label className="block text-sm font-medium text-verde-300 mb-1.5">
-                  {t.contact.subject}
+                  {t.contact.phone}
                 </label>
                 <input
-                  type="text"
-                  name="subject"
-                  required
+                  type="tel"
+                  name="user_phone"
                   className="w-full rounded-xl bg-verde-950/30 border border-verde-800/40 px-4 py-2.5 text-sm text-verde-100 placeholder-verde-700 focus:outline-none focus:border-verde-600 transition-colors"
-                  placeholder="Pregunta sobre planes..."
+                  placeholder="+58 412 000 0000"
                 />
               </div>
 
