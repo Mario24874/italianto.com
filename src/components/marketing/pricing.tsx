@@ -6,19 +6,22 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, X, Zap, Crown } from 'lucide-react'
-import { PLANS } from '@/lib/plans'
+import { PLANS, type PlanType } from '@/lib/plans'
 import { formatCurrency } from '@/lib/utils'
+import { useLanguage } from '@/contexts/language-context'
 
 export function Pricing() {
   const [isAnnual, setIsAnnual] = useState(true)
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-100px' })
+  const { t } = useLanguage()
+
+  const planTranslations = t.pricing.plans
 
   return (
     <section id="precios" className="py-24 relative overflow-hidden bg-bg-dark-2/30">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-verde-700/30 to-transparent" />
 
-      {/* Background decorative */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full opacity-5"
           style={{ background: 'radial-gradient(ellipse, #2e7d32 0%, transparent 70%)' }}
@@ -33,15 +36,15 @@ export function Pricing() {
             transition={{ duration: 0.6 }}
           >
             <Badge variant="brand" className="mb-4">
-              Precios
+              {t.pricing.badge}
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-verde-50 mb-4 tracking-tight">
-              Elige tu plan,
+              {t.pricing.title1}
               <br />
-              <span className="gradient-text">empieza hoy</span>
+              <span className="gradient-text">{t.pricing.title2}</span>
             </h2>
             <p className="text-lg text-verde-400 max-w-xl mx-auto mb-8">
-              Comienza gratis y actualiza cuando lo necesites. Sin contratos, cancela cuando quieras.
+              {t.pricing.subtitle}
             </p>
 
             {/* Billing Toggle */}
@@ -54,7 +57,7 @@ export function Pricing() {
                     : 'text-verde-500 hover:text-verde-400'
                 }`}
               >
-                Mensual
+                {t.pricing.monthly}
               </button>
               <button
                 onClick={() => setIsAnnual(true)}
@@ -64,7 +67,7 @@ export function Pricing() {
                     : 'text-verde-500 hover:text-verde-400'
                 }`}
               >
-                Anual
+                {t.pricing.annual}
                 <span className="text-[10px] bg-verde-700/60 text-verde-300 px-1.5 py-0.5 rounded-full">
                   -30%
                 </span>
@@ -77,8 +80,9 @@ export function Pricing() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           {PLANS.map((plan, i) => {
             const price = isAnnual ? plan.annualPrice : plan.monthlyPrice
-            const period = isAnnual ? '/año' : '/mes'
+            const period = isAnnual ? t.pricing.perYear : t.pricing.perMonth
             const monthlyEquiv = isAnnual ? Math.round(plan.annualPrice / 12) : plan.monthlyPrice
+            const planT = planTranslations[plan.id as PlanType]
 
             return (
               <motion.div
@@ -92,7 +96,7 @@ export function Pricing() {
                   <div className="absolute -top-4 inset-x-0 flex justify-center z-10">
                     <Badge variant="premium" className="shadow-brand">
                       <Zap size={11} />
-                      {plan.badge}
+                      {t.pricing.popular}
                     </Badge>
                   </div>
                 )}
@@ -100,7 +104,7 @@ export function Pricing() {
                   <div className="absolute -top-4 inset-x-0 flex justify-center z-10">
                     <Badge variant="premium" className="shadow-brand border-amber-400/60">
                       <Crown size={11} />
-                      {plan.badge}
+                      {t.pricing.allIncluded}
                     </Badge>
                   </div>
                 )}
@@ -120,11 +124,11 @@ export function Pricing() {
                       {plan.nameIt}
                     </div>
                     <div className="text-verde-200 font-medium text-sm mb-4">
-                      {plan.description}
+                      {planT.description}
                     </div>
                     <div className="flex items-end gap-1">
                       {price === 0 ? (
-                        <span className="text-4xl font-extrabold text-verde-50">Gratis</span>
+                        <span className="text-4xl font-extrabold text-verde-50">{t.pricing.free}</span>
                       ) : (
                         <>
                           <span className="text-4xl font-extrabold text-verde-50">
@@ -136,29 +140,28 @@ export function Pricing() {
                     </div>
                     {isAnnual && price > 0 && (
                       <div className="text-xs text-verde-500 mt-1">
-                        ≈ {formatCurrency(monthlyEquiv, 'USD')}/mes
+                        ≈ {formatCurrency(monthlyEquiv, 'USD')}{t.pricing.approxPerMonth}
                       </div>
                     )}
                   </div>
 
                   {/* Features */}
                   <ul className="space-y-2.5 flex-1 mb-8">
-                    {plan.features.map(feat => (
+                    {planT.features.map(feat => (
                       <li key={feat} className="flex items-start gap-2">
                         <CheckCircle2 size={14} className="text-verde-500 mt-0.5 shrink-0" />
                         <span className="text-sm text-verde-300">{feat}</span>
                       </li>
                     ))}
-                    {/* Limites no incluidos */}
                     {plan.id === 'free' && (
                       <>
                         <li className="flex items-start gap-2 opacity-40">
                           <X size={14} className="mt-0.5 shrink-0 text-red-500" />
-                          <span className="text-sm text-verde-500 line-through">Tutor AI</span>
+                          <span className="text-sm text-verde-500 line-through">{t.pricing.tutor}</span>
                         </li>
                         <li className="flex items-start gap-2 opacity-40">
                           <X size={14} className="mt-0.5 shrink-0 text-red-500" />
-                          <span className="text-sm text-verde-500 line-through">Audio generado</span>
+                          <span className="text-sm text-verde-500 line-through">{t.pricing.audio}</span>
                         </li>
                       </>
                     )}
@@ -173,7 +176,7 @@ export function Pricing() {
                     <Link
                       href={plan.id === 'free' ? '/sign-up' : `/sign-up?plan=${plan.id}&billing=${isAnnual ? 'annual' : 'monthly'}`}
                     >
-                      {plan.id === 'free' ? 'Comenzar gratis' : `Elegir ${plan.name}`}
+                      {plan.id === 'free' ? t.pricing.startFree : `${t.pricing.choose} ${plan.name}`}
                     </Link>
                   </Button>
                 </div>
@@ -183,8 +186,7 @@ export function Pricing() {
         </div>
 
         <p className="text-center text-xs text-verde-600 mt-8">
-          Todos los planes incluyen acceso a ItaliantoApp y Dialogue Studio.
-          Sin cargos ocultos. Cancela en cualquier momento.
+          {t.pricing.footer}
         </p>
       </div>
     </section>

@@ -51,9 +51,9 @@ export const metadata: Metadata = {
       'La plataforma integral para aprender italiano. Traductor, conjugador, práctica de pronunciación y tutor con IA.',
     images: [
       {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
+        url: '/logo_Italianto.png',
+        width: 512,
+        height: 512,
         alt: 'Italianto — Plataforma de aprendizaje de italiano',
       },
     ],
@@ -62,16 +62,14 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Italianto — Aprende Italiano con IA',
     description: 'La plataforma integral para aprender italiano.',
-    images: ['/og-image.jpg'],
-    creator: '@italiantoapp',
+    images: ['/logo_Italianto.png'],
   },
   icons: {
     icon: [
-      { url: '/favicon.ico' },
-      { url: '/icon-16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/icon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/logo_Italianto.png', type: 'image/png' },
     ],
-    apple: [{ url: '/apple-icon.png', sizes: '180x180' }],
+    apple: [{ url: '/logo_Italianto.png' }],
+    shortcut: '/logo_Italianto.png',
   },
   manifest: '/manifest.json',
   alternates: {

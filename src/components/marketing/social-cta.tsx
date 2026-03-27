@@ -4,52 +4,44 @@ import { motion, useInView } from 'framer-motion'
 import { useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Youtube, Instagram, Twitter, Play, Users, Star } from 'lucide-react'
+import { Youtube, Instagram, Play, Users, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-
-const socialChannels = [
-  {
-    name: 'YouTube',
-    handle: '@italianto',
-    description: 'Lecciones en video, pronunciación y cultura italiana.',
-    icon: Youtube,
-    color: 'text-red-400',
-    bgColor: 'bg-red-950/30',
-    borderColor: 'border-red-800/30',
-    followers: '5K+',
-    href: 'https://youtube.com/@italianto',
-    cta: 'Ver canal',
-  },
-  {
-    name: 'Instagram',
-    handle: '@italiantoapp',
-    description: 'Frases del día, vocabulario y snippets culturales.',
-    icon: Instagram,
-    color: 'text-pink-400',
-    bgColor: 'bg-pink-950/30',
-    borderColor: 'border-pink-800/30',
-    followers: '3K+',
-    href: 'https://instagram.com/italiantoapp',
-    cta: 'Seguir',
-  },
-  {
-    name: 'X / Twitter',
-    handle: '@italiantoapp',
-    description: 'Tips diarios, actualizaciones y comunidad.',
-    icon: Twitter,
-    color: 'text-sky-400',
-    bgColor: 'bg-sky-950/30',
-    borderColor: 'border-sky-800/30',
-    followers: '2K+',
-    href: 'https://twitter.com/italiantoapp',
-    cta: 'Seguir',
-  },
-]
+import { useLanguage } from '@/contexts/language-context'
 
 export function SocialCta() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-100px' })
+  const { t } = useLanguage()
+
+  const socialChannels = [
+    {
+      name: 'YouTube',
+      handle: '@Italiantonline',
+      description: t.social.youtube.description,
+      icon: Youtube,
+      color: 'text-red-400',
+      bgColor: 'bg-red-950/30',
+      borderColor: 'border-red-800/30',
+      followers: '5K+',
+      href: 'https://www.youtube.com/@Italiantonline',
+      cta: t.social.youtube.cta,
+      isYoutube: true,
+    },
+    {
+      name: 'Instagram',
+      handle: '@italiantonline',
+      description: t.social.instagram.description,
+      icon: Instagram,
+      color: 'text-pink-400',
+      bgColor: 'bg-pink-950/30',
+      borderColor: 'border-pink-800/30',
+      followers: '3K+',
+      href: 'https://www.instagram.com/italiantonline/',
+      cta: t.social.instagram.cta,
+      isYoutube: false,
+    },
+  ]
 
   return (
     <section className="py-24 relative overflow-hidden">
@@ -73,22 +65,21 @@ export function SocialCta() {
           >
             <Badge variant="brand" className="mb-4">
               <Users size={12} />
-              Comunidad
+              {t.social.badge}
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-verde-50 mb-4 tracking-tight">
-              Únete a la comunidad
+              {t.social.title}
               <br />
               <span className="gradient-text">Italianto</span>
             </h2>
             <p className="text-lg text-verde-400 max-w-xl mx-auto">
-              Contenido gratuito a diario en nuestras redes sociales. Frases,
-              pronunciación, cultura italiana y tips para acelerar tu aprendizaje.
+              {t.social.subtitle}
             </p>
           </motion.div>
         </div>
 
         {/* Social Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto mb-16">
           {socialChannels.map((channel, i) => (
             <motion.a
               key={channel.name}
@@ -110,7 +101,7 @@ export function SocialCta() {
                   </div>
                   <div className="flex items-center gap-1 text-xs text-verde-500">
                     <Star size={10} className="fill-verde-600 text-verde-600" />
-                    {channel.followers} seguidores
+                    {channel.followers} {t.social.followers}
                   </div>
                 </div>
                 <div className={`text-lg font-bold ${channel.color} mb-0.5`}>
@@ -121,7 +112,7 @@ export function SocialCta() {
                   {channel.description}
                 </p>
                 <div className={`text-sm font-semibold ${channel.color} flex items-center gap-1.5 group-hover:gap-2.5 transition-all`}>
-                  {channel.name === 'YouTube' ? <Play size={14} /> : null}
+                  {channel.isYoutube ? <Play size={14} /> : null}
                   {channel.cta}
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                 </div>
@@ -135,20 +126,20 @@ export function SocialCta() {
           className="text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.4 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
         >
           <div className="inline-flex flex-col sm:flex-row gap-4 items-center justify-center bg-verde-950/40 border border-verde-800/30 rounded-3xl px-10 py-8">
             <div className="text-center sm:text-left">
               <div className="text-xl font-bold text-verde-50 mb-1">
-                ¿Listo para hablar italiano?
+                {t.social.ctaTitle}
               </div>
               <div className="text-sm text-verde-400">
-                Regístrate gratis. Sin tarjeta de crédito.
+                {t.social.ctaSub}
               </div>
             </div>
             <Button size="xl" className="shrink-0" asChild>
               <Link href="/sign-up">
-                Comenzar gratis →
+                {t.social.ctaBtn}
               </Link>
             </Button>
           </div>

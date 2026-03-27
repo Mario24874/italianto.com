@@ -6,70 +6,53 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Smartphone,
-  Globe,
-  ArrowRight,
-  CheckCircle2,
-  ExternalLink,
-} from 'lucide-react'
-
-const apps = [
-  {
-    id: 'italianto-app',
-    tag: 'App Móvil + PWA',
-    icon: Smartphone,
-    name: 'ItaliantoApp',
-    subtitle: 'Tu compañero de italiano en el bolsillo',
-    description:
-      'La aplicación móvil completa para aprender italiano. Disponible en Android, iOS y como aplicación web progresiva (PWA). Aprende sin conexión a internet.',
-    features: [
-      'Traductor bidireccional (ES/EN ↔ IT)',
-      'Conjugador de 50+ verbos',
-      'Práctica de pronunciación con IA',
-      'Tutor conversacional con Vapi.ai',
-    ],
-    cta: 'Usar la app',
-    ctaHref: process.env.NEXT_PUBLIC_APP_ITALIANTO_URL || 'https://app.italianto.com',
-    external: true,
-    gradient: 'from-verde-950 via-bg-dark-2 to-bg-dark',
-    accentColor: 'text-verde-400',
-    borderColor: 'border-verde-800/40',
-    badgeVariant: 'brand' as const,
-    image: '/images/media/img/Altare_della_Patria.jfif',
-  },
-  {
-    id: 'dialogue-studio',
-    tag: 'Web App',
-    icon: Globe,
-    name: 'Dialogue Studio',
-    subtitle: 'Crea diálogos italianos con IA',
-    description:
-      'Genera o traduce diálogos al italiano con múltiples personajes. Exporta como texto o audio MP3 con voces naturales. Perfecto para practicar conversaciones reales.',
-    features: [
-      'Generación de diálogos por contexto',
-      'Traducción al italiano (ES/EN)',
-      'Audio MP3 con ElevenLabs',
-      'Soporte de carga de archivos TXT/PDF',
-    ],
-    cta: 'Abrir Studio',
-    ctaHref: process.env.NEXT_PUBLIC_APP_STUDIO_URL || 'https://studio.italianto.com',
-    external: true,
-    gradient: 'from-purple-950/50 via-bg-dark-2 to-bg-dark',
-    accentColor: 'text-purple-400',
-    borderColor: 'border-purple-800/40',
-    badgeVariant: 'info' as const,
-    image: '/images/media/img/Ponte_di_Rialto_Venezia.jfif',
-  },
-]
+import { Smartphone, Globe, ArrowRight, CheckCircle2, ExternalLink } from 'lucide-react'
+import { useLanguage } from '@/contexts/language-context'
 
 export function AppsShowcase() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-100px' })
+  const { t } = useLanguage()
+
+  const apps = [
+    {
+      id: 'italianto-app',
+      icon: Smartphone,
+      name: 'ItaliantoApp',
+      tag: t.apps.app1.tag,
+      subtitle: t.apps.app1.subtitle,
+      description: t.apps.app1.description,
+      features: t.apps.app1.features,
+      cta: t.apps.app1.cta,
+      ctaHref: process.env.NEXT_PUBLIC_APP_ITALIANTO_URL || 'https://app.italianto.com',
+      external: true,
+      gradient: 'from-verde-950 via-bg-dark-2 to-bg-dark',
+      accentColor: 'text-verde-400',
+      borderColor: 'border-verde-800/40',
+      badgeVariant: 'brand' as const,
+      image: '/images/media/img/Altare_della_Patria.jfif',
+    },
+    {
+      id: 'dialogue-studio',
+      icon: Globe,
+      name: 'Dialogue Studio',
+      tag: t.apps.app2.tag,
+      subtitle: t.apps.app2.subtitle,
+      description: t.apps.app2.description,
+      features: t.apps.app2.features,
+      cta: t.apps.app2.cta,
+      ctaHref: process.env.NEXT_PUBLIC_APP_STUDIO_URL || 'https://studio.italianto.com',
+      external: true,
+      gradient: 'from-purple-950/50 via-bg-dark-2 to-bg-dark',
+      accentColor: 'text-purple-400',
+      borderColor: 'border-purple-800/40',
+      badgeVariant: 'info' as const,
+      image: '/images/media/img/Ponte_di_Rialto_Venezia.jfif',
+    },
+  ]
 
   return (
     <section id="apps" className="py-24 relative overflow-hidden">
-      {/* Decorative lines */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-verde-700/30 to-transparent" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -80,16 +63,15 @@ export function AppsShowcase() {
             transition={{ duration: 0.6 }}
           >
             <Badge variant="default" className="mb-4">
-              Ecosistema de Apps
+              {t.apps.badge}
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-verde-50 mb-4 tracking-tight">
-              Dos herramientas poderosas,
+              {t.apps.title1}
               <br />
-              <span className="gradient-text">una sola suscripción</span>
+              <span className="gradient-text">{t.apps.title2}</span>
             </h2>
             <p className="text-lg text-verde-400 max-w-2xl mx-auto">
-              Con tu cuenta Italianto accedes a todo el ecosistema. Mobile,
-              web, desktop — tu aprendizaje no tiene límites de dispositivo.
+              {t.apps.subtitle}
             </p>
           </motion.div>
         </div>
@@ -136,7 +118,6 @@ export function AppsShowcase() {
                     {app.description}
                   </p>
 
-                  {/* Feature List */}
                   <ul className="space-y-2.5 mb-8 flex-1">
                     {app.features.map(feat => (
                       <li key={feat} className="flex items-center gap-2.5">
@@ -146,7 +127,6 @@ export function AppsShowcase() {
                     ))}
                   </ul>
 
-                  {/* CTA */}
                   <Button
                     variant="outline"
                     className={`w-full border-current ${app.accentColor} group/btn`}
