@@ -15,7 +15,7 @@ import { useLanguage, LANGUAGES, type Language } from '@/contexts/language-conte
 export function Header() {
   const pathname = usePathname()
   const { t, lang, setLang } = useLanguage()
-  const { theme, setTheme, resolvedTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLangOpen, setIsLangOpen] = useState(false)

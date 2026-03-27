@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SpotlightCard } from '@/components/ui/card'

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { generateCouponCode, formatDate } from '@/lib/utils'
@@ -58,7 +57,7 @@ function CreateCouponModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onCreate({ ...form, is_active: true })
+    onCreate({ ...form, is_active: true, max_uses: form.max_uses ? Number(form.max_uses) : null })
     onClose()
   }
 
