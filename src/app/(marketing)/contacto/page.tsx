@@ -33,6 +33,7 @@ export default function ContactoPage() {
           user_email: fields.user_email,
           user_phone: fields.user_phone || '—',
           message:    fields.message,
+          reply_to:   fields.user_email,
         },
         EMAILJS_PUBLIC_KEY,
       )
