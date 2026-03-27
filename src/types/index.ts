@@ -8,12 +8,38 @@ export interface Database {
     Tables: {
       users: {
         Row: UserRow
-        Insert: Omit<UserRow, 'created_at' | 'updated_at'>
+        Insert: {
+          id: string
+          email: string
+          full_name?: string | null
+          avatar_url?: string | null
+          stripe_customer_id?: string | null
+          plan_type?: PlanType
+        }
         Update: Partial<Omit<UserRow, 'id' | 'created_at'>>
       }
       subscriptions: {
         Row: SubscriptionRow
-        Insert: Omit<SubscriptionRow, 'created_at' | 'updated_at'>
+        Insert: {
+          id: string
+          user_id: string
+          status: SubscriptionStatus
+          plan_type: PlanType
+          currency?: string
+          cancel_at_period_end?: boolean
+          price_id?: string | null
+          billing_interval?: 'month' | 'year' | null
+          amount?: number | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          canceled_at?: string | null
+          tutor_minutes_used?: number
+          tutor_minutes_reset_at?: string | null
+          dialogues_used?: number
+          audio_used?: number
+          usage_reset_at?: string | null
+          coupon_id?: string | null
+        }
         Update: Partial<Omit<SubscriptionRow, 'id' | 'created_at'>>
       }
       usage_metrics: {

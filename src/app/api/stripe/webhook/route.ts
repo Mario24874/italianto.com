@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import type Stripe from 'stripe'
+import type { PlanType, SubscriptionStatus } from '@/types'
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -45,8 +46,8 @@ export async function POST(req: NextRequest) {
         await supabase.from('subscriptions').upsert({
           id: sub.id,
           user_id: sub.metadata?.userId || sub.customer as string,
-          status: sub.status as any,
-          plan_type: planType as any,
+          status: sub.status as SubscriptionStatus,
+          plan_type: planType as PlanType,
           price_id: priceId,
           billing_interval: billingInterval,
           amount,
