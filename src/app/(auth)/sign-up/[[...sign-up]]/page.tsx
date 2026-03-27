@@ -54,6 +54,15 @@ export default function SignUpPage() {
           </div>
           <SignUp
             appearance={{
+              variables: {
+                colorBackground: 'transparent',
+                colorText: '#f0fdf1',
+                colorTextSecondary: '#4ade5d',
+                colorInputBackground: 'rgba(5, 46, 22, 0.5)',
+                colorInputText: '#bbf7c2',
+                colorPrimary: '#2e7d32',
+                colorTextOnPrimaryBackground: '#ffffff',
+              },
               elements: {
                 rootBox: 'w-full',
                 card: 'bg-transparent shadow-none border-0 p-0',
