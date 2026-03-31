@@ -41,7 +41,12 @@ export function Pricing() {
         body: JSON.stringify({ planType: planId, billingInterval: isAnnual ? 'year' : 'month' }),
       })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        console.error('Checkout error:', data.error)
+        alert(`Error al procesar el pago: ${data.error}`)
+      }
     } finally {
       setLoadingPlan(null)
     }
