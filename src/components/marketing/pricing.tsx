@@ -3,6 +3,8 @@
 import { useState, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, X, Zap, Crown } from 'lucide-react'
@@ -12,11 +14,38 @@ import { useLanguage } from '@/contexts/language-context'
 
 export function Pricing() {
   const [isAnnual, setIsAnnual] = useState(true)
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const { isSignedIn } = useUser()
+  const router = useRouter()
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-100px' })
   const { t } = useLanguage()
 
   const planTranslations = t.pricing.plans
+
+  async function handlePlanClick(planId: string) {
+    if (planId === 'free') {
+      router.push('/sign-up')
+      return
+    }
+    const billing = isAnnual ? 'annual' : 'monthly'
+    if (!isSignedIn) {
+      router.push(`/sign-up?plan=${planId}&billing=${billing}`)
+      return
+    }
+    setLoadingPlan(planId)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planType: planId, billingInterval: isAnnual ? 'year' : 'month' }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } finally {
+      setLoadingPlan(null)
+    }
+  }
 
   return (
     <section id="precios" className="py-24 relative overflow-hidden bg-bg-light-2/30 dark:bg-bg-dark-2/30">
@@ -171,13 +200,14 @@ export function Pricing() {
                   <Button
                     variant={plan.highlighted ? 'default' : plan.id === 'maestro' ? 'gradient' : 'outline'}
                     className="w-full"
-                    asChild
+                    disabled={loadingPlan === plan.id}
+                    onClick={() => handlePlanClick(plan.id)}
                   >
-                    <Link
-                      href={plan.id === 'free' ? '/sign-up' : `/sign-up?plan=${plan.id}&billing=${isAnnual ? 'annual' : 'monthly'}`}
-                    >
-                      {plan.id === 'free' ? t.pricing.startFree : `${t.pricing.choose} ${plan.name}`}
-                    </Link>
+                    {loadingPlan === plan.id
+                      ? 'Redirigiendo...'
+                      : plan.id === 'free'
+                        ? t.pricing.startFree
+                        : `${t.pricing.choose} ${plan.name}`}
                   </Button>
                 </div>
               </motion.div>
