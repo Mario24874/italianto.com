@@ -57,7 +57,6 @@ export default function SignInPage() {
                 headerSubtitle: 'text-verde-400',
                 socialButtonsBlockButton: 'border border-verde-800 hover:border-verde-600 bg-verde-950/40 rounded-xl transition-all',
                 socialButtonsBlockButtonText: 'text-verde-100',
-                socialButtonsBlockButton__apple: '[&_svg]:invert',
                 dividerLine: 'bg-verde-900/50',
                 dividerText: 'text-verde-600',
                 formFieldLabel: 'text-verde-400 text-sm',

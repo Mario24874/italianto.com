@@ -272,3 +272,9 @@ html:not(.dark) .bg-bg-dark-2 { background-color: var(--color-bg-light-2); }
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ─── Clerk: Apple button icon visible on dark background ───────────────── */
+.cl-socialButtonsBlockButton__apple svg,
+.cl-socialButtonsBlockButton__apple img {
+  filter: invert(1);
+}
