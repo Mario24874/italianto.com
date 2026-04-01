@@ -36,18 +36,19 @@ export async function POST(req: NextRequest) {
         const productId = sub.items.data[0]?.price.product as string
 
         // Determinar plan
-        let planType = 'essenziale'
+        let planType: PlanType = 'essenziale'
         if (productId === process.env.STRIPE_PRODUCT_AVANZATO) planType = 'avanzato'
         if (productId === process.env.STRIPE_PRODUCT_MAESTRO) planType = 'maestro'
 
         const billingInterval = sub.items.data[0]?.price.recurring?.interval || 'month'
         const amount = sub.items.data[0]?.price.unit_amount || 0
+        const userId = sub.metadata?.userId
 
         await supabase.from('subscriptions').upsert({
           id: sub.id,
-          user_id: sub.metadata?.userId || sub.customer as string,
+          user_id: userId || sub.customer as string,
           status: sub.status as SubscriptionStatus,
-          plan_type: planType as PlanType,
+          plan_type: planType,
           price_id: priceId,
           billing_interval: billingInterval,
           amount,
@@ -59,11 +60,18 @@ export async function POST(req: NextRequest) {
           updated_at: new Date().toISOString(),
         })
 
-        // Actualizar plan del usuario
-        await supabase
-          .from('users')
-          .update({ plan_type: planType, updated_at: new Date().toISOString() })
-          .eq('stripe_customer_id', sub.customer)
+        // Actualizar plan del usuario — preferir userId del metadata (más confiable)
+        if (userId) {
+          await supabase
+            .from('users')
+            .update({ plan_type: planType, stripe_customer_id: sub.customer as string, updated_at: new Date().toISOString() })
+            .eq('id', userId)
+        } else {
+          await supabase
+            .from('users')
+            .update({ plan_type: planType, updated_at: new Date().toISOString() })
+            .eq('stripe_customer_id', sub.customer)
+        }
 
         break
       }
@@ -84,14 +92,41 @@ export async function POST(req: NextRequest) {
 
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        if (session.mode === 'subscription' && session.subscription) {
+        if (session.mode === 'subscription' && session.subscription && session.metadata?.userId) {
+          const userId = session.metadata.userId
+
+          // Guardar stripe_customer_id en el usuario
           await supabase
             .from('users')
-            .update({
-              stripe_customer_id: session.customer as string,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', session.metadata?.userId)
+            .update({ stripe_customer_id: session.customer as string, updated_at: new Date().toISOString() })
+            .eq('id', userId)
+
+          // Obtener suscripción para actualizar plan_type (customer.subscription.created puede llegar antes)
+          const sub = await stripe.subscriptions.retrieve(session.subscription as string)
+          const productId = sub.items.data[0]?.price.product as string
+          let planType: PlanType = 'essenziale'
+          if (productId === process.env.STRIPE_PRODUCT_AVANZATO) planType = 'avanzato'
+          if (productId === process.env.STRIPE_PRODUCT_MAESTRO) planType = 'maestro'
+
+          await supabase
+            .from('users')
+            .update({ plan_type: planType, updated_at: new Date().toISOString() })
+            .eq('id', userId)
+
+          await supabase.from('subscriptions').upsert({
+            id: sub.id,
+            user_id: userId,
+            status: sub.status as SubscriptionStatus,
+            plan_type: planType,
+            price_id: sub.items.data[0]?.price.id,
+            billing_interval: sub.items.data[0]?.price.recurring?.interval || 'month',
+            amount: sub.items.data[0]?.price.unit_amount || 0,
+            currency: sub.currency,
+            current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: sub.cancel_at_period_end,
+            updated_at: new Date().toISOString(),
+          })
         }
         break
       }

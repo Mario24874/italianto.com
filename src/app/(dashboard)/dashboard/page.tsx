@@ -4,9 +4,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SpotlightCard } from '@/components/ui/card'
 import Link from 'next/link'
+import { getSupabaseAdmin } from '@/lib/supabase'
+import { PLANS } from '@/lib/plans'
 import {
   BookOpen, Music, Gamepad2, Info, Video, Download,
-  ExternalLink, MessageSquare, Zap,
+  ExternalLink, MessageSquare, Zap, Crown, Star,
 } from 'lucide-react'
 
 export const metadata: Metadata = { title: "L'Aula — Italianto" }
@@ -37,9 +39,28 @@ const externalApps = [
   },
 ]
 
+const PLAN_ICONS: Record<string, React.ElementType> = {
+  essenziale: Star,
+  avanzato: Zap,
+  maestro: Crown,
+}
+
 export default async function DashboardPage() {
   const user = await currentUser()
   const firstName = user?.firstName || 'estudiante'
+
+  const supabase = getSupabaseAdmin()
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('plan_type, status, billing_interval, current_period_end, cancel_at_period_end')
+    .eq('user_id', user?.id ?? '')
+    .eq('status', 'active')
+    .maybeSingle()
+
+  const planType = subscription?.plan_type ?? 'free'
+  const isPaid = planType !== 'free'
+  const planInfo = PLANS.find(p => p.id === planType)
+  const PlanIcon = PLAN_ICONS[planType] ?? Zap
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -107,22 +128,46 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Upgrade CTA for free users */}
-      <div className="rounded-2xl border border-verde-700/30 bg-gradient-to-r from-verde-950/60 to-bg-dark-2 p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <div className="text-base font-bold text-verde-100 mb-1">
-              Desbloquea todo el potencial
+      {/* Plan status */}
+      {isPaid ? (
+        <div className="rounded-2xl border border-verde-700/40 bg-gradient-to-r from-verde-950/60 to-bg-dark-2 p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-verde-900/60 border border-verde-700/40 flex items-center justify-center shrink-0">
+                <PlanIcon size={18} className="text-verde-400" />
+              </div>
+              <div>
+                <div className="text-base font-bold text-verde-100">
+                  Plan {planInfo?.name ?? planType}
+                </div>
+                <div className="text-sm text-verde-400">
+                  {subscription?.billing_interval === 'year' ? 'Facturación anual' : 'Facturación mensual'}
+                  {subscription?.cancel_at_period_end && ' · Cancela al final del periodo'}
+                </div>
+              </div>
             </div>
-            <div className="text-sm text-verde-400">
-              Con un plan de pago accedes al Tutor AI, diálogos ilimitados y más.
-            </div>
+            <Button asChild variant="outline" className="shrink-0">
+              <Link href="/precios">Cambiar plan →</Link>
+            </Button>
           </div>
-          <Button asChild className="shrink-0">
-            <Link href="/precios">Ver planes →</Link>
-          </Button>
         </div>
-      </div>
+      ) : (
+        <div className="rounded-2xl border border-verde-700/30 bg-gradient-to-r from-verde-950/60 to-bg-dark-2 p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="text-base font-bold text-verde-100 mb-1">
+                Desbloquea todo el potencial
+              </div>
+              <div className="text-sm text-verde-400">
+                Con un plan de pago accedes al Tutor AI, diálogos ilimitados y más.
+              </div>
+            </div>
+            <Button asChild className="shrink-0">
+              <Link href="/precios">Ver planes →</Link>
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
