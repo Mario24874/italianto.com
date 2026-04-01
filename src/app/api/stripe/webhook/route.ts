@@ -4,6 +4,9 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import type Stripe from 'stripe'
 import type { PlanType, SubscriptionStatus } from '@/types'
 
+const toISO = (ts: number | null | undefined): string | null =>
+  ts ? new Date(ts * 1000).toISOString() : null
+
 export async function POST(req: NextRequest) {
   const body = await req.text()
   const sig = req.headers.get('stripe-signature')
@@ -53,10 +56,10 @@ export async function POST(req: NextRequest) {
           billing_interval: billingInterval,
           amount,
           currency: sub.currency,
-          current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+          current_period_start: toISO(sub.current_period_start),
+          current_period_end: toISO(sub.current_period_end),
           cancel_at_period_end: sub.cancel_at_period_end,
-          canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
+          canceled_at: toISO(sub.canceled_at),
           updated_at: new Date().toISOString(),
         })
 
@@ -124,8 +127,8 @@ export async function POST(req: NextRequest) {
             billing_interval: sub.items.data[0]?.price.recurring?.interval || 'month',
             amount: sub.items.data[0]?.price.unit_amount || 0,
             currency: sub.currency,
-            current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            current_period_start: toISO(sub.current_period_start),
+            current_period_end: toISO(sub.current_period_end),
             cancel_at_period_end: sub.cancel_at_period_end,
             updated_at: new Date().toISOString(),
           })
