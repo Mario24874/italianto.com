@@ -35,6 +35,19 @@ export async function POST(req: NextRequest) {
 
     let customerId = user?.stripe_customer_id
 
+    // Verify the stored customer still exists in Stripe (e.g. after switching test→live)
+    if (customerId) {
+      try {
+        await stripe.customers.retrieve(customerId)
+      } catch {
+        customerId = null
+        await supabase
+          .from('users')
+          .update({ stripe_customer_id: null })
+          .eq('id', userId)
+      }
+    }
+
     if (!customerId && user?.email) {
       const customer = await stripe.customers.create({
         email: user.email,
