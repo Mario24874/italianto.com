@@ -5,9 +5,9 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useState, useEffect } from 'react'
-import { UserButton } from '@clerk/nextjs'
 import { cn } from '@/lib/utils'
 import { useLanguage, LANGUAGES } from '@/contexts/language-context'
+import { ClerkUserButton } from '@/components/layout/clerk-user-button'
 import {
   LayoutDashboard,
   BookOpen,
@@ -144,10 +144,7 @@ export function DashboardSidebar({ onClose, isMobile }: DashboardSidebarProps) {
           {t.dashboard.backHome}
         </Link>
         <div className="flex items-center gap-3">
-          <UserButton
-            appearance={{ elements: { avatarBox: 'size-8 ring-1 ring-verde-800' } }}
-            afterSignOutUrl="/"
-          />
+          <ClerkUserButton />
           <div className="text-xs text-verde-500">{t.dashboard.myAccount}</div>
         </div>
       </div>
