@@ -160,14 +160,15 @@ export default async function AdminSuscripcionesPage() {
                         : '—'}
                     </td>
                     <td className="px-4 py-3.5">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
+                      <a
+                        href={`https://dashboard.stripe.com/subscriptions/${sub.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         title="Ver en Stripe"
-                        onClick={() => window.open(`https://dashboard.stripe.com/subscriptions/${sub.id}`, '_blank')}
+                        className="inline-flex items-center justify-center size-7 rounded-lg text-verde-500 hover:text-verde-300 hover:bg-verde-950/50 transition-colors"
                       >
                         <ExternalLink size={13} />
-                      </Button>
+                      </a>
                     </td>
                   </tr>
                 )
