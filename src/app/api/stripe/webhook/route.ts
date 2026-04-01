@@ -94,25 +94,27 @@ export async function POST(req: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session
         if (session.mode === 'subscription' && session.subscription && session.metadata?.userId) {
           const userId = session.metadata.userId
+          const email = session.customer_details?.email || ''
+          const fullName = session.customer_details?.name || null
 
-          // Guardar stripe_customer_id en el usuario
-          await supabase
-            .from('users')
-            .update({ stripe_customer_id: session.customer as string, updated_at: new Date().toISOString() })
-            .eq('id', userId)
-
-          // Obtener suscripción para actualizar plan_type (customer.subscription.created puede llegar antes)
+          // Obtener suscripción para determinar plan_type
           const sub = await stripe.subscriptions.retrieve(session.subscription as string)
           const productId = sub.items.data[0]?.price.product as string
           let planType: PlanType = 'essenziale'
           if (productId === process.env.STRIPE_PRODUCT_AVANZATO) planType = 'avanzato'
           if (productId === process.env.STRIPE_PRODUCT_MAESTRO) planType = 'maestro'
 
-          await supabase
-            .from('users')
-            .update({ plan_type: planType, updated_at: new Date().toISOString() })
-            .eq('id', userId)
+          // Upsert usuario — lo crea si no existe (Clerk webhook puede no haberse configurado aún)
+          await supabase.from('users').upsert({
+            id: userId,
+            email,
+            full_name: fullName,
+            stripe_customer_id: session.customer as string,
+            plan_type: planType,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'id' })
 
+          // Upsert suscripción
           await supabase.from('subscriptions').upsert({
             id: sub.id,
             user_id: userId,
