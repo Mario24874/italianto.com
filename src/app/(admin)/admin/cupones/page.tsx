@@ -169,7 +169,11 @@ export default function AdminCuponesPage() {
   useEffect(() => {
     fetch('/api/admin/coupons')
       .then(r => r.json())
-      .then(data => setCoupons(data.coupons || []))
+      .then(data => {
+        if (data.error) console.error('Coupons API error:', data.error)
+        setCoupons(data.coupons || [])
+      })
+      .catch(err => console.error('Coupons fetch failed:', err))
       .finally(() => setLoading(false))
   }, [])
 
