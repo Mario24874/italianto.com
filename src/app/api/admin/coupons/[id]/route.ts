@@ -12,10 +12,17 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
-  const { id } = await params
-  const { active } = await req.json()
-  await stripe.promotionCodes.update(id, { active })
-  return NextResponse.json({ updated: true })
+  try {
+    const { id } = await params
+    const { active } = await req.json()
+    await stripe.coupons.update(id, {
+      metadata: { is_active: active ? 'true' : 'false' },
+    })
+    return NextResponse.json({ updated: true })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
 
 export async function DELETE(
@@ -26,16 +33,12 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
-  const { id } = await params
-  const promo = await stripe.promotionCodes.retrieve(id, { expand: ['coupon'] })
-  const couponId = (promo.coupon as { id: string }).id
-
   try {
-    await stripe.coupons.del(couponId)
-  } catch {
-    // Si el cupón tiene suscripciones activas no se puede eliminar — solo desactivar
-    await stripe.promotionCodes.update(id, { active: false })
+    const { id } = await params
+    await stripe.coupons.del(id)
+    return NextResponse.json({ deleted: true })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
-
-  return NextResponse.json({ deleted: true })
 }
