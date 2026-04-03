@@ -35,7 +35,7 @@ export function AppsShowcase() {
     {
       id: 'dialogue-studio',
       icon: Globe,
-      name: 'Dialogue Studio',
+      name: 'Dialoghi Studio',
       tag: t.apps.app2.tag,
       subtitle: t.apps.app2.subtitle,
       description: t.apps.app2.description,

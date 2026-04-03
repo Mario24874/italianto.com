@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SpotlightCard } from '@/components/ui/card'
 import { useLanguage } from '@/contexts/language-context'
+import Image from 'next/image'
 import {
   BookOpen, Music, Gamepad2, Info, Video, Download,
-  ExternalLink, MessageSquare, Zap, Crown, Star,
+  ExternalLink, Zap, Crown, Star,
 } from 'lucide-react'
 import type { PlanType } from '@/lib/plans'
 
@@ -50,15 +51,13 @@ export function DashboardContent({
       name: 'ItaliantoApp',
       description: 'Traductor, conjugador y tutor AI',
       href: process.env.NEXT_PUBLIC_APP_ITALIANTO_URL || 'https://app.italianto.com',
-      icon: Zap,
-      color: 'text-verde-400',
+      logoSrc: '/logo_Italianto.png',
     },
     {
-      name: 'Dialogue Studio',
+      name: 'Dialoghi Studio',
       description: 'Genera diálogos italianos con IA',
       href: process.env.NEXT_PUBLIC_APP_STUDIO_URL || 'https://studio.italianto.com',
-      icon: MessageSquare,
-      color: 'text-purple-400',
+      logoSrc: '/logo_Italianto.png',
     },
   ]
 
@@ -88,8 +87,8 @@ export function DashboardContent({
               rel="noopener noreferrer"
               className="group flex items-center gap-4 p-4 rounded-2xl border border-verde-900/40 bg-verde-950/20 hover:bg-verde-950/40 hover:border-verde-800/50 transition-all"
             >
-              <div className="size-10 rounded-xl bg-verde-950 border border-verde-800/40 flex items-center justify-center shrink-0">
-                <app.icon size={18} className={app.color} />
+              <div className="size-10 rounded-xl bg-verde-950 border border-verde-800/40 flex items-center justify-center shrink-0 overflow-hidden">
+                <Image src={app.logoSrc} alt={app.name} width={32} height={32} className="object-contain rounded-lg" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-verde-200 text-sm">{app.name}</div>

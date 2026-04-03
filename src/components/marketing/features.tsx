@@ -21,7 +21,7 @@ const featureMeta = [
   { key: 'translator' as const, icon: Languages, color: 'text-verde-400', bgColor: 'bg-verde-950/60', borderColor: 'border-verde-800/30', tag: 'ItaliantoApp', large: true, image: '/images/media/img/Genova.jfif' },
   { key: 'conjugator' as const, icon: BookOpen, color: 'text-blue-400', bgColor: 'bg-blue-950/60', borderColor: 'border-blue-800/30', tag: 'ItaliantoApp', large: false },
   { key: 'pronunciation' as const, icon: Mic2, color: 'text-amber-400', bgColor: 'bg-amber-950/60', borderColor: 'border-amber-800/30', tag: 'ItaliantoApp', large: false },
-  { key: 'dialogues' as const, icon: MessageSquareText, color: 'text-purple-400', bgColor: 'bg-purple-950/60', borderColor: 'border-purple-800/30', tag: 'Dialogue Studio', large: true, image: '/images/media/img/Arena_di_Verona.jfif' },
+  { key: 'dialogues' as const, icon: MessageSquareText, color: 'text-purple-400', bgColor: 'bg-purple-950/60', borderColor: 'border-purple-800/30', tag: 'Dialoghi Studio', large: true, image: '/images/media/img/Arena_di_Verona.jfif' },
   { key: 'tutor' as const, icon: Bot, color: 'text-cyan-400', bgColor: 'bg-cyan-950/60', borderColor: 'border-cyan-800/30', tag: 'ItaliantoApp', large: false },
   { key: 'videos' as const, icon: Video, color: 'text-verde-400', bgColor: 'bg-verde-950/60', borderColor: 'border-verde-800/30', tag: 'platform', large: false },
   { key: 'songs' as const, icon: Music2, color: 'text-pink-400', bgColor: 'bg-pink-950/60', borderColor: 'border-pink-800/30', tag: 'soon', large: false },
@@ -99,7 +99,7 @@ export function Features() {
                         <Icon size={22} className={color} />
                       </div>
                       <Badge
-                        variant={tag === 'soon' ? 'warning' : tag === 'Dialogue Studio' ? 'info' : 'default'}
+                        variant={tag === 'soon' ? 'warning' : tag === 'Dialoghi Studio' ? 'info' : 'default'}
                         className="text-[10px]"
                       >
                         {tagLabel}
