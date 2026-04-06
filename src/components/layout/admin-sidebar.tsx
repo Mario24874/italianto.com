@@ -24,6 +24,7 @@ import {
   Sun,
   Moon,
   ChevronDown,
+  BrainCircuit,
 } from 'lucide-react'
 
 const navItems = [
@@ -61,6 +62,11 @@ const navItems = [
     label: 'Contenido',
     href: '/admin/contenuto',
     icon: FileText,
+  },
+  {
+    label: 'Tutor AI',
+    href: '/admin/tutor',
+    icon: BrainCircuit,
   },
   {
     label: 'Sesiones',
