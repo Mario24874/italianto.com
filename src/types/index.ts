@@ -62,6 +62,18 @@ export interface Database {
         Update: Partial<Omit<AppSessionRow, 'id'>>
         Relationships: []
       }
+      lessons: {
+        Row: LessonRow
+        Insert: Omit<LessonRow, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<LessonRow, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      lesson_progress: {
+        Row: LessonProgressRow
+        Insert: Omit<LessonProgressRow, 'id' | 'created_at'>
+        Update: Partial<Omit<LessonProgressRow, 'id' | 'created_at'>>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -176,6 +188,50 @@ export interface AdminUser extends UserRow {
   subscription: SubscriptionRow | null
   totalSessions: number
   lastActiveAt: string | null
+}
+
+// ─── Lesson Types ─────────────────────────────────────────────────────────────
+export type LessonLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+export type LessonStatus = 'draft' | 'published'
+export type LessonProgressStatus = 'in_progress' | 'failed' | 'passed'
+
+export interface VocabularyItem {
+  word: string
+  translation: string
+  example?: string
+}
+
+export interface LessonRow {
+  id: string
+  slug: string
+  title: string
+  level: LessonLevel
+  order_index: number
+  content_html: string
+  vocabulary: VocabularyItem[]
+  grammar_notes: string
+  plan_required: PlanType
+  status: LessonStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface LessonProgressRow {
+  id: string
+  user_id: string
+  lesson_id: string
+  score: number
+  status: LessonProgressStatus
+  attempts: number
+  completed_at: string | null
+  created_at: string
+}
+
+export interface TestQuestion {
+  question: string
+  options: string[]   // ['A) ...', 'B) ...', 'C) ...', 'D) ...']
+  answer: string      // 'A' | 'B' | 'C' | 'D'
+  explanation: string
 }
 
 // ─── Component Props Types ─────────────────────────────────────────────────
