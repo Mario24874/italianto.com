@@ -28,8 +28,12 @@ export default clerkMiddleware(async (auth, req) => {
     const { userId } = await auth()
 
     if (!userId) {
-      const signInUrl = new URL('/sign-in', req.url)
-      signInUrl.searchParams.set('redirect_url', req.url)
+      // Use forwarded host/proto to build the public URL (avoids 0.0.0.0:3000 leaking from Docker)
+      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'italianto.com'
+      const proto = req.headers.get('x-forwarded-proto') || 'https'
+      const publicBase = `${proto}://${host}`
+      const signInUrl = new URL('/sign-in', publicBase)
+      signInUrl.searchParams.set('redirect_url', `${publicBase}${req.nextUrl.pathname}`)
       return NextResponse.redirect(signInUrl)
     }
   }
