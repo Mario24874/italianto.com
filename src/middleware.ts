@@ -28,12 +28,10 @@ export default clerkMiddleware(async (auth, req) => {
     const { userId } = await auth()
 
     if (!userId) {
-      // Use forwarded host/proto to build the public URL (avoids 0.0.0.0:3000 leaking from Docker)
-      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'italianto.com'
-      const proto = req.headers.get('x-forwarded-proto') || 'https'
-      const publicBase = `${proto}://${host}`
-      const signInUrl = new URL('/sign-in', publicBase)
-      signInUrl.searchParams.set('redirect_url', `${publicBase}${req.nextUrl.pathname}`)
+      // Always use the canonical public URL — avoids 0.0.0.0:3000 leaking from Docker/EasyPanel
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://italianto.com'
+      const signInUrl = new URL('/sign-in', appUrl)
+      signInUrl.searchParams.set('redirect_url', `${appUrl}${req.nextUrl.pathname}`)
       return NextResponse.redirect(signInUrl)
     }
   }
