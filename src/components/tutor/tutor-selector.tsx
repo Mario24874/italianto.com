@@ -12,17 +12,6 @@ interface Tutor {
   avatar_url: string | null
 }
 
-const LEVEL_COLORS: Record<string, string> = {
-  'A1-B1': 'text-emerald-400 bg-emerald-950/40 border-emerald-800/40',
-  'B1-C1': 'text-blue-400 bg-blue-950/40 border-blue-800/40',
-  'B2-C2': 'text-purple-400 bg-purple-950/40 border-purple-800/40',
-  'A2-B2': 'text-amber-400 bg-amber-950/40 border-amber-800/40',
-}
-
-function extractLevel(description: string): string | null {
-  const match = description.match(/\(([ABC][0-9]-[ABC][0-9])\)/)
-  return match ? match[1] : null
-}
 
 export function TutorSelector() {
   const router = useRouter()
@@ -61,10 +50,7 @@ export function TutorSelector() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {tutors.map(tutor => {
-          const level = extractLevel(tutor.description)
-          const levelColor = level ? LEVEL_COLORS[level] : 'text-verde-400 bg-verde-950/40 border-verde-800/40'
           const isSelecting = selecting === tutor.slug
-
           return (
             <button
               key={tutor.slug}
@@ -78,15 +64,10 @@ export function TutorSelector() {
                 'transition-all group',
               )}
             >
-              {/* Avatar */}
               <div className="size-14 rounded-full overflow-hidden ring-2 ring-verde-800 shrink-0">
                 {tutor.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={tutor.avatar_url}
-                    alt={tutor.name}
-                    className="size-full object-cover"
-                  />
+                  <img src={tutor.avatar_url} alt={tutor.name} className="size-full object-cover" />
                 ) : (
                   <div className="size-full bg-verde-900/60 flex items-center justify-center">
                     <Bot size={22} className="text-verde-400" />
@@ -95,17 +76,8 @@ export function TutorSelector() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="font-bold text-verde-100">{tutor.name}</p>
-                  {level && (
-                    <span className={cn('text-xs px-1.5 py-0.5 rounded-md border font-medium', levelColor)}>
-                      {level}
-                    </span>
-                  )}
-                </div>
-                <p className="text-verde-500 text-xs leading-relaxed line-clamp-2">
-                  {tutor.description.replace(/\s*\([ABC][0-9]-[ABC][0-9]\)/, '')}
-                </p>
+                <p className="font-bold text-verde-100 mb-1">{tutor.name}</p>
+                <p className="text-verde-500 text-xs leading-relaxed line-clamp-2">{tutor.description}</p>
               </div>
 
               <div className="shrink-0 mt-1">

@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS tutors (
 
 -- Seed 4 default tutors
 INSERT INTO tutors (slug, name, description, elevenlabs_voice_id, sort_order) VALUES
-  ('marco',   'Marco',   'Tutor amichevole e paziente, perfetto per principianti (A1-B1)',              'b8jhBTcGAq4kQGWmKprT', 1),
-  ('sofia',   'Sofia',   'Specializzata in pronuncia e conversazione avanzata (B1-C1)',                 'EXAVITQu4vr4xnSDxMaL', 2),
-  ('lorenzo', 'Lorenzo', 'Esperto di grammatica e scrittura formale, ideale per esami (B2-C2)',         'onwK4e9ZLuTAKqWW03F9', 3),
-  ('giulia',  'Giulia',  'Dinamica e creativa, pratica quotidiana e cultura italiana (A2-B2)',          'yoZ06aMxZJJ28mfd3POQ', 4)
+  ('marco',   'Marco',   'Tutor amichevole e paziente, adatto a tutti i livelli',                      'b8jhBTcGAq4kQGWmKprT', 1),
+  ('sofia',   'Sofia',   'Specializzata in pronuncia e conversazione naturale',                         'EXAVITQu4vr4xnSDxMaL', 2),
+  ('lorenzo', 'Lorenzo', 'Esperto di grammatica, scrittura e preparazione agli esami',                  'onwK4e9ZLuTAKqWW03F9', 3),
+  ('giulia',  'Giulia',  'Dinamica e creativa, cultura italiana e pratica quotidiana',                  'yoZ06aMxZJJ28mfd3POQ', 4)
 ON CONFLICT (slug) DO NOTHING;
