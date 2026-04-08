@@ -11,6 +11,7 @@ import { ClerkUserButton } from '@/components/layout/clerk-user-button'
 import {
   LayoutDashboard,
   BookOpen,
+  BrainCircuit,
   Music,
   Gamepad2,
   Info,
@@ -28,6 +29,7 @@ import {
 const navItems = [
   { label: "L'Aula", href: '/dashboard', icon: LayoutDashboard },
   { label: 'Lezioni', href: '/lezioni', icon: BookOpen },
+  { label: 'Tutor AI', href: '/tutor', icon: BrainCircuit },
   { label: 'Canzoni', href: '/canzoni', icon: Music },
   { label: 'Passatempi', href: '/passatempi', icon: Gamepad2 },
   { label: 'Info Interessanti', href: '/informazioni', icon: Info },

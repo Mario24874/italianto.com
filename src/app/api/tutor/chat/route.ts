@@ -48,17 +48,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'messages è obbligatorio' }, { status: 400 })
   }
 
-  // Fetch knowledge base (best-effort)
+  // Fetch tutor config (best-effort)
   const { data: tutorConfig } = await supabase
     .from('tutor_config')
-    .select('knowledge_base, system_prompt_template')
+    .select('knowledge_base, system_prompt_template, tutor_name')
     .eq('id', 'default')
     .maybeSingle()
 
   const knowledgeBase = tutorConfig?.knowledge_base?.trim() ?? ''
   const customTemplate = tutorConfig?.system_prompt_template?.trim() ?? ''
+  const resolvedName = tutorName || tutorConfig?.tutor_name || 'Marco'
 
-  const systemPrompt = customTemplate || `Sei ${tutorName}, un tutor di italiano amichevole e paziente. Il tuo compito è aiutare l'utente a praticare l'italiano parlato.
+  const systemPrompt = customTemplate || `Sei ${resolvedName}, un tutor di italiano amichevole e paziente. Il tuo compito è aiutare l'utente a praticare l'italiano parlato.
 
 Regole fondamentali:
 - Parla SEMPRE in italiano, anche se l'utente ti scrive in un'altra lingua
@@ -106,6 +107,13 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
     if (!text) {
       return NextResponse.json({ error: 'Nessuna risposta dal tutor' }, { status: 502 })
     }
+
+    // Track usage: ~0.1 min per exchange (same rate as native app)
+    await supabase.rpc('increment_quota', {
+      p_user_id: userId,
+      p_column: 'tutor_minutes_used',
+      p_amount: 0.1,
+    }).catch(() => {})
 
     return NextResponse.json({ text })
   } catch (err) {

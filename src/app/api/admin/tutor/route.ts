@@ -17,7 +17,16 @@ export async function GET() {
       .maybeSingle()
 
     if (error) throw error
-    return NextResponse.json({ config: data ?? { id: 'default', knowledge_base: '', system_prompt_template: '' } })
+    return NextResponse.json({
+      config: data ?? {
+        id: 'default',
+        knowledge_base: '',
+        system_prompt_template: '',
+        tutor_name: 'Marco',
+        avatar_url: null,
+        elevenlabs_voice_id: null,
+      },
+    })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[GET /api/admin/tutor]', msg)
@@ -30,7 +39,13 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
   try {
-    const { knowledge_base, system_prompt_template } = await req.json()
+    const {
+      knowledge_base,
+      system_prompt_template,
+      tutor_name,
+      avatar_url,
+      elevenlabs_voice_id,
+    } = await req.json()
 
     const supabase = getSupabaseAdmin()
     const { data, error } = await supabase
@@ -39,6 +54,9 @@ export async function PUT(req: NextRequest) {
         id: 'default',
         knowledge_base: knowledge_base ?? '',
         system_prompt_template: system_prompt_template ?? '',
+        tutor_name: tutor_name || 'Marco',
+        avatar_url: avatar_url || null,
+        elevenlabs_voice_id: elevenlabs_voice_id || null,
         updated_at: new Date().toISOString(),
       })
       .select()
