@@ -35,29 +35,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Servizio AI non configurato' }, { status: 500 })
   }
 
-  let body: { messages: Message[]; tutorName?: string }
+  let body: { messages: Message[]; tutorName?: string; tutorSlug?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Body JSON invalido' }, { status: 400 })
   }
 
-  const { messages, tutorName = 'Marco' } = body
+  const { messages, tutorName, tutorSlug } = body
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: 'messages è obbligatorio' }, { status: 400 })
   }
 
-  // Fetch tutor config (best-effort)
+  // Fetch specific tutor from tutors table if slug provided
+  let resolvedName = tutorName || 'Marco'
+  if (tutorSlug) {
+    const { data: tutor } = await supabase
+      .from('tutors')
+      .select('name')
+      .eq('slug', tutorSlug)
+      .eq('is_active', true)
+      .maybeSingle()
+    if (tutor?.name) resolvedName = tutor.name
+  }
+
+  // Fetch global config (knowledge base, system prompt)
   const { data: tutorConfig } = await supabase
     .from('tutor_config')
-    .select('knowledge_base, system_prompt_template, tutor_name')
+    .select('knowledge_base, system_prompt_template')
     .eq('id', 'default')
     .maybeSingle()
 
   const knowledgeBase = tutorConfig?.knowledge_base?.trim() ?? ''
   const customTemplate = tutorConfig?.system_prompt_template?.trim() ?? ''
-  const resolvedName = tutorName || tutorConfig?.tutor_name || 'Marco'
 
   const systemPrompt = customTemplate || `Sei ${resolvedName}, un tutor di italiano amichevole e paziente. Il tuo compito è aiutare l'utente a praticare l'italiano parlato.
 
