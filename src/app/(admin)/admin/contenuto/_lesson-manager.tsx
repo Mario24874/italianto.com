@@ -92,8 +92,9 @@ function ImportPanel({ onImport }: { onImport: (data: Partial<LessonFormData>) =
 
     try {
       const res = await fetch('/api/admin/lessons/import', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al importar')
+      const text = await res.text()
+      const data = text ? JSON.parse(text) : {}
+      if (!res.ok) throw new Error(data.error || `Error al importar (${res.status})`)
       onImport(data.lesson)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al importar')

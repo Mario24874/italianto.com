@@ -89,17 +89,25 @@ export async function POST(req: NextRequest) {
     fileName.endsWith('.docx')
   ) {
     // DOCX: extract raw text with mammoth, then send as plain text
-    const mammoth = await import('mammoth')
-    const arrayBuffer = await file.arrayBuffer()
-    const { value: rawText } = await mammoth.extractRawText({ arrayBuffer })
+    try {
+      const mammoth = await import('mammoth')
+      const arrayBuffer = await file.arrayBuffer()
+      // Convert Web API ArrayBuffer to Node.js Buffer for mammoth compatibility
+      const buffer = Buffer.from(arrayBuffer)
+      const { value: rawText } = await mammoth.extractRawText({ buffer })
 
-    if (!rawText.trim()) {
-      return NextResponse.json({ error: 'El documento .docx está vacío o no se pudo leer' }, { status: 400 })
+      if (!rawText.trim()) {
+        return NextResponse.json({ error: 'El documento .docx está vacío o no se pudo leer' }, { status: 400 })
+      }
+
+      contents = [{
+        parts: [{ text: `${GEMINI_PROMPT}\n\nCONTENIDO DEL DOCUMENTO:\n${rawText}` }],
+      }]
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.error('[DOCX parse error]', msg)
+      return NextResponse.json({ error: 'No se pudo leer el archivo .docx. Verifica que no esté dañado.' }, { status: 400 })
     }
-
-    contents = [{
-      parts: [{ text: `${GEMINI_PROMPT}\n\nCONTENIDO DEL DOCUMENTO:\n${rawText}` }],
-    }]
   } else if (
     mimeType === 'text/plain' ||
     fileName.endsWith('.txt') ||
