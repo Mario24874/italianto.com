@@ -126,11 +126,13 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
     }
 
     // Track usage
-    await supabase.rpc('increment_quota', {
-      p_user_id: userId,
-      p_column: 'tutor_minutes_used',
-      p_amount: 0.1,
-    }).catch(() => {})
+    try {
+      await supabase.rpc('increment_quota', {
+        p_user_id: userId,
+        p_column: 'tutor_minutes_used',
+        p_amount: 0.1,
+      })
+    } catch {}
 
     return NextResponse.json({ text })
   } catch (err) {
