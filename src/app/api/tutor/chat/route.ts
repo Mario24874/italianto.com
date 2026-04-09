@@ -81,7 +81,7 @@ Regole fondamentali:
 - Ogni 4-5 scambi, dai un breve incoraggiamento sui progressi dell'utente
 - Non usare emoji o simboli speciali nelle risposte — solo testo parlato
 
-Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o inglese solo quando strettamente necessario, poi torna subito all'italiano.${knowledgeBase ? \n\nBASE DI CONOSCENZA:\n${knowledgeBase} : ''}`
+Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o inglese solo quando strettamente necessario, poi torna subito all'italiano.${knowledgeBase ? `\n\nBASE DI CONOSCENZA:\n${knowledgeBase}` : ''}`
 
   // Convert messages to Gemini content format
   const contents = messages.map((m: Message) => ({
@@ -92,7 +92,7 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
   try {
     // CORRECCIÓN: URL envuelta en backticks y usando endpoint v1
     const response = await fetch(
-      https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey},
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
