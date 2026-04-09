@@ -75,13 +75,13 @@ export async function POST(req: NextRequest) {
 Regole fondamentali:
 - Parla SEMPRE in italiano, anche se l'utente ti scrive in un'altra lingua
 - Correggi gli errori grammaticali con gentilezza: ripeti la frase corretta e spiega brevemente l'errore
-- Adatta il livello di difficoltà in base alla capacità dimostrata dall'utente
+- Adatta il livello di difficoltà in base alla capacidad dimostrata dall'utente
 - Fai domande aperte per mantenere la conversazione fluente
 - Mantieni le risposte brevi (2-3 frasi max) per un ritmo naturale
 - Ogni 4-5 scambi, dai un breve incoraggiamento sui progressi dell'utente
 - Non usare emoji o simboli speciali nelle risposte — solo testo parlato
 
-Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o inglese solo quando strettamente necessario, poi torna subito all'italiano.${knowledgeBase ? `\n\nBASE DI CONOSCENZA:\n${knowledgeBase}` : ''}`
+Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o inglese solo quando strettamente necessario, poi torna subito all'italiano.${knowledgeBase ? \n\nBASE DI CONOSCENZA:\n${knowledgeBase} : ''}`
 
   // Convert messages to Gemini content format
   const contents = messages.map((m: Message) => ({
@@ -90,9 +90,9 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
   }))
 
   try {
-    // CAMBIO: Usamos v1 y verificamos el nombre del modelo
+    // CORRECCIÓN: URL envuelta en backticks y usando endpoint v1
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey},
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,11 +111,31 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
       const errData = await response.json().catch(() => ({}));
       console.error('[Gemini tutor chat error]', response.status, JSON.stringify(errData, null, 2));
       
-      // Si es un error de cuota (429), avisa específicamente
       if (response.status === 429) {
         return NextResponse.json({ error: 'Limite di quota raggiunto. Riprova tra un momento.' }, { status: 429 });
       }
       
       return NextResponse.json({ error: 'Errore del servizio AI' }, { status: 502 })
     }
+
+    const data = await response.json()
+    const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+
+    if (!text) {
+      return NextResponse.json({ error: 'Nessuna risposta dal tutor' }, { status: 502 })
+    }
+
+    // Track usage
+    await supabase.rpc('increment_quota', {
+      p_user_id: userId,
+      p_column: 'tutor_minutes_used',
+      p_amount: 0.1,
+    }).catch(() => {})
+
+    return NextResponse.json({ text })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[POST /api/tutor/chat]', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
+}
