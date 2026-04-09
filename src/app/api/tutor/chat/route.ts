@@ -92,7 +92,7 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
   try {
     // CORRECCIÓN: URL envuelta en backticks y usando endpoint v1
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
