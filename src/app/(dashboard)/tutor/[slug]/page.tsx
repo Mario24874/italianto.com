@@ -32,6 +32,12 @@ export default async function TutorChatPage({ params }: { params: { slug: string
 
   if (!tutor || !tutor.is_active) notFound()
 
+  // Infer gender from common Italian names (used for browser TTS voice selection)
+  const maleNames = ['marco', 'giovanni', 'antonio', 'roberto', 'luca', 'andrea', 'giuseppe', 'davide', 'matteo', 'stefano']
+  const gender = maleNames.includes(tutor.name.toLowerCase())
+    ? 'male' as const
+    : 'female' as const
+
   return (
     <div className="h-[calc(100vh-64px)]">
       <TutorChat
@@ -39,6 +45,7 @@ export default async function TutorChatPage({ params }: { params: { slug: string
         tutorSlug={tutor.slug}
         avatarUrl={tutor.avatar_url ?? null}
         voiceId={tutor.elevenlabs_voice_id ?? null}
+        gender={gender}
         minutesUsed={sub.tutor_minutes_used ?? 0}
         planType={sub.plan_type as PlanType}
       />

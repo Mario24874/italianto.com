@@ -35,14 +35,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Servizio AI non configurato' }, { status: 500 })
   }
 
-  let body: { messages: Message[]; tutorName?: string; tutorSlug?: string }
+  interface TutorPrefs {
+    registro?: 'informale' | 'formale'
+    tono?: 'amichevole' | 'professionale' | 'incoraggiante'
+    focus?: 'conversazione' | 'grammatica' | 'vocabolario' | 'pronuncia'
+    modismi?: 'neutro' | 'roma' | 'milano' | 'napoli'
+    livello?: 'A1' | 'A2' | 'B1'
+  }
+
+  let body: { messages: Message[]; tutorName?: string; tutorSlug?: string; prefs?: TutorPrefs }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Body JSON invalido' }, { status: 400 })
   }
 
-  const { messages, tutorName, tutorSlug } = body
+  const { messages, tutorName, tutorSlug, prefs } = body
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: 'messages è obbligatorio' }, { status: 400 })
@@ -70,7 +78,26 @@ export async function POST(req: NextRequest) {
   const knowledgeBase = tutorConfig?.knowledge_base?.trim() ?? ''
   const customTemplate = tutorConfig?.system_prompt_template?.trim() ?? ''
 
-  const systemPrompt = customTemplate || `Sei ${resolvedName}, un tutor di italiano amichevole e paziente. Il tuo compito è aiutare l'utente a praticare l'italiano parlato.
+  // Build prefs augmentation
+  const prefsLines: string[] = []
+  if (prefs) {
+    const registroMap = { formale: 'Formale — usa SEMPRE "Lei" per riferirsi all\'utente', informale: 'Informale — usa "tu" con l\'utente' }
+    const tonoMap = { amichevole: 'Amichevole — caldo, empatico, usa un tono conversazionale', professionale: 'Professionale — strutturato, preciso, orientato agli obiettivi', incoraggiante: 'Incoraggiante — sempre positivo, celebra ogni piccolo progresso' }
+    const focusMap = { conversazione: 'Conversazione libera — mantieni il dialogo fluente su vari argomenti', grammatica: 'Grammatica — correggi ogni errore con spiegazione dettagliata della regola', vocabolario: 'Vocabolario — introduci 1-2 parole nuove per scambio con esempio d\'uso', pronuncia: 'Pronuncia — indica come pronunciare le parole difficili, usa trascrizioni fonetiche semplici' }
+    const modismiMap = { neutro: 'Italiano standard neutro', roma: 'Puoi usare espressioni romanesche naturali (es. "dai!", "ammazza!", "a posto!")', milano: 'Puoi usare espressioni milanesi naturali (es. "minga!", "belin", "dai sü!")', napoli: 'Puoi usare espressioni napoletane naturali (es. "uè!", "mannaggia", "jamme belle!")' }
+    const livelloMap = { A1: 'A1 (principiante assoluto) — usa vocabolario molto semplice, frasi brevi, spiega tutto', A2: 'A2 (base) — vocabolario quotidiano, frasi semplici, presente e passato prossimo', B1: 'B1 (intermedio) — conversazione più complessa, congiuntivo, condizionale, lessico ricco' }
+
+    if (prefs.registro) prefsLines.push(`- Registro: ${registroMap[prefs.registro]}`)
+    if (prefs.tono) prefsLines.push(`- Tono: ${tonoMap[prefs.tono]}`)
+    if (prefs.focus) prefsLines.push(`- Focus: ${focusMap[prefs.focus]}`)
+    if (prefs.modismi) prefsLines.push(`- Modismi: ${modismiMap[prefs.modismi]}`)
+    if (prefs.livello) prefsLines.push(`- Livello utente: ${livelloMap[prefs.livello]}`)
+  }
+  const prefsBlock = prefsLines.length > 0
+    ? `\n\nPREFERENZE UTENTE (rispetta SEMPRE queste impostazioni per tutta la conversazione):\n${prefsLines.join('\n')}`
+    : ''
+
+  const systemPrompt = customTemplate || `Sei ${resolvedName}, un tutor di italiano. Il tuo compito è aiutare l'utente a praticare l'italiano parlato.
 
 Regole fondamentali:
 - Parla SEMPRE in italiano, anche se l'utente ti scrive in un'altra lingua
@@ -81,7 +108,7 @@ Regole fondamentali:
 - Ogni 4-5 scambi, dai un breve incoraggiamento sui progressi dell'utente
 - Non usare emoji o simboli speciali nelle risposte — solo testo parlato
 
-Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o inglese solo quando strettamente necessario, poi torna subito all'italiano.${knowledgeBase ? `\n\nBASE DI CONOSCENZA:\n${knowledgeBase}` : ''}`
+Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o inglese solo quando strettamente necessario, poi torna subito all'italiano.${prefsBlock}${knowledgeBase ? `\n\nBASE DI CONOSCENZA:\n${knowledgeBase}` : ''}`
 
   // Convert messages to Gemini content format
   const contents = messages.map((m: Message) => ({
