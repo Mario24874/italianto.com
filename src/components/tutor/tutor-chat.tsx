@@ -36,6 +36,7 @@ export function TutorChat({ tutorName, tutorSlug, avatarUrl, voiceId, minutesUse
   const messagesRef = useRef<Message[]>([])
   const recognitionRef = useRef<{ stop: () => void } | null>(null)
   const currentAudioRef = useRef<HTMLAudioElement | null>(null)
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const plan = PLANS.find(p => p.id === planType)
@@ -59,32 +60,65 @@ export function TutorChat({ tutorName, tutorSlug, avatarUrl, voiceId, minutesUse
     setMessages([greeting])
   }, [tutorName])
 
-  const playTTS = useCallback(async (text: string) => {
-    if (!ttsEnabled) return
+  const stopCurrentAudio = useCallback(() => {
     if (currentAudioRef.current) {
       currentAudioRef.current.pause()
       currentAudioRef.current = null
     }
-    setTtsLoading(true)
-    try {
-      const res = await fetch('/api/tutor/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice_id: voiceId }),
-      })
-      if (!res.ok) return
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
-      currentAudioRef.current = audio
-      audio.onended = () => { URL.revokeObjectURL(url); currentAudioRef.current = null }
-      await audio.play()
-    } catch {
-      // non-fatal
-    } finally {
-      setTtsLoading(false)
+    if (currentUtteranceRef.current) {
+      window.speechSynthesis?.cancel()
+      currentUtteranceRef.current = null
     }
-  }, [ttsEnabled, voiceId])
+  }, [])
+
+  const playWebSpeech = useCallback((text: string) => {
+    if (!window.speechSynthesis) return
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'it-IT'
+    utterance.rate = 0.9
+    utterance.pitch = 1.0
+    // Pick best available Italian voice if loaded
+    const voices = window.speechSynthesis.getVoices()
+    const italianVoice = voices.find(v => v.lang.startsWith('it'))
+    if (italianVoice) utterance.voice = italianVoice
+    utterance.onstart = () => setTtsLoading(false)
+    utterance.onend = () => { currentUtteranceRef.current = null }
+    utterance.onerror = () => { currentUtteranceRef.current = null; setTtsLoading(false) }
+    currentUtteranceRef.current = utterance
+    window.speechSynthesis.speak(utterance)
+  }, [])
+
+  const playTTS = useCallback(async (text: string) => {
+    if (!ttsEnabled) return
+    stopCurrentAudio()
+    setTtsLoading(true)
+
+    // If a cloned ElevenLabs voiceId is configured, try it first
+    if (voiceId) {
+      try {
+        const res = await fetch('/api/tutor/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, voice_id: voiceId }),
+        })
+        if (res.ok) {
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          currentAudioRef.current = audio
+          audio.onended = () => { URL.revokeObjectURL(url); currentAudioRef.current = null; setTtsLoading(false) }
+          audio.onerror = () => { setTtsLoading(false) }
+          await audio.play()
+          return
+        }
+      } catch {
+        // ElevenLabs failed — fall through to Web Speech API
+      }
+    }
+
+    // Web Speech API (free, browser-native, Italian voices)
+    playWebSpeech(text)
+  }, [ttsEnabled, voiceId, stopCurrentAudio, playWebSpeech])
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim()
@@ -175,9 +209,9 @@ export function TutorChat({ tutorName, tutorSlug, avatarUrl, voiceId, minutesUse
   }, [])
 
   const toggleTTS = useCallback(() => {
-    if (currentAudioRef.current) { currentAudioRef.current.pause(); currentAudioRef.current = null }
+    stopCurrentAudio()
     setTtsEnabled(v => !v)
-  }, [])
+  }, [stopCurrentAudio])
 
   return (
     <div className="flex flex-col h-full">
