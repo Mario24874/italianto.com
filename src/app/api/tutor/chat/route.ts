@@ -90,8 +90,9 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
   }))
 
   try {
+    // CAMBIO: Usamos v1 y verificamos el nombre del modelo
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey},
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,29 +108,14 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
     )
 
     if (!response.ok) {
-      const errText = await response.text()
-      console.error('[Gemini tutor chat error]', response.status, errText)
+      const errData = await response.json().catch(() => ({}));
+      console.error('[Gemini tutor chat error]', response.status, JSON.stringify(errData, null, 2));
+      
+      // Si es un error de cuota (429), avisa específicamente
+      if (response.status === 429) {
+        return NextResponse.json({ error: 'Limite di quota raggiunto. Riprova tra un momento.' }, { status: 429 });
+      }
+      
       return NextResponse.json({ error: 'Errore del servizio AI' }, { status: 502 })
     }
-
-    const data = await response.json()
-    const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-
-    if (!text) {
-      return NextResponse.json({ error: 'Nessuna risposta dal tutor' }, { status: 502 })
-    }
-
-    // Track usage: ~0.1 min per exchange (same rate as native app)
-    await supabase.rpc('increment_quota', {
-      p_user_id: userId,
-      p_column: 'tutor_minutes_used',
-      p_amount: 0.1,
-    }).catch(() => {})
-
-    return NextResponse.json({ text })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[POST /api/tutor/chat]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
