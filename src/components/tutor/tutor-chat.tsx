@@ -157,17 +157,24 @@ export function TutorChat({
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = 'it-IT'
     utterance.rate = 0.9
-    utterance.pitch = gender === 'male' ? 0.85 : gender === 'female' ? 1.1 : 1.0
+    // Lower pitch to approximate male voice when the browser has no male Italian voice
+    utterance.pitch = gender === 'male' ? 0.8 : gender === 'female' ? 1.1 : 1.0
 
     const voices = window.speechSynthesis.getVoices()
     const italianVoices = voices.filter(v => v.lang.startsWith('it'))
 
     if (italianVoices.length > 0) {
-      // Try to match gender: male voices often have "Male" in name or lower pitch
+      // Known Italian male voice names across browsers/OS:
+      // Chrome/Windows: "Microsoft Cosimo", Chrome/macOS: "Luca", some systems: "Giorgio"
+      const MALE_NAMES = /cosimo|luca|giorgio|marco|antonio|roberto|david/i
+      const FEMALE_NAMES = /elsa|alice|francesca|giulia|federica|paola|google italiano/i
+
       const genderMatch = gender === 'male'
-        ? italianVoices.find(v => /male|uomo|maschio/i.test(v.name)) ?? italianVoices[italianVoices.length - 1]
+        ? italianVoices.find(v => MALE_NAMES.test(v.name))
+            ?? italianVoices.find(v => !FEMALE_NAMES.test(v.name))
+            ?? italianVoices[italianVoices.length - 1]
         : gender === 'female'
-        ? italianVoices.find(v => /female|donna|femmina/i.test(v.name)) ?? italianVoices[0]
+        ? italianVoices.find(v => FEMALE_NAMES.test(v.name)) ?? italianVoices[0]
         : italianVoices[0]
       utterance.voice = genderMatch
     }
