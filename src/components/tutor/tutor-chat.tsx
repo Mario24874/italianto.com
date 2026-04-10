@@ -2,18 +2,18 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Mic, MicOff, Send, Volume2, VolumeX, Loader2, Bot,
-  AlertTriangle, ArrowLeft, Settings, X,
+  Mic, MicOff, PhoneOff, Settings, Volume2, VolumeX, Bot, AlertCircle, ArrowLeft,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PLANS } from '@/lib/plans'
 import type { PlanType } from '@/lib/plans'
 
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-}
+// ── Types ────────────────────────────────────────────────────────────────────
+type CallStatus = 'idle' | 'listening' | 'thinking' | 'speaking'
+
+interface Message { role: 'user' | 'assistant'; content: string }
 
 interface TutorPrefs {
   registro: 'informale' | 'formale'
@@ -24,13 +24,9 @@ interface TutorPrefs {
 }
 
 const DEFAULT_PREFS: TutorPrefs = {
-  registro: 'informale',
-  tono: 'amichevole',
-  focus: 'conversazione',
-  modismi: 'neutro',
-  livello: 'A1',
+  registro: 'informale', tono: 'amichevole', focus: 'conversazione',
+  modismi: 'neutro', livello: 'A1',
 }
-
 const PREFS_KEY = 'tutor_prefs_v1'
 
 interface TutorChatProps {
@@ -43,17 +39,35 @@ interface TutorChatProps {
   planType: PlanType
 }
 
-// ── Radio group helper ────────────────────────────────────────────────────────
+// ── Equalizer bars ────────────────────────────────────────────────────────────
+function EqualizerBars({ active, color }: { active: boolean; color: string }) {
+  if (!active) {
+    return (
+      <div className="flex items-end gap-[3px] h-7">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="w-1 rounded-sm h-1" style={{ backgroundColor: color, opacity: 0.3 }} />
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div className="flex items-end gap-[3px] h-7">
+      {[...Array(5)].map((_, i) => (
+        <div
+          key={i}
+          className="eq-bar w-1 rounded-sm"
+          style={{ backgroundColor: color, height: '100%', animationDelay: `${i * 0.08}s` }}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ── Settings radio group ──────────────────────────────────────────────────────
 function RadioGroup<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
+  label, options, value, onChange,
 }: {
-  label: string
-  options: { value: T; label: string }[]
-  value: T
-  onChange: (v: T) => void
+  label: string; options: { value: T; label: string }[]; value: T; onChange: (v: T) => void
 }) {
   return (
     <div className="space-y-2">
@@ -80,118 +94,110 @@ function RadioGroup<T extends string>({
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function TutorChat({
-  tutorName,
-  tutorSlug,
-  avatarUrl,
-  voiceId,
-  gender = 'neutral',
-  minutesUsed,
-  planType,
+  tutorName, tutorSlug, avatarUrl, voiceId, gender = 'neutral', minutesUsed, planType,
 }: TutorChatProps) {
   const router = useRouter()
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [ttsEnabled, setTtsEnabled] = useState(true)
-  const [ttsLoading, setTtsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [localMinutes, setLocalMinutes] = useState(minutesUsed)
+  const [status, setStatus]           = useState<CallStatus>('idle')
+  const [messages, setMessages]       = useState<Message[]>([])
+  const [ttsEnabled, setTtsEnabled]   = useState(true)
   const [showSettings, setShowSettings] = useState(false)
-  const [prefs, setPrefs] = useState<TutorPrefs>(DEFAULT_PREFS)
+  const [prefs, setPrefs]             = useState<TutorPrefs>(DEFAULT_PREFS)
+  const [error, setError]             = useState<string | null>(null)
+  const [userVolume, setUserVolume]   = useState(0)
+  const [localMinutes, setLocalMinutes] = useState(minutesUsed)
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesRef = useRef<Message[]>([])
-  const recognitionRef = useRef<{ stop: () => void } | null>(null)
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null)
-  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const messagesRef  = useRef<Message[]>([])
+  const scrollRef    = useRef<HTMLDivElement>(null)
+  const recogRef     = useRef<{ stop: () => void } | null>(null)
+  const audioRef     = useRef<HTMLAudioElement | null>(null)
+  const utterRef     = useRef<SpeechSynthesisUtterance | null>(null)
+  const analyserRef  = useRef<AnalyserNode | null>(null)
+  const micPollRef   = useRef<ReturnType<typeof setInterval> | null>(null)
+  const micStreamRef = useRef<MediaStream | null>(null)
+  const audioCtxRef  = useRef<AudioContext | null>(null)
 
-  const plan = PLANS.find(p => p.id === planType)
+  const plan        = PLANS.find(p => p.id === planType)
   const minuteLimit = plan?.limits.tutorMinutes ?? null
   const minutesLeft = minuteLimit !== null ? Math.max(0, minuteLimit - Math.floor(localMinutes)) : null
 
-  // Load saved prefs
+  // Load prefs
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(PREFS_KEY)
-      if (saved) setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(saved) })
+      const s = localStorage.getItem(PREFS_KEY)
+      if (s) setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(s) })
     } catch {}
   }, [])
 
-  const savePrefs = useCallback((next: TutorPrefs) => {
+  const savePrefs = (next: TutorPrefs) => {
     setPrefs(next)
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)) } catch {}
-  }, [])
+  }
 
-  // Keep ref in sync so speech callbacks always have fresh messages
+  useEffect(() => { messagesRef.current = messages }, [messages])
+
   useEffect(() => {
-    messagesRef.current = messages
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages])
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  // ── Stop all audio ─────────────────────────────────────────────────────────
+  const stopAudio = useCallback(() => {
+    audioRef.current?.pause()
+    audioRef.current = null
+    window.speechSynthesis?.cancel()
+    utterRef.current = null
+  }, [])
 
-  useEffect(() => {
-    const greeting: Message = {
-      role: 'assistant',
-      content: `Ciao! Sono ${tutorName}, il tuo tutor di italiano. Come stai oggi? Di cosa vorresti parlare?`,
-    }
-    setMessages([greeting])
-  }, [tutorName])
-
-  const stopCurrentAudio = useCallback(() => {
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause()
-      currentAudioRef.current = null
-    }
-    if (currentUtteranceRef.current) {
-      window.speechSynthesis?.cancel()
-      currentUtteranceRef.current = null
+  // ── Mic volume analysis ────────────────────────────────────────────────────
+  const startMicAnalysis = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      micStreamRef.current = stream
+      const ctx = new AudioContext()
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 256
+      ctx.createMediaStreamSource(stream).connect(analyser)
+      audioCtxRef.current = ctx
+      analyserRef.current = analyser
+      const data = new Uint8Array(analyser.frequencyBinCount)
+      micPollRef.current = setInterval(() => {
+        analyser.getByteFrequencyData(data)
+        const avg = data.reduce((a, b) => a + b, 0) / data.length
+        setUserVolume(Math.min(1, avg / 40))
+      }, 80)
+    } catch {
+      setError('Permesso microfono negato. Abilitalo nelle impostazioni del browser.')
     }
   }, [])
 
-  const playWebSpeech = useCallback((text: string) => {
-    if (!window.speechSynthesis) return
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'it-IT'
-    utterance.rate = 0.9
-    // Lower pitch to approximate male voice when the browser has no male Italian voice
-    utterance.pitch = gender === 'male' ? 0.8 : gender === 'female' ? 1.1 : 1.0
+  const stopMicAnalysis = useCallback(() => {
+    if (micPollRef.current) clearInterval(micPollRef.current)
+    audioCtxRef.current?.close()
+    audioCtxRef.current = null
+    micStreamRef.current?.getTracks().forEach(t => t.stop())
+    micStreamRef.current = null
+    setUserVolume(0)
+  }, [])
 
-    const voices = window.speechSynthesis.getVoices()
-    const italianVoices = voices.filter(v => v.lang.startsWith('it'))
-
-    if (italianVoices.length > 0) {
-      // Known Italian male voice names across browsers/OS:
-      // Chrome/Windows: "Microsoft Cosimo", Chrome/macOS: "Luca", some systems: "Giorgio"
-      const MALE_NAMES = /cosimo|luca|giorgio|marco|antonio|roberto|david/i
-      const FEMALE_NAMES = /elsa|alice|francesca|giulia|federica|paola|google italiano/i
-
-      const genderMatch = gender === 'male'
-        ? italianVoices.find(v => MALE_NAMES.test(v.name))
-            ?? italianVoices.find(v => !FEMALE_NAMES.test(v.name))
-            ?? italianVoices[italianVoices.length - 1]
-        : gender === 'female'
-        ? italianVoices.find(v => FEMALE_NAMES.test(v.name)) ?? italianVoices[0]
-        : italianVoices[0]
-      utterance.voice = genderMatch
-    }
-
-    utterance.onstart = () => setTtsLoading(false)
-    utterance.onend = () => { currentUtteranceRef.current = null }
-    utterance.onerror = () => { currentUtteranceRef.current = null; setTtsLoading(false) }
-    currentUtteranceRef.current = utterance
-    window.speechSynthesis.speak(utterance)
+  // ── Web Speech voice selection ─────────────────────────────────────────────
+  const resolveVoice = useCallback((): SpeechSynthesisVoice | null => {
+    const all = window.speechSynthesis.getVoices()
+    const italian = all.filter(v => v.lang.startsWith('it'))
+    if (italian.length === 0) return null
+    const MALE   = /cosimo|luca|giorgio|marco|antonio|roberto|david/i
+    const FEMALE = /elsa|alice|francesca|giulia|federica|paola|google italiano/i
+    if (gender === 'male')
+      return italian.find(v => MALE.test(v.name)) ?? italian.find(v => !FEMALE.test(v.name)) ?? italian[italian.length - 1]
+    if (gender === 'female')
+      return italian.find(v => FEMALE.test(v.name)) ?? italian[0]
+    return italian[0]
   }, [gender])
 
-  const playTTS = useCallback(async (text: string) => {
+  // ── TTS ────────────────────────────────────────────────────────────────────
+  const speak = useCallback(async (text: string) => {
     if (!ttsEnabled) return
-    stopCurrentAudio()
-    setTtsLoading(true)
+    stopAudio()
+    setStatus('speaking')
 
-    // If a cloned ElevenLabs voiceId is configured, try it first
     if (voiceId) {
       try {
         const res = await fetch('/api/tutor/tts', {
@@ -203,367 +209,324 @@ export function TutorChat({
           const blob = await res.blob()
           const url = URL.createObjectURL(blob)
           const audio = new Audio(url)
-          currentAudioRef.current = audio
-          audio.onended = () => { URL.revokeObjectURL(url); currentAudioRef.current = null; setTtsLoading(false) }
-          audio.onerror = () => { setTtsLoading(false) }
+          audioRef.current = audio
+          audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; setStatus('idle') }
+          audio.onerror = () => { setStatus('idle') }
           await audio.play()
           return
         }
-      } catch {
-        // ElevenLabs failed — fall through to Web Speech API
-      }
+      } catch { /* fall through */ }
     }
 
-    // Web Speech API (free, browser-native, Italian voices)
-    playWebSpeech(text)
-  }, [ttsEnabled, voiceId, stopCurrentAudio, playWebSpeech])
+    if (!window.speechSynthesis) { setStatus('idle'); return }
+    const utter = new SpeechSynthesisUtterance(text)
+    utter.lang  = 'it-IT'
+    utter.rate  = 0.9
+    utter.pitch = gender === 'male' ? 0.8 : gender === 'female' ? 1.1 : 1.0
 
+    const setVoice = () => { const v = resolveVoice(); if (v) utter.voice = v }
+    if (window.speechSynthesis.getVoices().length > 0) setVoice()
+    else window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true })
+
+    utter.onend   = () => { utterRef.current = null; setStatus('idle') }
+    utter.onerror = () => { utterRef.current = null; setStatus('idle') }
+    utterRef.current = utter
+    window.speechSynthesis.speak(utter)
+  }, [ttsEnabled, voiceId, gender, stopAudio, resolveVoice])
+
+  // ── Send message ───────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim()
-    if (!trimmed || loading) return
+    if (!trimmed) return
 
-    setError(null)
     const userMsg: Message = { role: 'user', content: trimmed }
-    const newMessages = [...messagesRef.current, userMsg]
-    setMessages(newMessages)
-    setInput('')
-    setLoading(true)
+    const next = [...messagesRef.current, userMsg]
+    setMessages(next)
+    setStatus('thinking')
+    setError(null)
 
     try {
       const res = await fetch('/api/tutor/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, tutorName, tutorSlug, prefs }),
+        body: JSON.stringify({ messages: next, tutorName, tutorSlug, prefs }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Errore del tutor'); return }
+      if (!res.ok) { setError(data.error || 'Errore del tutor'); setStatus('idle'); return }
 
       const assistantMsg: Message = { role: 'assistant', content: data.text }
       setMessages(prev => [...prev, assistantMsg])
       setLocalMinutes(prev => prev + 0.1)
-      playTTS(data.text)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore di rete')
-    } finally {
-      setLoading(false)
-      setTimeout(() => inputRef.current?.focus(), 50)
+      await speak(data.text)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Errore di rete')
+      setStatus('idle')
     }
-  }, [loading, tutorName, tutorSlug, prefs, playTTS])
+  }, [tutorName, tutorSlug, prefs, speak])
 
-  const startListening = useCallback(() => {
+  // ── Speech recognition ─────────────────────────────────────────────────────
+  const startListening = useCallback(async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) {
-      setError('Riconoscimento vocale non supportato. Usa Chrome o Edge.')
-      return
-    }
-
+    if (!SR) { setError('Riconoscimento vocale non supportato. Usa Chrome o Edge.'); return }
+    stopAudio()
+    await startMicAnalysis()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new SR() as any
     recognition.lang = 'it-IT'
     recognition.continuous = false
     recognition.interimResults = false
-
-    let hasResult = false
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (e: any) => {
-      hasResult = true
-      const transcript: string = e.results[0][0].transcript
-      sendMessage(transcript)
+      stopMicAnalysis()
+      sendMessage(e.results[0][0].transcript)
     }
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (e: any) => {
-      setIsListening(false)
+      stopMicAnalysis()
+      setStatus('idle')
       const msgs: Record<string, string> = {
-        'not-allowed':   'Accesso al microfono negato. Abilitalo nella barra degli indirizzi del browser.',
-        'no-speech':     'Nessuna voce rilevata. Parla più vicino al microfono e riprova.',
-        'network':       'Errore di rete nel riconoscimento vocale. Verifica la connessione.',
-        'audio-capture': 'Microfono non trovato. Verifica che sia collegato.',
-        'aborted':       '',
+        'not-allowed': 'Accesso microfono negato.',
+        'no-speech':   'Nessuna voce rilevata. Riprova.',
+        'network':     'Errore di rete nel riconoscimento vocale.',
       }
       const msg = msgs[e.error as string]
       if (msg) setError(msg)
     }
-
-    recognition.onend = () => {
-      setIsListening(false)
-      if (!hasResult) { /* ended without capturing — user can retry */ }
-    }
-
-    recognitionRef.current = recognition
+    recognition.onend = () => { stopMicAnalysis(); setStatus(s => s === 'listening' ? 'idle' : s) }
+    recogRef.current = recognition
     recognition.start()
-    setIsListening(true)
+    setStatus('listening')
     setError(null)
-  }, [sendMessage])
+  }, [stopAudio, startMicAnalysis, stopMicAnalysis, sendMessage])
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop()
-    setIsListening(false)
+    recogRef.current?.stop()
+    stopMicAnalysis()
+    setStatus('idle')
+  }, [stopMicAnalysis])
+
+  // ── Greeting on mount ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const greeting = `Ciao! Sono ${tutorName}, il tuo tutor di italiano. Come stai oggi?`
+    setMessages([{ role: 'assistant', content: greeting }])
+    setTimeout(() => speak(greeting), 600)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const toggleTTS = useCallback(() => {
-    stopCurrentAudio()
-    setTtsEnabled(v => !v)
-  }, [stopCurrentAudio])
+  useEffect(() => () => {
+    stopAudio(); stopMicAnalysis(); recogRef.current?.stop()
+  }, [stopAudio, stopMicAnalysis])
 
-  // ── Settings panel ────────────────────────────────────────────────────────
-  const SettingsPanel = (
-    <div className="absolute inset-0 bg-bg-dark z-20 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-verde-900/30 shrink-0">
-        <div className="flex items-center gap-2">
-          <Settings size={15} className="text-verde-400" />
-          <span className="font-bold text-verde-100 text-sm">Preferenze sessione</span>
+  const isSpeaking  = status === 'speaking'
+  const isListening = status === 'listening'
+  const isThinking  = status === 'thinking'
+  const isActive    = status !== 'idle'
+
+  // ── Settings panel ─────────────────────────────────────────────────────────
+  if (showSettings) {
+    return (
+      <div className="flex flex-col h-full bg-bg-dark">
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-verde-900/30 shrink-0">
+          <div className="flex items-center gap-2">
+            <Settings size={15} className="text-verde-400" />
+            <span className="font-bold text-verde-100 text-sm">Preferenze sessione</span>
+          </div>
+          <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-lg text-verde-500 hover:text-verde-300">✕</button>
         </div>
-        <button
-          onClick={() => setShowSettings(false)}
-          className="p-1.5 rounded-lg text-verde-500 hover:text-verde-300 hover:bg-verde-950/50 transition-colors"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
-        <p className="text-verde-600 text-xs leading-relaxed">
-          Queste preferenze personalizzano il comportamento del tutor per tutta la sessione.
-          Vengono salvate automaticamente.
-        </p>
-
-        <RadioGroup
-          label="Registro"
-          value={prefs.registro}
-          onChange={v => savePrefs({ ...prefs, registro: v })}
-          options={[
-            { value: 'informale', label: 'Informale (tu)' },
-            { value: 'formale', label: 'Formale (Lei)' },
-          ]}
-        />
-
-        <RadioGroup
-          label="Tono del tutor"
-          value={prefs.tono}
-          onChange={v => savePrefs({ ...prefs, tono: v })}
-          options={[
-            { value: 'amichevole', label: 'Amichevole' },
-            { value: 'professionale', label: 'Professionale' },
-            { value: 'incoraggiante', label: 'Incoraggiante' },
-          ]}
-        />
-
-        <RadioGroup
-          label="Focus della sessione"
-          value={prefs.focus}
-          onChange={v => savePrefs({ ...prefs, focus: v })}
-          options={[
-            { value: 'conversazione', label: 'Conversazione libera' },
-            { value: 'grammatica', label: 'Grammatica' },
-            { value: 'vocabolario', label: 'Vocabolario' },
-            { value: 'pronuncia', label: 'Pronuncia' },
-          ]}
-        />
-
-        <RadioGroup
-          label="Modismi italiani"
-          value={prefs.modismi}
-          onChange={v => savePrefs({ ...prefs, modismi: v })}
-          options={[
-            { value: 'neutro', label: 'Italiano neutro' },
-            { value: 'roma', label: 'Romano' },
-            { value: 'milano', label: 'Milanese' },
-            { value: 'napoli', label: 'Napoletano' },
-          ]}
-        />
-
-        <RadioGroup
-          label="Il tuo livello"
-          value={prefs.livello}
-          onChange={v => savePrefs({ ...prefs, livello: v })}
-          options={[
-            { value: 'A1', label: 'A1 — Principiante' },
-            { value: 'A2', label: 'A2 — Base' },
-            { value: 'B1', label: 'B1 — Intermedio' },
-          ]}
-        />
-
-        {/* Summary */}
-        <div className="rounded-xl border border-verde-900/30 bg-verde-950/20 px-4 py-3 text-xs text-verde-500 space-y-1">
-          <p className="font-semibold text-verde-400 mb-2">Riepilogo preferenze attive</p>
-          <p>Registro: <span className="text-verde-300">{prefs.registro === 'formale' ? 'Formale (Lei)' : 'Informale (tu)'}</span></p>
-          <p>Tono: <span className="text-verde-300 capitalize">{prefs.tono}</span></p>
-          <p>Focus: <span className="text-verde-300 capitalize">{prefs.focus}</span></p>
-          <p>Modismi: <span className="text-verde-300 capitalize">{prefs.modismi === 'neutro' ? 'Italiano neutro' : prefs.modismi}</span></p>
-          <p>Livello: <span className="text-verde-300">{prefs.livello}</span></p>
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+          <RadioGroup label="Registro" value={prefs.registro} onChange={v => savePrefs({ ...prefs, registro: v })}
+            options={[{ value: 'informale', label: 'Informale (tu)' }, { value: 'formale', label: 'Formale (Lei)' }]} />
+          <RadioGroup label="Tono" value={prefs.tono} onChange={v => savePrefs({ ...prefs, tono: v })}
+            options={[{ value: 'amichevole', label: 'Amichevole' }, { value: 'professionale', label: 'Professionale' }, { value: 'incoraggiante', label: 'Incoraggiante' }]} />
+          <RadioGroup label="Focus" value={prefs.focus} onChange={v => savePrefs({ ...prefs, focus: v })}
+            options={[{ value: 'conversazione', label: 'Conversazione' }, { value: 'grammatica', label: 'Grammatica' }, { value: 'vocabolario', label: 'Vocabolario' }, { value: 'pronuncia', label: 'Pronuncia' }]} />
+          <RadioGroup label="Modismi" value={prefs.modismi} onChange={v => savePrefs({ ...prefs, modismi: v })}
+            options={[{ value: 'neutro', label: 'Neutro' }, { value: 'roma', label: 'Romano' }, { value: 'milano', label: 'Milanese' }, { value: 'napoli', label: 'Napoletano' }]} />
+          <RadioGroup label="Il tuo livello" value={prefs.livello} onChange={v => savePrefs({ ...prefs, livello: v })}
+            options={[{ value: 'A1', label: 'A1 — Principiante' }, { value: 'A2', label: 'A2 — Base' }, { value: 'B1', label: 'B1 — Intermedio' }]} />
+        </div>
+        <div className="px-4 pb-5 pt-2 border-t border-verde-900/30 shrink-0">
+          <button
+            onClick={() => setShowSettings(false)}
+            className="w-full py-3 bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Salva e torna alla conversazione
+          </button>
         </div>
       </div>
+    )
+  }
 
-      {/* Footer */}
-      <div className="px-4 pb-5 pt-2 shrink-0 border-t border-verde-900/30">
-        <button
-          onClick={() => setShowSettings(false)}
-          className="w-full py-3 bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          Salva e torna alla chat
-        </button>
-      </div>
-    </div>
-  )
-
+  // ── Main call UI ───────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full relative">
-      {/* ── Settings overlay ── */}
-      {showSettings && SettingsPanel}
+    <div className="flex flex-col h-full bg-bg-dark">
 
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 px-4 py-3.5 border-b border-verde-900/30 bg-bg-dark/60 backdrop-blur shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-verde-900/30 shrink-0 bg-bg-dark/80 backdrop-blur">
         <button
-          onClick={() => router.push('/tutor')}
-          className="p-1.5 rounded-lg text-verde-500 hover:text-verde-300 hover:bg-verde-950/50 transition-colors shrink-0"
+          onClick={() => { stopAudio(); router.push('/tutor') }}
+          className="p-2 rounded-xl text-verde-500 hover:text-verde-300 transition-colors"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={20} />
         </button>
-
-        {/* Avatar */}
-        <div className="relative size-10 rounded-full overflow-hidden ring-2 ring-verde-700 shrink-0">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt={tutorName} className="size-full object-cover" />
-          ) : (
-            <div className="size-full bg-verde-900/60 flex items-center justify-center">
-              <Bot size={18} className="text-verde-400" />
+        <div className="text-center">
+          <p className="font-bold text-verde-100 text-sm">{tutorName}</p>
+          <p className="text-xs text-verde-500 capitalize">{prefs.tono} · {prefs.livello}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          {minutesLeft !== null && (
+            <div className="text-right mr-1">
+              <p className={cn('font-bold text-sm leading-tight', minutesLeft === 0 ? 'text-red-400' : 'text-verde-300')}>
+                {minutesLeft}<span className="text-verde-600 font-normal text-xs">/{minuteLimit}</span>
+              </p>
+              <p className="text-[10px] text-verde-600">min</p>
             </div>
           )}
-          <span className="absolute bottom-0 right-0 size-2.5 bg-emerald-500 rounded-full border-2 border-bg-dark" />
+          <button
+            onClick={() => { stopAudio(); setTtsEnabled(v => !v) }}
+            className={cn('p-2 rounded-xl transition-colors', ttsEnabled ? 'text-verde-400' : 'text-verde-700')}
+          >
+            {ttsEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 rounded-xl text-verde-500 hover:text-verde-300 transition-colors"
+          >
+            <Settings size={18} />
+          </button>
         </div>
-
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-verde-100 text-sm leading-tight">{tutorName}</p>
-          <p className="text-verde-500 text-xs capitalize">
-            {prefs.tono} · {prefs.focus} · {prefs.livello}
-          </p>
-        </div>
-
-        {minuteLimit !== null && (
-          <div className="text-right shrink-0 mr-1">
-            <p className="text-xs text-verde-600">Min rimasti</p>
-            <p className={cn('font-bold text-sm leading-tight', minutesLeft === 0 ? 'text-red-400' : 'text-verde-300')}>
-              {minutesLeft}<span className="text-verde-600 font-normal text-xs">/{minuteLimit}</span>
-            </p>
-          </div>
-        )}
-
-        <button
-          onClick={() => setShowSettings(true)}
-          title="Preferenze sessione"
-          className="p-2 rounded-xl text-verde-500 hover:text-verde-300 hover:bg-verde-950/40 transition-colors shrink-0"
-        >
-          <Settings size={15} />
-        </button>
-
-        <button
-          onClick={toggleTTS}
-          title={ttsEnabled ? 'Disattiva voce' : 'Attiva voce'}
-          className={cn(
-            'p-2 rounded-xl transition-colors shrink-0',
-            ttsEnabled ? 'text-verde-400 bg-verde-900/30 hover:bg-verde-900/50'
-                       : 'text-verde-600 hover:text-verde-400 hover:bg-verde-950/40',
-          )}
-        >
-          {ttsLoading ? <Loader2 size={15} className="animate-spin" />
-                      : ttsEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
-        </button>
       </div>
 
-      {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      {/* ── Tutor card ── */}
+      <div className="flex flex-col items-center pt-6 pb-4 shrink-0">
+        {/* Avatar with pulse */}
+        <motion.div
+          animate={isSpeaking ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+          transition={isSpeaking ? { repeat: Infinity, duration: 1.2 } : {}}
+          className={cn(
+            'size-28 rounded-full overflow-hidden ring-4 shadow-green transition-all',
+            isSpeaking ? 'ring-verde-500' : 'ring-verde-900/60',
+          )}
+        >
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt={tutorName} className="size-full object-cover"
+              onError={e => { const el = e.target as HTMLImageElement; el.style.display = 'none'; el.parentElement!.style.background = '#1a3a1a' }} />
+          ) : (
+            <div className="size-full bg-verde-900/60 flex items-center justify-center">
+              <Bot size={40} className="text-verde-400" />
+            </div>
+          )}
+        </motion.div>
+
+        <h2 className="mt-4 text-xl font-bold text-verde-100">{tutorName}</h2>
+
+        {/* Status label */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={status}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className={cn('mt-1 text-xs font-medium', {
+              'text-verde-700': status === 'idle',
+              'text-red-400': isListening,
+              'text-amber-400': isThinking,
+              'text-verde-400': isSpeaking,
+            })}
+          >
+            {status === 'idle' && 'Premi il microfono per parlare'}
+            {isListening && '🎙 Sto ascoltando...'}
+            {isThinking && '💭 Sto pensando...'}
+            {isSpeaking && `${tutorName} sta parlando...`}
+          </motion.p>
+        </AnimatePresence>
+
+        {/* Equalizer — tutor + user */}
+        <div className="flex items-center gap-6 mt-4">
+          <div className="flex flex-col items-center gap-1">
+            <EqualizerBars active={isSpeaking} color="#4caf50" />
+            <span className="text-[10px] text-verde-700">{tutorName}</span>
+          </div>
+          <div className="w-px h-6 bg-verde-900/40" />
+          <div className="flex flex-col items-center gap-1">
+            <EqualizerBars active={isListening && userVolume > 0.1} color="#2196f3" />
+            <span className="text-[10px] text-verde-700">Tu</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Transcript ── */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 space-y-2 py-2">
         {messages.map((msg, i) => (
-          <div key={i} className={cn('flex gap-2.5 items-end', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
-            {msg.role === 'assistant' && (
-              <div className="size-7 rounded-full overflow-hidden ring-1 ring-verde-800 shrink-0 mb-0.5">
-                {avatarUrl
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={avatarUrl} alt={tutorName} className="size-full object-cover" />
-                  : <div className="size-full bg-verde-900/60 flex items-center justify-center"><Bot size={13} className="text-verde-400" /></div>
-                }
-              </div>
-            )}
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}
+          >
             <div className={cn(
-              'max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+              'max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
               msg.role === 'user'
                 ? 'bg-verde-700 text-white rounded-br-sm'
-                : 'bg-verde-950/70 border border-verde-900/40 text-verde-100 rounded-bl-sm',
+                : 'bg-verde-950/60 border border-verde-900/40 text-verde-100 rounded-bl-sm',
             )}>
               {msg.content}
             </div>
-          </div>
+          </motion.div>
         ))}
 
-        {loading && (
-          <div className="flex gap-2.5 items-end">
-            <div className="size-7 rounded-full bg-verde-900/60 ring-1 ring-verde-800 flex items-center justify-center shrink-0 mb-0.5">
-              <Bot size={13} className="text-verde-400" />
-            </div>
-            <div className="bg-verde-950/70 border border-verde-900/40 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
-              <span className="size-1.5 bg-verde-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-              <span className="size-1.5 bg-verde-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-              <span className="size-1.5 bg-verde-500 rounded-full animate-bounce" />
+        {isThinking && (
+          <div className="flex justify-start">
+            <div className="bg-verde-950/60 border border-verde-900/40 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
+              {[0, 0.15, 0.3].map((d, i) => (
+                <motion.span key={i} animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: d }}
+                  className="size-1.5 bg-verde-500 rounded-full" />
+              ))}
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
+      {/* ── Error ── */}
       {error && (
-        <div className="mx-4 mb-2 flex items-center gap-2 px-4 py-2.5 bg-red-950/30 border border-red-800/40 rounded-xl text-red-400 text-sm">
-          <AlertTriangle size={14} className="shrink-0" />
+        <div className="mx-4 mb-2 flex items-center gap-2 px-3 py-2 bg-red-950/30 border border-red-800/40 rounded-xl text-red-400 text-xs">
+          <AlertCircle size={13} className="shrink-0" />
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-auto text-red-600 hover:text-red-400">✕</button>
+          <button onClick={() => setError(null)} className="ml-auto opacity-60 hover:opacity-100">✕</button>
         </div>
       )}
 
-      {/* ── Input ── */}
-      <div className="px-4 pb-4 pt-2 border-t border-verde-900/30 bg-bg-dark/40 shrink-0">
-        <div className="flex gap-2 items-center">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
-            placeholder={isListening ? '🎙 Sto ascoltando...' : 'Scrivi in italiano...'}
-            disabled={loading || isListening}
-            className="flex-1 bg-verde-950/40 border border-verde-900/40 rounded-xl px-4 py-3 text-sm text-verde-100
-              placeholder:text-verde-600 focus:outline-none focus:ring-1 focus:ring-verde-700 disabled:opacity-50"
-          />
+      {/* ── Mic controls ── */}
+      <div className="flex justify-center items-center gap-6 px-8 pb-6 pt-3 shrink-0">
+        {isActive && (
           <button
-            onClick={() => sendMessage(input)}
-            disabled={loading || !input.trim() || isListening}
-            className="p-3 bg-verde-700 hover:bg-verde-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors shrink-0"
+            onClick={() => { stopAudio(); stopListening(); setStatus('idle') }}
+            className="size-12 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg"
           >
-            <Send size={16} />
+            <PhoneOff size={20} />
           </button>
-          <button
-            onClick={isListening ? stopListening : startListening}
-            disabled={loading}
-            title={isListening ? 'Ferma registrazione' : 'Parla in italiano'}
-            className={cn(
-              'p-3 rounded-xl transition-all shrink-0',
-              isListening
-                ? 'bg-red-600 hover:bg-red-500 text-white ring-2 ring-red-400/40 animate-pulse'
-                : 'bg-verde-950/50 border border-verde-900/40 text-verde-400 hover:text-verde-200 hover:border-verde-700 disabled:opacity-40',
-            )}
-          >
-            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-          </button>
-        </div>
-        <p className="text-verde-700 text-xs text-center mt-2 select-none">
-          {isListening ? 'Parla in italiano — si ferma automaticamente al silenzio'
-                       : 'Microfono per parlare · Invio per inviare'}
-        </p>
-      </div>
+        )}
 
+        <motion.button
+          whileTap={{ scale: 0.93 }}
+          onClick={isListening ? stopListening : startListening}
+          disabled={isThinking || isSpeaking}
+          className={cn(
+            'size-20 rounded-full flex items-center justify-center transition-colors',
+            isListening
+              ? 'bg-red-600 text-white ring-4 ring-red-400/40'
+              : isThinking || isSpeaking
+              ? 'bg-verde-950/40 text-verde-700 cursor-not-allowed'
+              : 'bg-verde-700 hover:bg-verde-600 text-white shadow-green',
+          )}
+        >
+          {isListening ? <MicOff size={32} /> : <Mic size={32} />}
+        </motion.button>
+
+        {isActive && <div className="size-12" />}
+      </div>
     </div>
   )
 }
