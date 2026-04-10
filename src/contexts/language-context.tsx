@@ -590,13 +590,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Language>('es')
 
   useEffect(() => {
-    const saved = localStorage.getItem('italianto-lang') as Language | null
-    if (saved && ['es', 'it', 'en'].includes(saved)) setLangState(saved)
+    try {
+      const saved = localStorage.getItem('italianto-lang') as Language | null
+      if (saved && ['es', 'it', 'en'].includes(saved)) setLangState(saved)
+    } catch {}
   }, [])
 
   const setLang = (l: Language) => {
     setLangState(l)
-    localStorage.setItem('italianto-lang', l)
+    try { localStorage.setItem('italianto-lang', l) } catch {}
   }
 
   return (
