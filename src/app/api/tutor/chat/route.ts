@@ -152,13 +152,13 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
       return NextResponse.json({ error: 'Nessuna risposta dal tutor' }, { status: 502 })
     }
 
-    // Track usage
+    // Track usage — wrap in Promise.resolve so SWC can call .catch() on a real Promise
     try {
-      await supabase.rpc('increment_quota', {
+      await Promise.resolve(supabase.rpc('increment_quota', {
         p_user_id: userId,
         p_column: 'tutor_minutes_used',
         p_amount: 0.1,
-      })
+      }))
     } catch {}
 
     return NextResponse.json({ text })

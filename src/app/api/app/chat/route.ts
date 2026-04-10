@@ -103,11 +103,11 @@ Regole fondamentali:
     const italiantoUserId: string = sub.user_id
     const minutesAdd = messages.length > 1 ? 0.1 : 0 // track ~6s per exchange
     if (minutesAdd > 0) {
-      await supabase.rpc('increment_quota', {
+      await Promise.resolve(supabase.rpc('increment_quota', {
         p_user_id: italiantoUserId,
         p_column: 'tutor_minutes_used',
         p_amount: minutesAdd,
-      }).catch(() => {})
+      })).catch(() => {})
     }
 
     return NextResponse.json({ text })
