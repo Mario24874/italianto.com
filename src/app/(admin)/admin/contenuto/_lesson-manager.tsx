@@ -7,9 +7,9 @@ import {
   ToggleLeft, ToggleRight, GripVertical,
   Upload, FileText, Sparkles, AlertTriangle,
   Video, Captions, Dumbbell,
-  CheckCircle2,
+  CheckCircle2, Languages, Trash,
 } from 'lucide-react'
-import type { LessonRow, LessonLevel, LessonStatus, VocabularyItem, Exercise } from '@/types'
+import type { LessonRow, LessonLevel, LessonStatus, VocabularyItem, Exercise, LessonTranslations } from '@/types'
 import { RichEditor } from './_rich-editor'
 
 const LEVELS: LessonLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
@@ -381,6 +381,118 @@ function VideoSection({
   )
 }
 
+// ─── Translation Panel ────────────────────────────────────────────────────────
+const TRANSLATION_LANGS: { value: 'en' | 'it'; label: string; flag: string }[] = [
+  { value: 'en', label: 'English', flag: '🇬🇧' },
+  { value: 'it', label: 'Italiano', flag: '🇮🇹' },
+]
+
+function TranslationPanel({
+  lessonId,
+  translations,
+  onUpdate,
+}: {
+  lessonId: string
+  translations: LessonTranslations
+  onUpdate: (t: LessonTranslations) => void
+}) {
+  const [translating, setTranslating] = useState<'en' | 'it' | null>(null)
+  const [deleting, setDeleting] = useState<'en' | 'it' | null>(null)
+
+  const handleTranslate = async (lang: 'en' | 'it') => {
+    setTranslating(lang)
+    try {
+      const res = await fetch(`/api/admin/lessons/${lessonId}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al traducir')
+      onUpdate({ ...translations, [lang]: data.translation })
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Error al traducir')
+    } finally { setTranslating(null) }
+  }
+
+  const handleDelete = async (lang: 'en' | 'it') => {
+    if (!confirm('¿Eliminar esta traducción?')) return
+    setDeleting(lang)
+    try {
+      await fetch(`/api/admin/lessons/${lessonId}/translate?lang=${lang}`, { method: 'DELETE' })
+      const updated = { ...translations }
+      delete updated[lang]
+      onUpdate(updated)
+    } finally { setDeleting(null) }
+  }
+
+  return (
+    <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Languages size={14} className="text-amber-400" />
+        <span className="text-xs font-semibold text-amber-300 uppercase tracking-wide">Traducciones automáticas</span>
+        <span className="text-xs text-amber-700">— el alumno elige el idioma</span>
+      </div>
+      <p className="text-xs text-amber-700/80">
+        Gemini traducirá las explicaciones. Las palabras y frases en italiano permanecen sin cambios.
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {TRANSLATION_LANGS.map(({ value, label, flag }) => {
+          const exists = !!translations[value]
+          const isTranslating = translating === value
+          const isDeleting = deleting === value
+          return (
+            <div key={value} className={[
+              'flex items-center gap-2 rounded-lg border px-3 py-2.5',
+              exists
+                ? 'border-green-700/40 bg-green-950/20'
+                : 'border-amber-800/20 bg-amber-950/20',
+            ].join(' ')}>
+              <span className="text-base">{flag}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-amber-200">{label}</p>
+                <p className="text-[10px] text-amber-700">{exists ? 'Traducido' : 'Sin traducción'}</p>
+              </div>
+              {exists ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleTranslate(value)}
+                    disabled={!!translating}
+                    title="Re-generar traducción"
+                    className="p-1 text-amber-500 hover:text-amber-300 transition-colors disabled:opacity-40"
+                  >
+                    {isTranslating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(value)}
+                    disabled={!!deleting}
+                    title="Eliminar traducción"
+                    className="p-1 text-red-600 hover:text-red-400 transition-colors disabled:opacity-40"
+                  >
+                    {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash size={12} />}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleTranslate(value)}
+                  disabled={!!translating}
+                  className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-amber-800/30 hover:bg-amber-700/40 text-amber-300 transition-colors disabled:opacity-40"
+                >
+                  {isTranslating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                  Generar
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Lesson Modal ─────────────────────────────────────────────────────────────
 function LessonModal({
   lesson, onClose, onSave,
@@ -406,6 +518,7 @@ function LessonModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editorKey, setEditorKey] = useState(0)
+  const [translations, setTranslations] = useState<LessonTranslations>(lesson?.translations ?? {})
 
   const setField = <K extends keyof LessonFormData>(k: K, v: LessonFormData[K]) =>
     setForm(f => ({ ...f, [k]: v }))
@@ -487,6 +600,15 @@ function LessonModal({
         <div className="p-6 space-y-5">
           {/* ── AI Import (lesson content) ── */}
           <ImportPanel onImport={handleImport} />
+
+          {/* ── Translations (only when editing an existing lesson) ── */}
+          {lesson && (
+            <TranslationPanel
+              lessonId={lesson.id}
+              translations={translations}
+              onUpdate={setTranslations}
+            />
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* ── Title (prominent) ── */}

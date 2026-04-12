@@ -266,6 +266,17 @@ export interface ExerciseFreeWrite extends ExerciseBase {
 
 export type Exercise = ExerciseFillBlank | ExerciseChoice | ExerciseDialogue | ExerciseFreeWrite
 
+// ─── Multi-language Translation Types ─────────────────────────────────────────
+
+export interface LessonTranslation {
+  content_html: string
+  grammar_notes: string
+  vocabulary: VocabularyItem[]
+}
+
+/** Keys: 'en' | 'it' (Spanish is the default, stored in the base columns) */
+export type LessonTranslations = Partial<Record<'en' | 'it', LessonTranslation>>
+
 // ─── Lesson Row ───────────────────────────────────────────────────────────────
 
 export interface LessonRow {
@@ -283,6 +294,7 @@ export interface LessonRow {
   video_subtitles: { es?: string; en?: string; it?: string }
   exercises: Exercise[]
   ui_language: LessonLanguage
+  translations: LessonTranslations
   created_at: string
   updated_at: string
 }
