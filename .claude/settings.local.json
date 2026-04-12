@@ -81,7 +81,19 @@
       "WebFetch(domain:community.auth0.com)",
       "Bash(head -20 /mnt/c/Proyectos/dialogue-studio/src/app/sign-in/[[...sign-in]]/page.tsx)",
       "WebFetch(domain:ai.google.dev)",
-      "WebFetch(domain:vapi.ai)"
+      "WebFetch(domain:vapi.ai)",
+      "Bash(python3:*)",
+      "WebFetch(domain:developers.googleblog.com)",
+      "Bash(gh auth:*)",
+      "Bash(cp /mnt/c/Proyectos/ItaliantoApp/public/tutor-Marco.png /mnt/c/Proyectos/ItaliantoApp-Next/public/)",
+      "Bash(cp /mnt/c/Proyectos/ItaliantoApp/public/tutor-Giovanni.png /mnt/c/Proyectos/ItaliantoApp-Next/public/)",
+      "Bash(cp /mnt/c/Proyectos/ItaliantoApp/public/tutor-Giulia.png /mnt/c/Proyectos/ItaliantoApp-Next/public/)",
+      "Bash(cp /mnt/c/Proyectos/ItaliantoApp/public/tutor-Francesca.png /mnt/c/Proyectos/ItaliantoApp-Next/public/)",
+      "Read(//mnt/c/Proyectos/ItaliantoApp-Next/**)",
+      "Bash(ls node_modules/framer-motion)",
+      "Read(//mnt/c/Proyectos/ItaliantoApp/**)",
+      "Bash(ls .github/workflows/)",
+      "Bash(ls -la eas.json app.config.js app.config.ts)"
     ]
   }
 }

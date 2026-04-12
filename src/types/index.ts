@@ -194,12 +194,79 @@ export interface AdminUser extends UserRow {
 export type LessonLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 export type LessonStatus = 'draft' | 'published'
 export type LessonProgressStatus = 'in_progress' | 'failed' | 'passed'
+export type LessonLanguage = 'es' | 'en' | 'it'
 
 export interface VocabularyItem {
   word: string
   translation: string
   example?: string
 }
+
+// ─── Exercise Types ───────────────────────────────────────────────────────────
+
+export interface ExerciseOption {
+  value: string
+  correct: boolean
+}
+
+export interface ExerciseSubQuestion {
+  id: string
+  text: string
+  options: ExerciseOption[]
+}
+
+interface ExerciseBase {
+  id: string
+  number: number
+  section?: string      // shown as a visual divider above the exercise card
+  title: string
+  instruction: string
+  answerPanel?: string[] // lines shown in "Ver respuestas" panel
+}
+
+/** Text input exercises: fill in the blank */
+export interface ExerciseFillBlank extends ExerciseBase {
+  type: 'fill_blank'
+  items: {
+    id: string
+    label: string       // e.g. "La letra H"
+    answer: string      // exact correct answer (normalized for comparison)
+    placeholder?: string
+  }[]
+}
+
+/** Multiple choice: either a flat option list (1 question) or grouped sub-questions */
+export interface ExerciseChoice extends ExerciseBase {
+  type: 'choice'
+  multiSelect: boolean  // true = select all that apply; false = select one per sub-question
+  options?: ExerciseOption[]           // flat single-question
+  questions?: ExerciseSubQuestion[]    // grouped sub-questions (each single-select)
+}
+
+/** Dialogue completion: fill blanks inside a conversation */
+export interface ExerciseDialogue extends ExerciseBase {
+  type: 'dialogue'
+  wordBank?: string[]
+  lines: {
+    speaker: string
+    text: string        // use ___id___ as blank placeholders, e.g. "___d1___ Alberto!"
+  }[]
+  answers: Record<string, string>  // { d1: "ciao", d2: "stai", ... }
+}
+
+/** Open-ended writing: no auto-check, just shows the structured result */
+export interface ExerciseFreeWrite extends ExerciseBase {
+  type: 'free_write'
+  fields: {
+    id: string
+    prefix: string      // e.g. "Mi chiamo"
+    placeholder: string
+  }[]
+}
+
+export type Exercise = ExerciseFillBlank | ExerciseChoice | ExerciseDialogue | ExerciseFreeWrite
+
+// ─── Lesson Row ───────────────────────────────────────────────────────────────
 
 export interface LessonRow {
   id: string
@@ -212,6 +279,10 @@ export interface LessonRow {
   grammar_notes: string
   plan_required: PlanType
   status: LessonStatus
+  intro_video_url: string | null
+  video_subtitles: { es?: string; en?: string; it?: string }
+  exercises: Exercise[]
+  ui_language: LessonLanguage
   created_at: string
   updated_at: string
 }

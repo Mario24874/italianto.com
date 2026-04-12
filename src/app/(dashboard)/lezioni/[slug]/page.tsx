@@ -5,8 +5,9 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import type { PlanType } from '@/lib/plans'
 import type { LessonRow, LessonProgressRow, LessonLevel } from '@/types'
 import Link from 'next/link'
-import { ChevronLeft, Lock, BookOpen, AlignLeft } from 'lucide-react'
+import { ChevronLeft, Lock, BookOpen, AlignLeft, GraduationCap } from 'lucide-react'
 import { LessonExam } from './_lesson-exam'
+import { LessonExercises } from './_lesson-exercises'
 
 const PLAN_HIERARCHY: PlanType[] = ['free', 'essenziale', 'avanzato', 'maestro']
 
@@ -32,11 +33,7 @@ export async function generateMetadata(
   const { slug } = await params
   const supabase = getSupabaseAdmin()
   const { data } = await supabase
-    .from('lessons')
-    .select('title, level')
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .single()
+    .from('lessons').select('title, level').eq('slug', slug).eq('status', 'published').single()
   return { title: data ? `${data.title} (${data.level}) — Italianto` : 'Lezione — Italianto' }
 }
 
@@ -47,18 +44,8 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
   const supabase = getSupabaseAdmin()
   const [lessonResult, subResult] = await Promise.all([
-    supabase
-      .from('lessons')
-      .select('*')
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .single(),
-    supabase
-      .from('subscriptions')
-      .select('plan_type')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle(),
+    supabase.from('lessons').select('*').eq('slug', slug).eq('status', 'published').single(),
+    supabase.from('subscriptions').select('plan_type').eq('user_id', user.id).eq('status', 'active').maybeSingle(),
   ])
 
   if (!lessonResult.data) notFound()
@@ -67,22 +54,23 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const accessible = PLAN_HIERARCHY.indexOf(userPlan) >= PLAN_HIERARCHY.indexOf(lesson.plan_required)
 
   const { data: progress } = await supabase
-    .from('lesson_progress')
-    .select('score,status,attempts')
-    .eq('user_id', user.id)
-    .eq('lesson_id', lesson.id)
-    .maybeSingle()
+    .from('lesson_progress').select('score,status,attempts')
+    .eq('user_id', user.id).eq('lesson_id', lesson.id).maybeSingle()
+
+  // Build subtitle tracks array
+  const subtitleTracks: { src: string; srclang: string; label: string }[] = []
+  if (lesson.video_subtitles) {
+    if (lesson.video_subtitles.es) subtitleTracks.push({ src: lesson.video_subtitles.es, srclang: 'es', label: 'Español' })
+    if (lesson.video_subtitles.en) subtitleTracks.push({ src: lesson.video_subtitles.en, srclang: 'en', label: 'English' })
+    if (lesson.video_subtitles.it) subtitleTracks.push({ src: lesson.video_subtitles.it, srclang: 'it', label: 'Italiano' })
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
       {/* Back + level badge */}
       <div className="flex items-center gap-3">
-        <Link
-          href="/lezioni"
-          className="flex items-center gap-1.5 text-sm text-verde-500 hover:text-verde-300 transition-colors"
-        >
-          <ChevronLeft size={16} />
-          Lezioni
+        <Link href="/lezioni" className="flex items-center gap-1.5 text-sm text-verde-500 hover:text-verde-300 transition-colors">
+          <ChevronLeft size={16} />Lezioni
         </Link>
         <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${LEVEL_COLORS[lesson.level]}`}>
           {lesson.level}
@@ -109,18 +97,41 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
             <h2 className="text-xl font-bold text-verde-200">Contenuto riservato</h2>
             <p className="text-verde-500 text-sm mt-2 max-w-xs mx-auto">
               Questa lezione richiede il piano <strong className="text-verde-300">{PLAN_LABELS[lesson.plan_required]}</strong>.
-              Aggiorna il tuo piano per accedere.
             </p>
           </div>
-          <Link
-            href="/impostazioni"
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-verde-700 hover:bg-verde-600 text-white font-semibold rounded-xl transition-colors text-sm"
-          >
+          <Link href="/impostazioni"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-verde-700 hover:bg-verde-600 text-white font-semibold rounded-xl transition-colors text-sm">
             Vedi piani
           </Link>
         </div>
       ) : (
         <>
+          {/* ── Intro Video ── */}
+          {lesson.intro_video_url && (
+            <div className="rounded-2xl overflow-hidden border border-verde-900/30 bg-black">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video
+                src={lesson.intro_video_url}
+                autoPlay
+                muted
+                playsInline
+                controls
+                className="w-full max-h-[480px] object-contain"
+              >
+                {subtitleTracks.map(track => (
+                  <track
+                    key={track.srclang}
+                    kind="subtitles"
+                    src={track.src}
+                    srcLang={track.srclang}
+                    label={track.label}
+                    default={track.srclang === (lesson.ui_language ?? 'es')}
+                  />
+                ))}
+              </video>
+            </div>
+          )}
+
           {/* ── Lesson Content ── */}
           {lesson.content_html && (
             <div className="rounded-2xl border border-verde-900/30 bg-verde-950/10 p-6">
@@ -137,7 +148,8 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                   [&_ul]:text-verde-400 [&_ul]:space-y-1 [&_ul]:list-disc [&_ul]:pl-5
                   [&_ol]:text-verde-400 [&_ol]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5
                   [&_em]:text-verde-300 [&_em]:italic
-                  [&_blockquote]:border-l-2 [&_blockquote]:border-verde-700 [&_blockquote]:pl-4 [&_blockquote]:text-verde-400 [&_blockquote]:italic"
+                  [&_blockquote]:border-l-2 [&_blockquote]:border-verde-700 [&_blockquote]:pl-4 [&_blockquote]:text-verde-400 [&_blockquote]:italic
+                  [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4 [&_img]:mx-auto [&_img]:block"
                 dangerouslySetInnerHTML={{ __html: lesson.content_html }}
               />
             </div>
@@ -154,18 +166,13 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {lesson.vocabulary.map((item, i) => (
-                  <div
-                    key={i}
-                    className="rounded-xl border border-verde-900/30 bg-verde-950/20 px-4 py-3"
-                  >
+                  <div key={i} className="rounded-xl border border-verde-900/30 bg-verde-950/20 px-4 py-3">
                     <div className="flex items-baseline gap-2">
                       <span className="font-semibold text-verde-200 text-sm">{item.word}</span>
                       <span className="text-verde-600 text-xs">→</span>
                       <span className="text-verde-400 text-sm">{item.translation}</span>
                     </div>
-                    {item.example && (
-                      <p className="text-verde-600 text-xs mt-1 italic">{item.example}</p>
-                    )}
+                    {item.example && <p className="text-verde-600 text-xs mt-1 italic">{item.example}</p>}
                   </div>
                 ))}
               </div>
@@ -175,12 +182,21 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           {/* ── Grammar Notes ── */}
           {lesson.grammar_notes && (
             <div className="rounded-2xl border border-verde-900/30 bg-verde-950/10 p-6">
-              <h2 className="font-semibold text-verde-300 text-sm uppercase tracking-wide mb-3">
-                Note di grammatica
-              </h2>
-              <p className="text-verde-400 text-sm leading-relaxed whitespace-pre-line">
-                {lesson.grammar_notes}
-              </p>
+              <h2 className="font-semibold text-verde-300 text-sm uppercase tracking-wide mb-3">Note di grammatica</h2>
+              <p className="text-verde-400 text-sm leading-relaxed whitespace-pre-line">{lesson.grammar_notes}</p>
+            </div>
+          )}
+
+          {/* ── Interactive Exercises ── */}
+          {Array.isArray(lesson.exercises) && lesson.exercises.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <GraduationCap size={16} className="text-blue-400" />
+                <h2 className="font-semibold text-blue-300 text-sm uppercase tracking-wide">
+                  Esercizi interattivi ({lesson.exercises.length})
+                </h2>
+              </div>
+              <LessonExercises exercises={lesson.exercises} />
             </div>
           )}
 

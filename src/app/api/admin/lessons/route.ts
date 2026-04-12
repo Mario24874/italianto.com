@@ -31,7 +31,10 @@ export async function POST(req: NextRequest) {
   }
   try {
     const body = await req.json()
-    const { title, slug, level, order_index, content_html, vocabulary, grammar_notes, plan_required, status } = body
+    const {
+      title, slug, level, order_index, content_html, vocabulary, grammar_notes,
+      plan_required, status, intro_video_url, video_subtitles, exercises, ui_language,
+    } = body
 
     if (!title?.trim() || !slug?.trim() || !level) {
       return NextResponse.json({ error: 'title, slug y level son requeridos' }, { status: 400 })
@@ -50,6 +53,10 @@ export async function POST(req: NextRequest) {
         grammar_notes: grammar_notes || '',
         plan_required: plan_required || 'free',
         status: status || 'draft',
+        intro_video_url: intro_video_url || null,
+        video_subtitles: video_subtitles || {},
+        exercises: exercises || [],
+        ui_language: ui_language || 'es',
       })
       .select()
       .single()
