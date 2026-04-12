@@ -24,26 +24,71 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary)
 }
 
-const GEMINI_PROMPT = `Eres un experto en didáctica del italiano. Analiza el siguiente contenido educativo y extrae toda la información relevante para crear una lección estructurada de italiano.
+const GEMINI_PROMPT = `Eres un experto en didáctica del italiano y diseño pedagógico. Analiza el siguiente contenido educativo y genera una lección visualmente rica y moderna en HTML.
 
-Devuelve SOLO un JSON válido con esta estructura exacta (sin markdown, sin código, solo el JSON):
+Devuelve SOLO un JSON válido con esta estructura exacta (sin markdown, sin \`\`\`, solo el JSON puro):
 {
   "title": "Título descriptivo de la lección en italiano",
   "level": "A1",
-  "content_html": "<h2>...</h2><p>...</p>",
-  "grammar_notes": "Notas de gramática en texto plano...",
+  "content_html": "...HTML RICO AQUÍ...",
+  "grammar_notes": "Resumen gramatical en texto plano...",
   "vocabulary": [
     {"word": "parola italiana", "translation": "traducción al español", "example": "Frase de ejemplo en italiano."}
   ]
 }
 
-Reglas importantes:
-- "level": debe ser uno de: A1, A2, B1, B2, C1, C2 (elige según la dificultad real del texto)
-- "content_html": usa solo estas etiquetas HTML: h2, h3, p, strong, em, ul, ol, li, blockquote. El contenido debe ser la explicación pedagógica completa, bien organizada y clara
-- "grammar_notes": texto plano con las reglas gramaticales principales. Si no hay notas explícitas, genera un resumen gramatical basado en el contenido
-- "vocabulary": extrae TODAS las palabras y expresiones relevantes del contenido con su traducción al español y un ejemplo de uso. Mínimo 5 palabras, máximo 30
-- Si el documento contiene texto en varios idiomas, la lección final debe estar en italiano (contenido) con traducciones al español (vocabulario)
-- Responde SOLO con el JSON, sin ningún texto adicional`
+═══════════════════════════════════════════════════
+REGLAS PARA content_html — LEE CON ATENCIÓN
+═══════════════════════════════════════════════════
+
+ETIQUETAS PERMITIDAS: h2, h3, h4, p, strong, em, ul, ol, li, blockquote, table, thead, tbody, tr, th, td, hr, span
+
+1. SECCIONES — Cada sección temática debe tener un h2 con emoji:
+   <h2>🔤 L'Alfabeto Italiano</h2>
+   <h2>🔊 Pronunciazione</h2>
+   <h2>📅 Mesi e Giorni</h2>
+   <h2>👋 I Saluti</h2>
+   <h2>🙋 Le Presentazioni</h2>
+   <h2>📖 Gli Articoli</h2>
+   Usa el emoji más apropiado según el tema.
+
+2. TABLAS — Usa SIEMPRE tablas HTML para datos tabulares (alfabetos, meses, saludos, artículos, conjugaciones):
+   <table>
+     <thead><tr><th>Letra</th><th>Nombre</th><th>Ejemplo</th></tr></thead>
+     <tbody>
+       <tr><td>A</td><td>a</td><td>amico</td></tr>
+       <tr><td>B</td><td>bi</td><td>bello</td></tr>
+     </tbody>
+   </table>
+   NO uses listas para datos que son claramente tablas.
+
+3. CAJAS DE CONSEJO (📌) — Usa blockquote con class="tip":
+   <blockquote class="tip">Las letras J, K, W, X, Y se usan en palabras de origen extranjero.</blockquote>
+
+4. CAJAS DE NOTA IMPORTANTE (ℹ️) — Usa blockquote con class="info":
+   <blockquote class="info">En italiano no se dice "Sono di + país". Se dice: Sono italiano/a.</blockquote>
+
+5. CAJAS DE DIÁLOGO (💬) — Usa blockquote con class="dialogo":
+   <blockquote class="dialogo">
+     <p><strong>Lucia:</strong> Ciao Alberto!</p>
+     <p><strong>Alberto:</strong> Ciao Lucia, come stai?</p>
+     <p><strong>Lucia:</strong> Sto bene, grazie, e tu?</p>
+   </blockquote>
+
+6. SEPARADORES — Usa <hr> entre secciones principales.
+
+7. TEXTO — No uses listas para información que se lee mejor como prosa. Usa <p> para explicaciones.
+
+8. PLANTILLAS — Si hay plantillas de presentación (Io mi chiamo ___), ponlas en blockquote class="info".
+
+═══════════════════════════════════════════════════
+REGLAS GENERALES
+═══════════════════════════════════════════════════
+- "level": uno de: A1, A2, B1, B2, C1, C2
+- "grammar_notes": texto plano con las reglas gramaticales principales
+- "vocabulary": extrae TODAS las palabras clave con traducción y ejemplo. Mínimo 5, máximo 30
+- Si el documento está en varios idiomas: el contenido italiano va en italiano, las explicaciones en el idioma de la guía
+- Responde SOLO el JSON, absolutamente nada más`
 
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) {

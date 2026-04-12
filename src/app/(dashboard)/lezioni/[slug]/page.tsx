@@ -140,16 +140,55 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 <h2 className="font-semibold text-verde-300 text-sm uppercase tracking-wide">Lezione</h2>
               </div>
               <div
-                className="prose prose-invert prose-verde prose-sm max-w-none
-                  [&_h2]:text-verde-200 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:mt-6
-                  [&_h3]:text-verde-300 [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4
-                  [&_p]:text-verde-400 [&_p]:leading-relaxed [&_p]:mb-3
-                  [&_strong]:text-verde-200
-                  [&_ul]:text-verde-400 [&_ul]:space-y-1 [&_ul]:list-disc [&_ul]:pl-5
-                  [&_ol]:text-verde-400 [&_ol]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5
-                  [&_em]:text-verde-300 [&_em]:italic
-                  [&_blockquote]:border-l-2 [&_blockquote]:border-verde-700 [&_blockquote]:pl-4 [&_blockquote]:text-verde-400 [&_blockquote]:italic
-                  [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4 [&_img]:mx-auto [&_img]:block"
+                className={[
+                  'prose prose-invert prose-sm max-w-none',
+                  // Headings
+                  '[&_h2]:text-verde-100 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:mb-3 [&_h2]:mt-8',
+                  '[&_h2]:pb-2 [&_h2]:border-b [&_h2]:border-verde-800/40',
+                  '[&_h3]:text-verde-200 [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-base',
+                  '[&_h4]:text-verde-300 [&_h4]:font-semibold [&_h4]:mb-1.5 [&_h4]:mt-4 [&_h4]:text-sm',
+                  // Text
+                  '[&_p]:text-verde-400 [&_p]:leading-relaxed [&_p]:mb-3',
+                  '[&_strong]:text-verde-100 [&_strong]:font-bold',
+                  '[&_em]:text-verde-300 [&_em]:italic',
+                  '[&_hr]:border-verde-800/30 [&_hr]:my-6',
+                  // Lists
+                  '[&_ul]:text-verde-400 [&_ul]:space-y-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3',
+                  '[&_ol]:text-verde-400 [&_ol]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3',
+                  '[&_li]:text-verde-400 [&_li]:leading-relaxed',
+                  // Images
+                  '[&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4 [&_img]:mx-auto [&_img]:block',
+                  '[&_img]:border [&_img]:border-verde-800/30',
+                  // ── Tables ──────────────────────────────────────────────
+                  '[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm',
+                  '[&_table]:rounded-xl [&_table]:overflow-hidden',
+                  '[&_thead]:bg-verde-900/60',
+                  '[&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:text-verde-200 [&_th]:font-bold [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wide',
+                  '[&_th]:border-b [&_th]:border-verde-700/40',
+                  '[&_td]:px-3 [&_td]:py-2 [&_td]:text-verde-300 [&_td]:border-b [&_td]:border-verde-900/30',
+                  '[&_tbody_tr:last-child_td]:border-b-0',
+                  '[&_tbody_tr:hover]:bg-verde-900/20',
+                  // ── Blockquote base ──────────────────────────────────────
+                  '[&_blockquote]:rounded-xl [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4',
+                  '[&_blockquote]:border-l-4 [&_blockquote]:not-italic',
+                  // blockquote.tip → yellow warning box
+                  '[&_blockquote.tip]:bg-amber-950/30 [&_blockquote.tip]:border-amber-600/50',
+                  '[&_blockquote.tip]:text-amber-200',
+                  '[&_blockquote.tip_p]:text-amber-300 [&_blockquote.tip_strong]:text-amber-100',
+                  // blockquote.info → blue info box
+                  '[&_blockquote.info]:bg-blue-950/30 [&_blockquote.info]:border-blue-600/50',
+                  '[&_blockquote.info]:text-blue-200',
+                  '[&_blockquote.info_p]:text-blue-300 [&_blockquote.info_strong]:text-blue-100',
+                  // blockquote.dialogo → conversation card
+                  '[&_blockquote.dialogo]:bg-verde-950/30 [&_blockquote.dialogo]:border-verde-600/50',
+                  '[&_blockquote.dialogo]:text-verde-200 [&_blockquote.dialogo]:font-mono [&_blockquote.dialogo]:text-xs',
+                  '[&_blockquote.dialogo_p]:mb-1 [&_blockquote.dialogo_p]:text-verde-300',
+                  '[&_blockquote.dialogo_strong]:text-verde-100',
+                  // Default blockquote (no class)
+                  '[&_blockquote:not(.tip):not(.info):not(.dialogo)]:border-verde-700/40',
+                  '[&_blockquote:not(.tip):not(.info):not(.dialogo)]:bg-verde-950/20',
+                  '[&_blockquote:not(.tip):not(.info):not(.dialogo)]:text-verde-400 [&_blockquote:not(.tip):not(.info):not(.dialogo)]:italic',
+                ].join(' ')}
                 dangerouslySetInnerHTML={{ __html: lesson.content_html }}
               />
             </div>
