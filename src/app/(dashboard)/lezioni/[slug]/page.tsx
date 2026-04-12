@@ -5,11 +5,25 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import type { PlanType } from '@/lib/plans'
 import type { LessonRow, LessonProgressRow, LessonLevel } from '@/types'
 import Link from 'next/link'
-import { ChevronLeft, Lock, BookOpen, AlignLeft, GraduationCap } from 'lucide-react'
+import { ChevronLeft, Lock, BookOpen, AlignLeft, GraduationCap, CalendarClock } from 'lucide-react'
 import { LessonExam } from './_lesson-exam'
 import { LessonExercises } from './_lesson-exercises'
 
-const PLAN_HIERARCHY: PlanType[] = ['free', 'essenziale', 'avanzato', 'maestro']
+const WEEKLY_LIMITS: Record<PlanType, number> = {
+  free: 0,
+  essenziale: 1,
+  avanzato: 2,
+  maestro: 3,
+}
+
+/** Monday of the current ISO week as YYYY-MM-DD */
+function currentWeekStart(): string {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  const day = d.getDay() // 0 = Sunday
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
+  return d.toISOString().split('T')[0]
+}
 
 const LEVEL_COLORS: Record<LessonLevel, string> = {
   A1: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/40',
@@ -18,13 +32,6 @@ const LEVEL_COLORS: Record<LessonLevel, string> = {
   B2: 'bg-orange-900/50 text-orange-300 border-orange-700/40',
   C1: 'bg-red-900/50 text-red-300 border-red-700/40',
   C2: 'bg-purple-900/50 text-purple-300 border-purple-700/40',
-}
-
-const PLAN_LABELS: Record<PlanType, string> = {
-  free: 'Gratis',
-  essenziale: 'Essenziale',
-  avanzato: 'Avanzato',
-  maestro: 'Maestro',
 }
 
 export async function generateMetadata(
@@ -51,11 +58,41 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   if (!lessonResult.data) notFound()
   const lesson = lessonResult.data as LessonRow
   const userPlan = (subResult.data?.plan_type ?? 'free') as PlanType
-  const accessible = PLAN_HIERARCHY.indexOf(userPlan) >= PLAN_HIERARCHY.indexOf(lesson.plan_required)
+  const weekLimit = WEEKLY_LIMITS[userPlan]
+  const weekStart = currentWeekStart()
 
-  const { data: progress } = await supabase
-    .from('lesson_progress').select('score,status,attempts')
-    .eq('user_id', user.id).eq('lesson_id', lesson.id).maybeSingle()
+  // Check weekly access quota
+  const { data: weekAccesses } = await supabase
+    .from('lesson_weekly_access')
+    .select('lesson_id')
+    .eq('user_id', user.id)
+    .eq('week_start', weekStart)
+
+  const alreadyAccessed = weekAccesses?.some(a => a.lesson_id === lesson.id) ?? false
+  const weekAccessCount = weekAccesses?.length ?? 0
+
+  let accessible = false
+  let quotaExhausted = false
+  if (alreadyAccessed) {
+    accessible = true
+  } else if (weekLimit === 0) {
+    accessible = false
+  } else if (weekAccessCount < weekLimit) {
+    await supabase.from('lesson_weekly_access').insert({
+      user_id: user.id,
+      lesson_id: lesson.id,
+      week_start: weekStart,
+    })
+    accessible = true
+  } else {
+    accessible = false
+    quotaExhausted = true
+  }
+
+  const [{ data: progress }] = await Promise.all([
+    supabase.from('lesson_progress').select('score,status,attempts')
+      .eq('user_id', user.id).eq('lesson_id', lesson.id).maybeSingle(),
+  ])
 
   // Build subtitle tracks array
   const subtitleTracks: { src: string; srclang: string; label: string }[] = []
@@ -75,11 +112,6 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${LEVEL_COLORS[lesson.level]}`}>
           {lesson.level}
         </span>
-        {lesson.plan_required !== 'free' && (
-          <span className="text-xs text-verde-600 bg-verde-950/30 border border-verde-900/30 rounded-lg px-2 py-0.5">
-            {PLAN_LABELS[lesson.plan_required]}
-          </span>
-        )}
       </div>
 
       {/* Title */}
@@ -91,17 +123,32 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         /* ── Paywall ── */
         <div className="rounded-2xl border border-verde-900/30 bg-verde-950/10 p-8 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-verde-900/30 flex items-center justify-center mx-auto">
-            <Lock size={28} className="text-verde-700" />
+            {quotaExhausted
+              ? <CalendarClock size={28} className="text-amber-500" />
+              : <Lock size={28} className="text-verde-700" />}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-verde-200">Contenuto riservato</h2>
-            <p className="text-verde-500 text-sm mt-2 max-w-xs mx-auto">
-              Questa lezione richiede il piano <strong className="text-verde-300">{PLAN_LABELS[lesson.plan_required]}</strong>.
-            </p>
+            {quotaExhausted ? (
+              <>
+                <h2 className="text-xl font-bold text-verde-200">Límite semanal alcanzado</h2>
+                <p className="text-verde-500 text-sm mt-2 max-w-sm mx-auto">
+                  Tu plan <strong className="text-verde-300 capitalize">{userPlan}</strong> incluye{' '}
+                  <strong className="text-verde-300">{weekLimit} {weekLimit === 1 ? 'lección' : 'lecciones'} por semana</strong>.
+                  {' '}Vuelve el próximo lunes para continuar.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-verde-200">Suscríbete para continuar</h2>
+                <p className="text-verde-500 text-sm mt-2 max-w-xs mx-auto">
+                  Accede a todas las lecciones con un plan de suscripción.
+                </p>
+              </>
+            )}
           </div>
           <Link href="/impostazioni"
             className="inline-flex items-center gap-2 px-6 py-2.5 bg-verde-700 hover:bg-verde-600 text-white font-semibold rounded-xl transition-colors text-sm">
-            Vedi piani
+            {quotaExhausted ? 'Ver planes superiores' : 'Ver planes'}
           </Link>
         </div>
       ) : (

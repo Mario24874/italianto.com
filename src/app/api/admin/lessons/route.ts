@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const {
-      title, slug, level, order_index, content_html, vocabulary, grammar_notes,
-      plan_required, status, intro_video_url, video_subtitles, exercises, ui_language,
+      title, slug, level, content_html, vocabulary, grammar_notes,
+      status, intro_video_url, video_subtitles, exercises,
     } = body
 
     if (!title?.trim() || !slug?.trim() || !level) {
@@ -47,16 +47,13 @@ export async function POST(req: NextRequest) {
         title: title.trim(),
         slug: slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-'),
         level,
-        order_index: Number(order_index) || 0,
         content_html: content_html || '',
         vocabulary: vocabulary || [],
         grammar_notes: grammar_notes || '',
-        plan_required: plan_required || 'free',
         status: status || 'draft',
         intro_video_url: intro_video_url || null,
         video_subtitles: video_subtitles || {},
         exercises: exercises || [],
-        ui_language: ui_language || 'es',
       })
       .select()
       .single()

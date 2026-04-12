@@ -6,21 +6,14 @@ import {
   BookOpen, Plus, Pencil, Trash2, Loader2, X,
   ToggleLeft, ToggleRight, GripVertical,
   Upload, FileText, Sparkles, AlertTriangle,
-  Video, Captions, Dumbbell, Globe,
+  Video, Captions, Dumbbell,
   CheckCircle2,
 } from 'lucide-react'
-import type { LessonRow, LessonLevel, LessonStatus, VocabularyItem, Exercise, LessonLanguage } from '@/types'
-import type { PlanType } from '@/lib/plans'
+import type { LessonRow, LessonLevel, LessonStatus, VocabularyItem, Exercise } from '@/types'
 import { RichEditor } from './_rich-editor'
 
 const LEVELS: LessonLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-const PLANS: { value: PlanType; label: string }[] = [
-  { value: 'free', label: 'Gratis' },
-  { value: 'essenziale', label: 'Essenziale' },
-  { value: 'avanzato', label: 'Avanzato' },
-  { value: 'maestro', label: 'Maestro' },
-]
-const LANGUAGES: { value: LessonLanguage; label: string; flag: string }[] = [
+const SUBTITLE_LANGS: { value: 'es' | 'en' | 'it'; label: string; flag: string }[] = [
   { value: 'es', label: 'Español', flag: '🇪🇸' },
   { value: 'en', label: 'English', flag: '🇬🇧' },
   { value: 'it', label: 'Italiano', flag: '🇮🇹' },
@@ -49,8 +42,6 @@ interface LessonFormData {
   title: string
   slug: string
   level: LessonLevel
-  order_index: number
-  plan_required: PlanType
   status: LessonStatus
   content_html: string
   grammar_notes: string
@@ -58,15 +49,12 @@ interface LessonFormData {
   intro_video_url: string
   video_subtitles: { es: string; en: string; it: string }
   exercises: Exercise[]
-  ui_language: LessonLanguage
 }
 
 const emptyForm = (): LessonFormData => ({
   title: '',
   slug: '',
   level: 'A1',
-  order_index: 0,
-  plan_required: 'free',
   status: 'draft',
   content_html: '',
   grammar_notes: '',
@@ -74,7 +62,6 @@ const emptyForm = (): LessonFormData => ({
   intro_video_url: '',
   video_subtitles: { es: '', en: '', it: '' },
   exercises: [],
-  ui_language: 'es',
 })
 
 // ─── AI Lesson Import Panel ────────────────────────────────────────────────────
@@ -146,11 +133,9 @@ function ImportPanel({ onImport }: { onImport: (data: Partial<LessonFormData>) =
 
 // ─── Exercise Import Panel ─────────────────────────────────────────────────────
 function ExerciseImportPanel({
-  language,
   onImport,
   existingCount,
 }: {
-  language: LessonLanguage
   onImport: (exercises: Exercise[]) => void
   existingCount: number
 }) {
@@ -169,7 +154,7 @@ function ExerciseImportPanel({
     setFileName(file.name); setImporting(true); setError(null)
     const form = new FormData()
     form.append('file', file)
-    form.append('language', language)
+    form.append('language', 'es')
     try {
       const res = await fetch('/api/admin/lessons/import-exercises', { method: 'POST', body: form })
       const data = await res.json()
@@ -216,7 +201,7 @@ function ExerciseImportPanel({
               {existingCount > 0 ? 'Reemplazar guía de ejercicios' : 'Subir guía de ejercicios'}
             </p>
             <p className="text-xs text-blue-600 text-center">
-              Gemini generará ejercicios interactivos en <strong className="text-blue-400">{LANGUAGES.find(l => l.value === language)?.label}</strong>
+              Gemini generará ejercicios interactivos a partir del archivo
             </p>
           </>
         )}
@@ -362,8 +347,8 @@ function VideoSection({
           </div>
           <div className="grid grid-cols-3 gap-2">
             {(['es', 'en', 'it'] as const).map(lang => {
-              const flag = LANGUAGES.find(l => l.value === lang)?.flag
-              const label = LANGUAGES.find(l => l.value === lang)?.label
+              const flag = SUBTITLE_LANGS.find(l => l.value === lang)?.flag
+              const label = SUBTITLE_LANGS.find(l => l.value === lang)?.label
               const ref = subtitleRefs[lang]
               const hasFile = !!subtitles[lang]
               return (
@@ -409,8 +394,6 @@ function LessonModal({
       title: lesson.title,
       slug: lesson.slug,
       level: lesson.level,
-      order_index: lesson.order_index,
-      plan_required: lesson.plan_required,
       status: lesson.status,
       content_html: lesson.content_html,
       grammar_notes: lesson.grammar_notes,
@@ -418,7 +401,6 @@ function LessonModal({
       intro_video_url: lesson.intro_video_url ?? '',
       video_subtitles: { es: lesson.video_subtitles?.es ?? '', en: lesson.video_subtitles?.en ?? '', it: lesson.video_subtitles?.it ?? '' },
       exercises: lesson.exercises ?? [],
-      ui_language: lesson.ui_language ?? 'es',
     } : emptyForm()
   )
   const [saving, setSaving] = useState(false)
@@ -463,7 +445,12 @@ function LessonModal({
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
+          title: form.title,
+          slug: form.slug,
+          level: form.level,
+          status: form.status,
+          content_html: form.content_html,
+          grammar_notes: form.grammar_notes,
           vocabulary: form.vocabulary.filter(v => v.word.trim()),
           intro_video_url: form.intro_video_url || null,
           video_subtitles: {
@@ -471,6 +458,7 @@ function LessonModal({
             ...(form.video_subtitles.en && { en: form.video_subtitles.en }),
             ...(form.video_subtitles.it && { it: form.video_subtitles.it }),
           },
+          exercises: form.exercises,
         }),
       })
       const data = await res.json()
@@ -501,32 +489,25 @@ function LessonModal({
           <ImportPanel onImport={handleImport} />
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* ── Language + Status ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="col-span-2 sm:col-span-1">
-                <label className="block text-xs font-medium text-verde-400 mb-1.5 flex items-center gap-1">
-                  <Globe size={11} /> Idioma instrucciones
-                </label>
-                <select
-                  value={form.ui_language}
-                  onChange={e => setField('ui_language', e.target.value as LessonLanguage)}
-                  className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-sm text-verde-200 focus:outline-none focus:border-verde-600"
-                >
-                  {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.flag} {l.label}</option>)}
-                </select>
-              </div>
+            {/* ── Title (prominent) ── */}
+            <div>
+              <label className="block text-xs font-medium text-verde-400 mb-1.5">Título de la lección *</label>
+              <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)}
+                placeholder="ej. I saluti italiani"
+                className="w-full px-3 py-2.5 rounded-xl bg-verde-950/50 border border-verde-800/40 text-base text-verde-100 placeholder:text-verde-600 focus:outline-none focus:border-verde-600"
+                required />
+              {form.slug && (
+                <p className="text-[10px] text-verde-700 mt-1 font-mono">/{form.slug}</p>
+              )}
+            </div>
+
+            {/* ── Level + Status ── */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-verde-400 mb-1.5">Livello</label>
+                <label className="block text-xs font-medium text-verde-400 mb-1.5">Nivel</label>
                 <select value={form.level} onChange={e => setField('level', e.target.value as LessonLevel)}
                   className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-sm text-verde-200 focus:outline-none focus:border-verde-600">
                   {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-verde-400 mb-1.5">Plan</label>
-                <select value={form.plan_required} onChange={e => setField('plan_required', e.target.value as PlanType)}
-                  className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-sm text-verde-200 focus:outline-none focus:border-verde-600">
-                  {PLANS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
               </div>
               <div>
@@ -537,29 +518,6 @@ function LessonModal({
                   <option value="published">Publicado</option>
                 </select>
               </div>
-            </div>
-
-            {/* Title + Slug + Order */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-verde-400 mb-1.5">Titolo *</label>
-                <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)}
-                  placeholder="es. I saluti italiani"
-                  className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-sm text-verde-200 placeholder:text-verde-600 focus:outline-none focus:border-verde-600"
-                  required />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-verde-400 mb-1.5">Orden</label>
-                <input type="number" value={form.order_index} onChange={e => setField('order_index', Number(e.target.value))}
-                  min={0} className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-sm text-verde-200 focus:outline-none focus:border-verde-600" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-verde-400 mb-1.5">Slug *</label>
-              <input type="text" value={form.slug} onChange={e => setField('slug', e.target.value)}
-                placeholder="i-saluti-italiani"
-                className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-sm text-verde-200 font-mono placeholder:text-verde-600 focus:outline-none focus:border-verde-600"
-                required />
             </div>
 
             {/* ── Video + Subtitles ── */}
@@ -620,7 +578,6 @@ function LessonModal({
 
             {/* ── Exercise Guide Import ── */}
             <ExerciseImportPanel
-              language={form.ui_language}
               onImport={exercises => setField('exercises', exercises)}
               existingCount={form.exercises.length}
             />
@@ -723,8 +680,7 @@ export function LessonManager() {
               <tr className="border-b border-verde-900/30 bg-verde-950/30">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide">Título</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide hidden sm:table-cell">Nivel</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide hidden md:table-cell">Plan</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide hidden lg:table-cell">Media</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide hidden md:table-cell">Media</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -742,11 +698,8 @@ export function LessonManager() {
                     </span>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <span className="text-xs text-verde-500 capitalize">{lesson.plan_required}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
                     <div className="flex items-center gap-2">
-                      {lesson.intro_video_url && <Video size={13} className="text-purple-400" title="Tiene video" />}
+                      {lesson.intro_video_url && <span title="Tiene video"><Video size={13} className="text-purple-400" /></span>}
                       {lesson.exercises?.length > 0 && (
                         <span className="text-xs text-blue-400" title={`${lesson.exercises.length} ejercicios`}>
                           <Dumbbell size={13} />
