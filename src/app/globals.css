@@ -250,17 +250,44 @@ body {
 
 /* ─── Light mode overrides ─────────────────────────────────────────────── */
 /* Near-white verde text → dark green in light mode for readability */
-html:not(.dark) .text-verde-50  { color: var(--color-verde-900); }
-html:not(.dark) .text-verde-100 { color: var(--color-verde-900); }
-html:not(.dark) .text-verde-200 { color: var(--color-verde-800); }
-html:not(.dark) .text-verde-300 { color: var(--color-verde-700); }
-html:not(.dark) .text-verde-400 { color: var(--color-verde-700); }
-html:not(.dark) .text-verde-500 { color: var(--color-verde-600); }
-html:not(.dark) .text-verde-600 { color: var(--color-verde-700); }
+html:not(.dark) .text-verde-50  { color: var(--color-verde-900) !important; }
+html:not(.dark) .text-verde-100 { color: var(--color-verde-900) !important; }
+html:not(.dark) .text-verde-200 { color: var(--color-verde-800) !important; }
+html:not(.dark) .text-verde-300 { color: var(--color-verde-700) !important; }
+html:not(.dark) .text-verde-400 { color: var(--color-verde-700) !important; }
+html:not(.dark) .text-verde-500 { color: var(--color-verde-600) !important; }
+html:not(.dark) .text-verde-600 { color: var(--color-verde-700) !important; }
+html:not(.dark) .text-verde-700 { color: var(--color-verde-800) !important; }
 
 /* Section backgrounds: dark → light */
-html:not(.dark) .bg-bg-dark   { background-color: var(--color-bg-light); }
-html:not(.dark) .bg-bg-dark-2 { background-color: var(--color-bg-light-2); }
+html:not(.dark) .bg-bg-dark   { background-color: var(--color-bg-light) !important; }
+html:not(.dark) .bg-bg-dark-2 { background-color: var(--color-bg-light-2) !important; }
+html:not(.dark) .bg-bg-dark-3 { background-color: var(--color-bg-light-2) !important; }
+
+/* glass-dark → white card in light mode */
+html:not(.dark) .glass-dark {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(21, 128, 61, 0.15) !important;
+}
+
+/* prose-invert forces white text — reset to dark green in light mode */
+html:not(.dark) .prose-invert {
+  --tw-prose-body: var(--color-verde-900);
+  --tw-prose-headings: var(--color-verde-900);
+  --tw-prose-lead: var(--color-verde-800);
+  --tw-prose-links: var(--color-verde-700);
+  --tw-prose-bold: var(--color-verde-900);
+  --tw-prose-counters: var(--color-verde-700);
+  --tw-prose-bullets: var(--color-verde-700);
+  --tw-prose-hr: var(--color-verde-300);
+  --tw-prose-quotes: var(--color-verde-800);
+  --tw-prose-quote-borders: var(--color-verde-400);
+  --tw-prose-captions: var(--color-verde-600);
+  --tw-prose-code: var(--color-verde-800);
+  --tw-prose-pre-bg: var(--color-verde-50);
+  --tw-prose-th-borders: var(--color-verde-300);
+  --tw-prose-td-borders: var(--color-verde-200);
+}
 
 /* ─── Animate on scroll (base) ─────────────────────────────────────────── */
 .aos-hidden {

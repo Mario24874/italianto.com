@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
-import { ClerkProvider } from '@clerk/nextjs'
 import { Providers } from '@/components/providers'
 import { Toaster } from 'sonner'
 import './globals.css'
@@ -97,44 +96,24 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <ClerkProvider
-      appearance={{
-        variables: {
-          colorPrimary: '#2e7d32',
-          colorBackground: '#060d07',
-          colorText: '#f0fdf4',
-          colorInputBackground: '#0d1a0e',
-          colorInputText: '#f0fdf4',
-          borderRadius: '0.75rem',
-        },
-        elements: {
-          card: 'glass-dark shadow-brand',
-          socialButtonsBlockButton:
-            'border border-verde-800 hover:border-verde-600 transition-colors',
-          formButtonPrimary:
-            'bg-brand hover:bg-brand-light shimmer-btn transition-all',
-        },
-      }}
-    >
-      <html lang="es" suppressHydrationWarning>
-        <body
-          className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
-        >
-          <Providers>
-            {children}
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: 'var(--color-bg-dark-2)',
-                  border: '1px solid rgba(46, 125, 50, 0.3)',
-                  color: '#f0fdf4',
-                },
-              }}
-            />
-          </Providers>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="es" suppressHydrationWarning>
+      <body
+        className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
+      >
+        <Providers>
+          {children}
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: 'var(--color-bg-dark-2)',
+                border: '1px solid rgba(46, 125, 50, 0.3)',
+                color: '#f0fdf4',
+              },
+            }}
+          />
+        </Providers>
+      </body>
+    </html>
   )
 }

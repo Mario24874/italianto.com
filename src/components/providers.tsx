@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from 'next-themes'
 import { LanguageProvider } from '@/contexts/language-context'
+import { ClerkThemeProvider } from '@/components/clerk-theme-provider'
 
 interface ProvidersProps {
   children: React.ReactNode
@@ -16,7 +17,10 @@ export function Providers({ children }: ProvidersProps) {
       disableTransitionOnChange={false}
     >
       <LanguageProvider>
-        {children}
+        {/* ClerkThemeProvider is inside ThemeProvider so useTheme() works */}
+        <ClerkThemeProvider>
+          {children}
+        </ClerkThemeProvider>
       </LanguageProvider>
     </ThemeProvider>
   )
