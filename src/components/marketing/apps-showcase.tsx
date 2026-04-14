@@ -132,18 +132,10 @@ export function AppsShowcase() {
                     className={`w-full border-current ${app.accentColor} group/btn`}
                     asChild
                   >
-                    <Link
-                      href={app.ctaHref}
-                      target={app.external ? '_blank' : undefined}
-                      rel={app.external ? 'noopener noreferrer' : undefined}
-                    >
+                    <a href={app.ctaHref}>
                       {app.cta}
-                      {app.external ? (
-                        <ExternalLink size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
-                      ) : (
-                        <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                      )}
-                    </Link>
+                      <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                    </a>
                   </Button>
                 </div>
               </div>

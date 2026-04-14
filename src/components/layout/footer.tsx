@@ -23,8 +23,8 @@ export function Footer() {
     plataforma: [
       { label: t.nav.features,    href: '/#funciones' },
       { label: t.nav.pricing,     href: '/precios' },
-      { label: 'ItaliantoApp',    href: '/app', external: false },
-      { label: 'Dialoghi Studio', href: '/studio', external: false },
+      { label: 'ItaliantoApp',    href: '/app', external: false, crossApp: true },
+      { label: 'Dialoghi Studio', href: '/studio', external: false, crossApp: true },
     ],
     soporte: [
       { label: t.footer.about,   href: '/sobre-nosotros' },
@@ -77,17 +77,26 @@ export function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-verde-300 mb-4">{t.footer.platform}</h3>
             <ul className="space-y-2.5">
-              {footerLinks.plataforma.map(({ label, href, external }) => (
+              {footerLinks.plataforma.map(({ label, href, external, crossApp }) => (
                 <li key={href}>
-                  <Link
-                    href={href}
-                    target={external ? '_blank' : undefined}
-                    rel={external ? 'noopener noreferrer' : undefined}
-                    className="flex items-center gap-1 text-sm text-verde-500 hover:text-verde-300 transition-colors"
-                  >
-                    {label}
-                    {external && <ExternalLink size={11} className="opacity-60" />}
-                  </Link>
+                  {crossApp ? (
+                    <a
+                      href={href}
+                      className="text-sm text-verde-500 hover:text-verde-300 transition-colors"
+                    >
+                      {label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={href}
+                      target={external ? '_blank' : undefined}
+                      rel={external ? 'noopener noreferrer' : undefined}
+                      className="flex items-center gap-1 text-sm text-verde-500 hover:text-verde-300 transition-colors"
+                    >
+                      {label}
+                      {external && <ExternalLink size={11} className="opacity-60" />}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
