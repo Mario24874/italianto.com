@@ -23,8 +23,8 @@ export function Footer() {
     plataforma: [
       { label: t.nav.features,    href: '/#funciones' },
       { label: t.nav.pricing,     href: '/precios' },
-      { label: 'ItaliantoApp',    href: 'https://app.italianto.com', external: true },
-      { label: 'Dialoghi Studio', href: 'https://studio.italianto.com', external: true },
+      { label: 'ItaliantoApp',    href: '/app', external: false },
+      { label: 'Dialoghi Studio', href: '/studio', external: false },
     ],
     soporte: [
       { label: t.footer.about,   href: '/sobre-nosotros' },

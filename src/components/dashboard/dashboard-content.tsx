@@ -50,13 +50,13 @@ export function DashboardContent({
     {
       name: 'ItaliantoApp',
       description: 'Traductor, conjugador y tutor AI',
-      href: process.env.NEXT_PUBLIC_APP_ITALIANTO_URL || 'https://app.italianto.com',
+      href: process.env.NEXT_PUBLIC_APP_ITALIANTO_URL || '/app',
       logoSrc: '/logo_Italianto.png',
     },
     {
       name: 'Dialoghi Studio',
       description: 'Genera diálogos italianos con IA',
-      href: process.env.NEXT_PUBLIC_APP_STUDIO_URL || 'https://studio.italianto.com',
+      href: process.env.NEXT_PUBLIC_APP_STUDIO_URL || '/studio',
       logoSrc: '/logo_Italianto.png',
     },
   ]
