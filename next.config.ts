@@ -41,7 +41,18 @@ const nextConfig: NextConfig = {
     ]
   },
   async rewrites() {
-    return []
+    const dialoghiUrl = process.env.DIALOGHI_STUDIO_INTERNAL_URL || 'http://dialoghi-studio:3000'
+    const italiantoappUrl = process.env.ITALIANTOAPP_INTERNAL_URL || 'http://italiantoapp:3000'
+    return [
+      {
+        source: '/studio/:path*',
+        destination: `${dialoghiUrl}/studio/:path*`,
+      },
+      {
+        source: '/app/:path*',
+        destination: `${italiantoappUrl}/app/:path*`,
+      },
+    ]
   },
 }
 
