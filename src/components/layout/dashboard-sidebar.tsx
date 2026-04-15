@@ -24,10 +24,12 @@ import {
   Sun,
   Moon,
   ChevronDown,
+  CalendarDays,
 } from 'lucide-react'
 
 const navItems = [
   { label: "L'Aula", href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Orario', href: '/orario', icon: CalendarDays },
   { label: 'Lezioni', href: '/lezioni', icon: BookOpen },
   { label: 'Tutor AI', href: '/tutor', icon: BrainCircuit },
   { label: 'Canzoni', href: '/canzoni', icon: Music },
