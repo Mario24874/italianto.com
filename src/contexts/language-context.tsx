@@ -197,6 +197,23 @@ const translations = {
       title: 'En construcción',
       subtitle: 'Estamos preparando algo increíble para ti. ¡Vuelve pronto!',
     },
+    admin: {
+      nav: {
+        dashboard: 'Dashboard',
+        users: 'Usuarios',
+        subscriptions: 'Suscripciones',
+        analytics: 'Analíticas',
+        sales: 'Ventas',
+        coupons: 'Cupones',
+        content: 'Contenido',
+        tutorAI: 'Tutor AI',
+        sessions: 'Sesiones',
+      },
+      viewPlatform: 'Ver plataforma',
+      settings: 'Configuración',
+      role: 'Administrador',
+      portal: 'Portal de Admin',
+    },
   },
   it: {
     nav: {
@@ -383,6 +400,23 @@ const translations = {
       title: 'In costruzione',
       subtitle: 'Stiamo preparando qualcosa di incredibile per te. Torna presto!',
     },
+    admin: {
+      nav: {
+        dashboard: 'Dashboard',
+        users: 'Utenti',
+        subscriptions: 'Abbonamenti',
+        analytics: 'Analisi',
+        sales: 'Vendite',
+        coupons: 'Coupon',
+        content: 'Contenuto',
+        tutorAI: 'Tutor AI',
+        sessions: 'Sessioni',
+      },
+      viewPlatform: 'Vedi piattaforma',
+      settings: 'Configurazione',
+      role: 'Amministratore',
+      portal: 'Portale Admin',
+    },
   },
   en: {
     nav: {
@@ -568,6 +602,23 @@ const translations = {
       badge: 'Coming soon',
       title: 'Under construction',
       subtitle: 'We are preparing something incredible for you. Check back soon!',
+    },
+    admin: {
+      nav: {
+        dashboard: 'Dashboard',
+        users: 'Users',
+        subscriptions: 'Subscriptions',
+        analytics: 'Analytics',
+        sales: 'Sales',
+        coupons: 'Coupons',
+        content: 'Content',
+        tutorAI: 'Tutor AI',
+        sessions: 'Sessions',
+      },
+      viewPlatform: 'View platform',
+      settings: 'Settings',
+      role: 'Administrator',
+      portal: 'Admin Portal',
     },
   },
 }

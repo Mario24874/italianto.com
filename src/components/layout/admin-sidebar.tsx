@@ -27,54 +27,6 @@ import {
   BrainCircuit,
 } from 'lucide-react'
 
-const navItems = [
-  {
-    label: 'Dashboard',
-    href: '/admin',
-    icon: LayoutDashboard,
-  },
-  {
-    label: 'Usuarios',
-    href: '/admin/usuarios',
-    icon: Users,
-  },
-  {
-    label: 'Suscripciones',
-    href: '/admin/suscripciones',
-    icon: CreditCard,
-  },
-  {
-    label: 'Analíticas',
-    href: '/admin/analiticas',
-    icon: BarChart3,
-  },
-  {
-    label: 'Ventas',
-    href: '/admin/ventas',
-    icon: TrendingUp,
-  },
-  {
-    label: 'Cupones',
-    href: '/admin/cupones',
-    icon: Tag,
-  },
-  {
-    label: 'Contenido',
-    href: '/admin/contenuto',
-    icon: FileText,
-  },
-  {
-    label: 'Tutor AI',
-    href: '/admin/tutor',
-    icon: BrainCircuit,
-  },
-  {
-    label: 'Sesiones',
-    href: '/admin/sesiones',
-    icon: Activity,
-  },
-]
-
 interface AdminSidebarProps {
   onClose?: () => void
   isMobile?: boolean
@@ -82,11 +34,23 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ onClose, isMobile }: AdminSidebarProps) {
   const pathname = usePathname()
-  const { lang, setLang } = useLanguage()
+  const { lang, setLang, t } = useLanguage()
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const currentLang = LANGUAGES.find(l => l.code === lang)
+
+  const navItems = [
+    { label: t.admin.nav.dashboard,     href: '/admin',                icon: LayoutDashboard },
+    { label: t.admin.nav.users,         href: '/admin/usuarios',       icon: Users },
+    { label: t.admin.nav.subscriptions, href: '/admin/suscripciones',  icon: CreditCard },
+    { label: t.admin.nav.analytics,     href: '/admin/analiticas',     icon: BarChart3 },
+    { label: t.admin.nav.sales,         href: '/admin/ventas',         icon: TrendingUp },
+    { label: t.admin.nav.coupons,       href: '/admin/cupones',        icon: Tag },
+    { label: t.admin.nav.content,       href: '/admin/contenuto',      icon: FileText },
+    { label: t.admin.nav.tutorAI,       href: '/admin/tutor',          icon: BrainCircuit },
+    { label: t.admin.nav.sessions,      href: '/admin/sesiones',       icon: Activity },
+  ]
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -183,17 +147,17 @@ export function AdminSidebar({ onClose, isMobile }: AdminSidebarProps) {
 
         <Link href="/" className="flex items-center gap-2 text-xs text-verde-600 hover:text-verde-400 transition-colors">
           <Globe size={13} />
-          Ver plataforma
+          {t.admin.viewPlatform}
         </Link>
         <Link href="/admin/configuracion" className="flex items-center gap-2 text-xs text-verde-600 hover:text-verde-400 transition-colors">
           <Settings size={13} />
-          Configuración
+          {t.admin.settings}
         </Link>
         <div className="flex items-center gap-3 pt-2">
           <ClerkUserButton />
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-verde-300 truncate">Administrador</div>
-            <div className="text-[10px] text-verde-600">Portal de Admin</div>
+            <div className="text-xs font-medium text-verde-300 truncate">{t.admin.role}</div>
+            <div className="text-[10px] text-verde-600">{t.admin.portal}</div>
           </div>
         </div>
       </div>
