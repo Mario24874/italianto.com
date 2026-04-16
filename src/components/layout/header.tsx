@@ -189,7 +189,7 @@ export function Header() {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-verde-200/40 dark:border-verde-900/30 py-4 space-y-1">
+          <div className="md:hidden bg-[#060d07]/[0.97] dark:bg-[#060d07]/[0.97] backdrop-blur-md border-t border-verde-200/40 dark:border-verde-900/30 py-4 space-y-1 rounded-b-xl shadow-xl">
             {navLinks.map(({ label, href }) => (
               <Link
                 key={href}

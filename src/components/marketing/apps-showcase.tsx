@@ -24,8 +24,8 @@ export function AppsShowcase() {
       description: t.apps.app1.description,
       features: t.apps.app1.features,
       cta: t.apps.app1.cta,
-      ctaHref: process.env.NEXT_PUBLIC_APP_ITALIANTO_URL || '/app',
-      external: false,
+      ctaHref: process.env.NEXT_PUBLIC_APP_ITALIANTO_URL || 'https://italianto.com/app',
+      external: true,
       gradient: 'from-verde-950 via-bg-dark-2 to-bg-dark',
       accentColor: 'text-verde-400',
       borderColor: 'border-verde-800/40',
@@ -41,8 +41,8 @@ export function AppsShowcase() {
       description: t.apps.app2.description,
       features: t.apps.app2.features,
       cta: t.apps.app2.cta,
-      ctaHref: process.env.NEXT_PUBLIC_APP_STUDIO_URL || '/studio',
-      external: false,
+      ctaHref: process.env.NEXT_PUBLIC_APP_STUDIO_URL || 'https://italianto.com/studio',
+      external: true,
       gradient: 'from-purple-950/50 via-bg-dark-2 to-bg-dark',
       accentColor: 'text-purple-400',
       borderColor: 'border-purple-800/40',
@@ -132,7 +132,7 @@ export function AppsShowcase() {
                     className={`w-full border-current ${app.accentColor} group/btn`}
                     asChild
                   >
-                    <a href={app.ctaHref}>
+                    <a href={app.ctaHref} target="_blank" rel="noopener noreferrer">
                       {app.cta}
                       <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                     </a>

@@ -60,8 +60,8 @@ export function ScheduleModal({
   const [hour, setHour] = useState(defaultHour)
   const [minute, setMinute] = useState(defaultMinute)
   const [duration, setDuration] = useState(60)
-  const [reminderEnabled, setReminderEnabled] = useState(false)
-  const [reminderMin, setReminderMin] = useState(15)
+  const [reminderEnabled, setReminderEnabled] = useState(true)
+  const [reminderMin, setReminderMin] = useState(30)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -83,8 +83,8 @@ export function ScheduleModal({
         setHour(defaultHour)
         setMinute(defaultMinute)
         setDuration(60)
-        setReminderEnabled(false)
-        setReminderMin(15)
+        setReminderEnabled(true)
+        setReminderMin(30)
       }
     }
   }, [open, session, defaultDay, defaultHour, defaultMinute])
