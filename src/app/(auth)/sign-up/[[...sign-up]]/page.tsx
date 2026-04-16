@@ -1,4 +1,4 @@
-import { SignUp } from '@clerk/nextjs'
+import { SignUp, ClerkLoading, ClerkLoaded } from '@clerk/nextjs'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 
@@ -52,6 +52,21 @@ export default function SignUpPage() {
             </div>
             <span className="text-xl font-bold text-verde-100">Italianto</span>
           </div>
+          <ClerkLoading>
+            <div className="space-y-4 animate-pulse">
+              <div className="h-10 rounded-xl bg-verde-950/60 w-full" />
+              <div className="h-10 rounded-xl bg-verde-950/60 w-full" />
+              <div className="flex items-center gap-3 my-2">
+                <div className="h-px flex-1 bg-verde-900/40" />
+                <div className="h-4 w-8 rounded bg-verde-950/40" />
+                <div className="h-px flex-1 bg-verde-900/40" />
+              </div>
+              <div className="h-10 rounded-xl bg-verde-950/60 w-full" />
+              <div className="h-10 rounded-xl bg-verde-950/60 w-full" />
+              <div className="h-12 rounded-xl bg-brand/40 w-full" />
+            </div>
+          </ClerkLoading>
+          <ClerkLoaded>
           <SignUp
             afterSignUpUrl="/dashboard"
             appearance={{
@@ -81,6 +96,7 @@ export default function SignUpPage() {
               },
             }}
           />
+          </ClerkLoaded>
         </div>
       </div>
     </div>

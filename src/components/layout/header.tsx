@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from 'next-themes'
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,7 @@ export function Header() {
   const pathname = usePathname()
   const { t, lang, setLang } = useLanguage()
   const { setTheme, resolvedTheme } = useTheme()
+  const { isSignedIn, isLoaded: clerkLoaded } = useUser()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLangOpen, setIsLangOpen] = useState(false)
@@ -150,27 +151,30 @@ export function Header() {
               </button>
             )}
 
-            {/* Auth */}
-            <SignedIn>
-              <Link
-                href="/dashboard"
-                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-verde-400 hover:text-verde-300 transition-colors px-2"
-              >
-                {t.auth.myClass}
-              </Link>
-              <UserButton
-                appearance={{ elements: { avatarBox: 'ring-2 ring-verde-700 hover:ring-verde-500 transition-all' } }}
-                afterSignOutUrl="/"
-              />
-            </SignedIn>
-            <SignedOut>
-              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-                <Link href="/sign-in">{t.auth.signIn}</Link>
-              </Button>
-              <Button size="sm" asChild className="hidden sm:inline-flex">
-                <Link href="/sign-up">{t.auth.signUp}</Link>
-              </Button>
-            </SignedOut>
+            {/* Auth — visible mientras Clerk carga o usuario no autenticado */}
+            {clerkLoaded && isSignedIn ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-verde-400 hover:text-verde-300 transition-colors px-2"
+                >
+                  {t.auth.myClass}
+                </Link>
+                <UserButton
+                  appearance={{ elements: { avatarBox: 'ring-2 ring-verde-700 hover:ring-verde-500 transition-all' } }}
+                  afterSignOutUrl="/"
+                />
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+                  <Link href="/sign-in">{t.auth.signIn}</Link>
+                </Button>
+                <Button size="sm" asChild className="hidden sm:inline-flex">
+                  <Link href="/sign-up">{t.auth.signUp}</Link>
+                </Button>
+              </>
+            )}
 
             {/* Mobile menu toggle */}
             <button
@@ -221,7 +225,8 @@ export function Header() {
               ))}
             </div>
 
-            <SignedOut>
+            {/* Móvil: botones de auth — visibles siempre que no haya sesión activa */}
+            {(!clerkLoaded || !isSignedIn) && (
               <div className="pt-2 flex flex-col gap-2 px-1">
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/sign-in" onClick={() => setIsMenuOpen(false)}>{t.auth.signIn}</Link>
@@ -230,7 +235,14 @@ export function Header() {
                   <Link href="/sign-up" onClick={() => setIsMenuOpen(false)}>{t.auth.signUp}</Link>
                 </Button>
               </div>
-            </SignedOut>
+            )}
+            {clerkLoaded && isSignedIn && (
+              <div className="pt-2 px-1">
+                <Button size="sm" asChild className="w-full">
+                  <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>{t.auth.myClass}</Link>
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
