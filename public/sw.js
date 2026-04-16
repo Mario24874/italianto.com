@@ -1,4 +1,4 @@
-const CACHE = 'italianto-v1'
+const CACHE = 'italianto-v2'
 const PRECACHE = ['/', '/manifest.json', '/logo_Italianto.png']
 
 self.addEventListener('install', e => {
