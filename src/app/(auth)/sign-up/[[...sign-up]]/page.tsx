@@ -82,7 +82,7 @@ export default function SignUpPage() {
               },
               elements: {
                 rootBox: 'w-full',
-                card: 'bg-transparent shadow-none border-0 p-0',
+                card: 'bg-[#0a0f0a] shadow-none border-0 p-0',
                 headerTitle: 'text-verde-50 text-xl font-bold',
                 headerSubtitle: 'text-verde-400',
                 socialButtonsBlockButton: 'border border-verde-800 hover:border-verde-600 bg-verde-950/40 rounded-xl transition-all',

@@ -1,27 +1,16 @@
-const EMAILJS_SERVICE_ID  = process.env.EMAILJS_SERVICE_ID  ?? 'service_d8g3j1y'
-const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID ?? 'template_u0xw46i'
-const EMAILJS_PUBLIC_KEY  = process.env.EMAILJS_PUBLIC_KEY  ?? 'NscgD18J-QbRDqmhv'
-const ADMIN_EMAIL         = process.env.ADMIN_EMAIL         ?? 'italiantonline@gmail.com'
+import { Resend } from 'resend'
 
-/**
- * Send an email via EmailJS REST API (server-safe, no browser dependency).
- */
-async function sendViaEmailJS(templateParams: Record<string, string>): Promise<void> {
-  const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      service_id:      EMAILJS_SERVICE_ID,
-      template_id:     EMAILJS_TEMPLATE_ID,
-      user_id:         EMAILJS_PUBLIC_KEY,
-      template_params: templateParams,
-    }),
-  })
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.status.toString())
-    throw new Error(`EmailJS error ${res.status}: ${text}`)
-  }
+// Must be a domain verified in Resend — NOT a Gmail address.
+// italianto.com domain is verified; fallback to the noreply alias.
+const FROM = 'Italianto <noreply@italianto.com>'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'italiantonline@gmail.com'
+
+function noResend(fn: string) {
+  console.warn(`[email] RESEND_API_KEY not set — skipping ${fn}`)
 }
 
 /**
@@ -36,20 +25,44 @@ export async function sendScheduleCreatedNotification(opts: {
   startTime: string
   durationMin: number
 }): Promise<void> {
+  if (!resend) { noResend('sendScheduleCreatedNotification'); return }
+
   const { userName, userEmail, sessionTitle, sessionType, dayName, startTime, durationMin } = opts
 
-  await sendViaEmailJS({
-    user_name:  'Sistema Italianto',
-    user_email: ADMIN_EMAIL,
-    reply_to:   userEmail,
-    message: [
-      `Nuevo horario programado`,
-      ``,
-      `Usuario: ${userName} (${userEmail})`,
-      `Sesión:  ${sessionTitle} (${sessionType})`,
-      `Día:     ${dayName} a las ${startTime}`,
-      `Duración: ${durationMin} min`,
-    ].join('\n'),
+  await resend.emails.send({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    replyTo: userEmail,
+    subject: `📅 Nuevo horario programado — ${sessionTitle}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="background:#0a0f0a;color:#e8f5e9;font-family:system-ui,sans-serif;margin:0;padding:0">
+  <div style="max-width:520px;margin:0 auto;padding:32px 16px">
+    <div style="text-align:center;margin-bottom:24px">
+      <img src="https://italianto.com/logo_Italianto.png" alt="Italianto" width="48" height="48"
+           style="border-radius:12px;margin-bottom:10px">
+      <h1 style="color:#81c784;font-size:18px;margin:0">Italianto — Nuevo Horario</h1>
+    </div>
+    <div style="background:#132213;border:1px solid #1e3a1e;border-radius:16px;padding:24px">
+      <h2 style="color:#e8f5e9;font-size:16px;font-weight:700;margin:0 0 16px">
+        📅 ${userName} programó una sesión de estudio
+      </h2>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <tr><td style="color:#4caf50;padding:4px 0;width:100px">Sesión</td><td style="color:#e8f5e9">${sessionTitle}</td></tr>
+        <tr><td style="color:#4caf50;padding:4px 0">Tipo</td><td style="color:#e8f5e9">${sessionType}</td></tr>
+        <tr><td style="color:#4caf50;padding:4px 0">Día/Hora</td><td style="color:#e8f5e9">${dayName} a las ${startTime}</td></tr>
+        <tr><td style="color:#4caf50;padding:4px 0">Duración</td><td style="color:#e8f5e9">${durationMin} min</td></tr>
+        <tr><td style="color:#4caf50;padding:4px 0">Email</td><td style="color:#e8f5e9">${userEmail}</td></tr>
+      </table>
+    </div>
+    <p style="color:#2e7d32;text-align:center;font-size:11px;margin-top:20px">
+      © ${new Date().getFullYear()} Italianto
+    </p>
+  </div>
+</body>
+</html>`,
   })
 }
 
@@ -65,21 +78,56 @@ export async function sendStudyReminder(opts: {
   startTime: string
   reminderMinutes: number
 }): Promise<void> {
+  if (!resend) { noResend('sendStudyReminder'); return }
+
   const { to, userName, sessionTitle, sessionType, dayName, startTime, reminderMinutes } = opts
 
-  await sendViaEmailJS({
-    user_name:  userName,
-    user_email: to,
-    reply_to:   ADMIN_EMAIL,
-    message: [
-      `Recordatorio de sesión de estudio`,
-      ``,
-      `Hola ${userName}, tu sesión comienza en ${reminderMinutes} minutos.`,
-      ``,
-      `Sesión:  ${sessionTitle} (${sessionType})`,
-      `Día:     ${dayName} a las ${startTime}`,
-      ``,
-      `Ingresa en https://italianto.com/orario para ver tu horario.`,
-    ].join('\n'),
+  const typeEmoji: Record<string, string> = {
+    grammatica: '📖', vocabolario: '📝', ascolto: '🎧',
+    parlare: '🗣️', lettura: '📚', scrittura: '✍️',
+    tutor: '🤖', altro: '📅',
+  }
+  const emoji = typeEmoji[sessionType] ?? '📅'
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `⏰ Recordatorio: ${sessionTitle} en ${reminderMinutes} min`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="background:#0a0f0a;color:#e8f5e9;font-family:system-ui,sans-serif;margin:0;padding:0">
+  <div style="max-width:520px;margin:0 auto;padding:32px 16px">
+    <div style="text-align:center;margin-bottom:28px">
+      <img src="https://italianto.com/logo_Italianto.png" alt="Italianto" width="56" height="56"
+           style="border-radius:12px;margin-bottom:12px">
+      <h1 style="color:#81c784;font-size:20px;margin:0">Italianto</h1>
+    </div>
+    <div style="background:#132213;border:1px solid #1e3a1e;border-radius:16px;padding:28px">
+      <div style="font-size:40px;text-align:center;margin-bottom:12px">${emoji}</div>
+      <h2 style="color:#e8f5e9;font-size:18px;font-weight:700;text-align:center;margin:0 0 8px">
+        ¡Tu sesión de estudio comienza pronto!
+      </h2>
+      <p style="color:#81c784;text-align:center;font-size:14px;margin:0 0 24px">
+        Hola ${userName}, tienes una sesión programada en <strong>${reminderMinutes} minutos</strong>.
+      </p>
+      <div style="background:#0a1a0a;border-radius:12px;padding:20px;margin-bottom:20px">
+        <div style="color:#e8f5e9;font-size:16px;font-weight:700;margin-bottom:4px">${sessionTitle}</div>
+        <div style="color:#66bb6a;font-size:13px">${dayName} · ${startTime}</div>
+      </div>
+      <a href="https://italianto.com/orario"
+         style="display:block;background:#2e7d32;color:#fff;text-decoration:none;border-radius:12px;
+                padding:14px;text-align:center;font-weight:700;font-size:15px">
+        Ver mi horario →
+      </a>
+    </div>
+    <p style="color:#2e7d32;text-align:center;font-size:11px;margin-top:20px">
+      © ${new Date().getFullYear()} Italianto ·
+      <a href="https://italianto.com/impostazioni" style="color:#388e3c">Gestionar notificaciones</a>
+    </p>
+  </div>
+</body>
+</html>`,
   })
 }
