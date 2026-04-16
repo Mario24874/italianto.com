@@ -39,6 +39,8 @@ export default function SignInPage() {
             <span className="text-xl font-bold text-verde-100">Italianto</span>
           </div>
           <SignIn
+            afterSignInUrl="/dashboard"
+            afterSignUpUrl="/dashboard"
             appearance={{
               variables: {
                 colorBackground: 'transparent',

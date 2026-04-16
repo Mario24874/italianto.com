@@ -53,6 +53,7 @@ export default function SignUpPage() {
             <span className="text-xl font-bold text-verde-100">Italianto</span>
           </div>
           <SignUp
+            afterSignUpUrl="/dashboard"
             appearance={{
               variables: {
                 colorBackground: 'transparent',

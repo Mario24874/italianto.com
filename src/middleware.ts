@@ -4,8 +4,14 @@ import { NextResponse } from 'next/server'
 // Rutas que requieren autenticación
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
+  '/orario(.*)',
   '/lezioni(.*)',
+  '/tutor(.*)',
   '/canzoni(.*)',
+  '/passatempi(.*)',
+  '/informazioni(.*)',
+  '/corsi(.*)',
+  '/downloads(.*)',
   '/impostazioni(.*)',
   '/biblioteca-premium(.*)',
 ])
@@ -19,7 +25,8 @@ const isAdminRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   // Proteger rutas de usuario autenticado
   if (isProtectedRoute(req)) {
-    await auth.protect()
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://italianto.com'
+    await auth.protect({ unauthenticatedUrl: `${appUrl}/sign-in` })
   }
 
   // Proteger rutas de admin: solo verificar autenticación en middleware.
