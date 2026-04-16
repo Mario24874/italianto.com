@@ -71,7 +71,7 @@ export default function SignUpPage() {
             afterSignUpUrl="/dashboard"
             appearance={{
               variables: {
-                colorBackground: 'transparent',
+                colorBackground: '#0a0f0a',
                 colorText: '#f0fdf1',
                 colorTextSecondary: '#4ade5d',
                 colorNeutral: '#f0fdf1',
