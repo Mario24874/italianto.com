@@ -10,6 +10,7 @@ export interface StudySession {
   start_minute: number
   duration_min: number
   reminder_min: number | null
+  tz_offset_min: number  // getTimezoneOffset() — (UTC - local) in minutes
   reminder_last_sent: string | null
   active: boolean
   created_at: string

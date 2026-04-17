@@ -101,6 +101,7 @@ export function ScheduleModal({
         start_minute: minute,
         duration_min: duration,
         reminder_min: reminderEnabled ? reminderMin : null,
+        tz_offset_min: new Date().getTimezoneOffset(),
       })
     } finally {
       setSaving(false)

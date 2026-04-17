@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth, clerkClient } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
-import { sendScheduleCreatedNotification } from '@/lib/email'
 import { z } from 'zod'
 
 const SessionSchema = z.object({
@@ -12,6 +11,7 @@ const SessionSchema = z.object({
   start_minute: z.number().int().refine(v => v === 0 || v === 30),
   duration_min: z.number().int().refine(v => [30,60,90,120].includes(v)),
   reminder_min: z.number().int().nullable().refine(v => v === null || [15,30,60,120].includes(v)),
+  tz_offset_min: z.number().int().min(-840).max(840).default(0),
 })
 
 export async function GET() {
@@ -47,28 +47,6 @@ export async function POST(req: NextRequest) {
     .select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // Send admin notification (fire-and-forget, never fail the request)
-  try {
-    const client = await clerkClient()
-    const user = await client.users.getUser(userId)
-    const email = user.emailAddresses[0]?.emailAddress ?? ''
-    const userName = user.firstName ?? 'Usuario'
-    const DAY_NAMES_ES = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-    const h = String(parsed.data.start_hour).padStart(2, '0')
-    const m = String(parsed.data.start_minute).padStart(2, '0')
-    await sendScheduleCreatedNotification({
-      userName,
-      userEmail: email,
-      sessionTitle: parsed.data.title,
-      sessionType: parsed.data.type,
-      dayName: DAY_NAMES_ES[parsed.data.day_of_week],
-      startTime: `${h}:${m}`,
-      durationMin: parsed.data.duration_min,
-    })
-  } catch (err) {
-    console.error('Schedule notification error:', err)
-  }
 
   return NextResponse.json(data, { status: 201 })
 }

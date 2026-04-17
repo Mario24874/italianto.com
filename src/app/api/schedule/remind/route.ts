@@ -7,6 +7,19 @@ export const dynamic = 'force-dynamic'
 
 const DAY_NAMES_ES = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
+/**
+ * Converts a session's local start time to a UTC Date for today.
+ * tz_offset_min = getTimezoneOffset() = (UTC - local) in minutes.
+ * UTC_minutes = local_minutes + tz_offset_min
+ */
+function sessionStartUTC(startHour: number, startMinute: number, tzOffsetMin: number): Date {
+  const localMinutes = startHour * 60 + startMinute
+  const utcMinutes = ((localMinutes + tzOffsetMin) % 1440 + 1440) % 1440
+  const d = new Date()
+  d.setUTCHours(Math.floor(utcMinutes / 60), utcMinutes % 60, 0, 0)
+  return d
+}
+
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (authHeader?.replace('Bearer ', '') !== process.env.CRON_SECRET) {
@@ -16,12 +29,11 @@ export async function POST(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = getSupabaseAdmin() as any
   const now = new Date()
-  // day_of_week: 1=Mon..7=Sun. JS getDay(): 0=Sun..6=Sat
-  const jsDow = now.getDay()
+  // day_of_week: 1=Mon..7=Sun. JS getUTCDay(): 0=Sun..6=Sat
+  const jsDow = now.getUTCDay()
   const todayDow = jsDow === 0 ? 7 : jsDow
   const todayStr = now.toISOString().slice(0, 10)
 
-  // Get all active sessions for today that have reminders configured
   const { data: sessions, error } = await supabase
     .from('study_schedules')
     .select('*')
@@ -36,14 +48,16 @@ export async function POST(req: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const session of (sessions ?? []) as any[]) {
-    // Skip if reminder already sent today
     if (session.reminder_last_sent === todayStr) continue
 
-    const sessionStart = new Date()
-    sessionStart.setHours(session.start_hour, session.start_minute, 0, 0)
+    const sessionStart = sessionStartUTC(
+      session.start_hour,
+      session.start_minute,
+      session.tz_offset_min ?? 0,
+    )
     const minutesUntil = (sessionStart.getTime() - now.getTime()) / 60000
 
-    // Send if within the reminder window (±5 min tolerance)
+    // Fire when within the reminder window (±5 min tolerance)
     if (minutesUntil > 0 && minutesUntil <= session.reminder_min + 5) {
       try {
         const user = await client.users.getUser(session.user_id)
