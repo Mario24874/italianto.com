@@ -11,6 +11,7 @@ const PatchSchema = z.object({
   start_minute: z.number().int().refine(v => v === 0 || v === 30).optional(),
   duration_min: z.number().int().refine(v => [30,60,90,120].includes(v)).optional(),
   reminder_min: z.number().int().nullable().refine(v => v === null || [15,30,60,120].includes(v)).optional(),
+  tz_offset_min: z.number().int().min(-840).max(840).optional(),
 })
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -24,13 +25,29 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = getSupabaseAdmin() as any
+
+  // Separate tz_offset_min — may not exist if migration hasn't run yet
+  const { tz_offset_min, ...coreData } = parsed.data
+
   const { data, error } = await supabase
     .from('study_schedules')
-    .update({ ...parsed.data, updated_at: new Date().toISOString() })
+    .update({ ...coreData, updated_at: new Date().toISOString() })
     .eq('id', id).eq('user_id', userId)
     .select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Patch timezone offset — silently ignore if column doesn't exist yet
+  if (tz_offset_min !== undefined) {
+    await supabase
+      .from('study_schedules')
+      .update({ tz_offset_min })
+      .eq('id', id)
+      .then(({ error: e }: { error: unknown }) => {
+        if (e) console.warn('[schedule] tz_offset_min update skipped:', e)
+      })
+  }
+
   return NextResponse.json(data)
 }
 

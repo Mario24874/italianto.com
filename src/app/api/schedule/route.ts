@@ -41,12 +41,26 @@ export async function POST(req: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = getSupabaseAdmin() as any
+
+  // Separate tz_offset_min — column may not exist yet if migration hasn't run.
+  // Insert core fields first, then attempt to patch tz_offset_min (best-effort).
+  const { tz_offset_min, ...coreData } = parsed.data
+
   const { data, error } = await supabase
     .from('study_schedules')
-    .insert({ ...parsed.data, user_id: userId })
+    .insert({ ...coreData, user_id: userId })
     .select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json(data, { status: 201 })
+  // Patch timezone offset — silently ignore if column doesn't exist yet
+  await supabase
+    .from('study_schedules')
+    .update({ tz_offset_min })
+    .eq('id', data.id)
+    .then(({ error: e }: { error: unknown }) => {
+      if (e) console.warn('[schedule] tz_offset_min update skipped:', e)
+    })
+
+  return NextResponse.json({ ...data, tz_offset_min }, { status: 201 })
 }
