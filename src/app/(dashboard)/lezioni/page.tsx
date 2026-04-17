@@ -66,6 +66,15 @@ export default async function LezioniPage() {
     ])
   )
 
+  // Sequential unlock: each lesson requires the previous one to be 'passed'
+  // lessons is already sorted by order_index ascending
+  const sequentialUnlocked: Record<string, boolean> = {}
+  let prevPassed = true
+  for (const lesson of lessons) {
+    sequentialUnlocked[lesson.id] = prevPassed
+    prevPassed = progressMap[lesson.id]?.status === 'passed'
+  }
+
   // Group by level
   const byLevel: Record<string, typeof lessons> = {}
   for (const lesson of lessons) {
@@ -109,7 +118,9 @@ export default async function LezioniPage() {
 
                 <div className="space-y-2">
                   {levelLessons.map(lesson => {
-                    const accessible = hasAccess(userPlan, lesson.plan_required as PlanType)
+                    const planOk = hasAccess(userPlan, lesson.plan_required as PlanType)
+                    const unlocked = sequentialUnlocked[lesson.id]
+                    const accessible = planOk && unlocked
                     const progress = progressMap[lesson.id]
                     const vocabCount = Array.isArray(lesson.vocabulary) ? lesson.vocabulary.length : 0
 
@@ -156,16 +167,20 @@ export default async function LezioniPage() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-verde-500 truncate">{lesson.title}</div>
                           <div className="text-xs text-verde-700 mt-0.5">
-                            Richiede piano {PLAN_LABELS[lesson.plan_required as PlanType]}
+                            {!planOk
+                              ? `Richiede piano ${PLAN_LABELS[lesson.plan_required as PlanType]}`
+                              : 'Completa la lezione precedente per sbloccarla'}
                           </div>
                         </div>
-                        <Link
-                          href="/impostazioni"
-                          onClick={e => e.stopPropagation()}
-                          className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-verde-800/40 text-verde-500 hover:text-verde-300 hover:border-verde-600 transition-colors"
-                        >
-                          Upgrade
-                        </Link>
+                        {!planOk && (
+                          <Link
+                            href="/impostazioni"
+                            onClick={e => e.stopPropagation()}
+                            className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-verde-800/40 text-verde-500 hover:text-verde-300 hover:border-verde-600 transition-colors"
+                          >
+                            Upgrade
+                          </Link>
+                        )}
                       </div>
                     )
                   })}

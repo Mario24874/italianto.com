@@ -62,6 +62,29 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const weekLimit = WEEKLY_LIMITS[userPlan]
   const weekStart = currentWeekStart()
 
+  // Check sequential unlock: find the lesson immediately before this one
+  const { data: allLessons } = await supabase
+    .from('lessons')
+    .select('id,order_index')
+    .eq('status', 'published')
+    .order('order_index', { ascending: true })
+
+  let sequentiallyUnlocked = true
+  if (allLessons && allLessons.length > 0) {
+    const sorted = allLessons as { id: string; order_index: number }[]
+    const currentIdx = sorted.findIndex(l => l.id === lesson.id)
+    if (currentIdx > 0) {
+      const prevLesson = sorted[currentIdx - 1]
+      const { data: prevProgress } = await supabase
+        .from('lesson_progress')
+        .select('status')
+        .eq('user_id', user.id)
+        .eq('lesson_id', prevLesson.id)
+        .maybeSingle()
+      sequentiallyUnlocked = prevProgress?.status === 'passed'
+    }
+  }
+
   // Check weekly access quota
   const { data: weekAccesses } = await supabase
     .from('lesson_weekly_access')
@@ -74,7 +97,12 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
   let accessible = false
   let quotaExhausted = false
-  if (alreadyAccessed) {
+  let lockedByProgress = false
+
+  if (!sequentiallyUnlocked) {
+    accessible = false
+    lockedByProgress = true
+  } else if (alreadyAccessed) {
     accessible = true
   } else if (weekLimit === 0) {
     accessible = false
@@ -121,7 +149,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       </div>
 
       {!accessible ? (
-        /* ── Paywall ── */
+        /* ── Paywall / Lock ── */
         <div className="rounded-2xl border border-verde-900/30 bg-verde-950/10 p-8 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-verde-900/30 flex items-center justify-center mx-auto">
             {quotaExhausted
@@ -129,7 +157,14 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               : <Lock size={28} className="text-verde-700" />}
           </div>
           <div>
-            {quotaExhausted ? (
+            {lockedByProgress ? (
+              <>
+                <h2 className="text-xl font-bold text-verde-200">Lezione bloccata</h2>
+                <p className="text-verde-500 text-sm mt-2 max-w-sm mx-auto">
+                  Devi superare la lezione precedente prima di accedere a questa.
+                </p>
+              </>
+            ) : quotaExhausted ? (
               <>
                 <h2 className="text-xl font-bold text-verde-200">Límite semanal alcanzado</h2>
                 <p className="text-verde-500 text-sm mt-2 max-w-sm mx-auto">
@@ -147,10 +182,17 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               </>
             )}
           </div>
-          <Link href="/impostazioni"
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-verde-700 hover:bg-verde-600 text-white font-semibold rounded-xl transition-colors text-sm">
-            {quotaExhausted ? 'Ver planes superiores' : 'Ver planes'}
-          </Link>
+          {lockedByProgress ? (
+            <Link href="/lezioni"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-verde-900 hover:bg-verde-800 text-verde-200 font-semibold rounded-xl transition-colors text-sm">
+              Volver a lecciones
+            </Link>
+          ) : (
+            <Link href="/impostazioni"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-verde-700 hover:bg-verde-600 text-white font-semibold rounded-xl transition-colors text-sm">
+              {quotaExhausted ? 'Ver planes superiores' : 'Ver planes'}
+            </Link>
+          )}
         </div>
       ) : (
         <>
