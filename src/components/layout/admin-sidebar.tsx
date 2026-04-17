@@ -25,6 +25,7 @@ import {
   Moon,
   ChevronDown,
   BrainCircuit,
+  Bell,
 } from 'lucide-react'
 
 interface AdminSidebarProps {
@@ -50,6 +51,7 @@ export function AdminSidebar({ onClose, isMobile }: AdminSidebarProps) {
     { label: t.admin.nav.content,       href: '/admin/contenuto',      icon: FileText },
     { label: t.admin.nav.tutorAI,       href: '/admin/tutor',          icon: BrainCircuit },
     { label: t.admin.nav.sessions,      href: '/admin/sesiones',       icon: Activity },
+    { label: 'Notificaciones',           href: '/admin/notificaciones', icon: Bell },
   ]
 
   useEffect(() => { setMounted(true) }, [])

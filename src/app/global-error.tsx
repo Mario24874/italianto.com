@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+
 export default function GlobalError({
   error,
   reset,
@@ -7,6 +9,19 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    fetch('/api/monitor/error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+        message: error.message || error.toString(),
+        severity: 'critical',
+        metadata: { digest: error.digest },
+      }),
+    }).catch(() => null)
+  }, [error])
+
   return (
     <html>
       <body style={{

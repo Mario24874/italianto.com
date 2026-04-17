@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes'
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar'
 import { useLanguage, LANGUAGES } from '@/contexts/language-context'
 import { Menu, Sun, Moon, Globe } from 'lucide-react'
+import { FeedbackWidget } from '@/components/dashboard/feedback-widget'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -77,6 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
+        <FeedbackWidget />
       </div>
     </div>
   )

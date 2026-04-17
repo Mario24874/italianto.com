@@ -37,6 +37,11 @@ export default function ContactoPage() {
         },
         EMAILJS_PUBLIC_KEY,
       )
+      fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: fields.message, type: 'contact', name: fields.user_name, email: fields.user_email }),
+      }).catch(() => {})
       setStatus('success')
       setFields({ user_name: '', user_email: '', user_phone: '', message: '' })
     } catch (err) {
