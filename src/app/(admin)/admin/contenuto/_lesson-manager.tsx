@@ -1348,14 +1348,18 @@ export function LessonManager() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [selectedLesson, setSelectedLesson] = useState<LessonRow | null>(null)
+  const [reordering, setReordering] = useState<string | null>(null)
 
-  useEffect(() => {
+  const fetchLessons = () => {
+    setLoading(true)
     fetch('/api/admin/lessons')
       .then(r => r.json())
       .then(d => setLessons(d.lessons ?? []))
       .catch(err => console.error('Lessons fetch failed:', err))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { fetchLessons() }, [])
 
   const openCreate = () => { setSelectedLesson(null); setShowModal(true) }
   const openEdit = (lesson: LessonRow) => { setSelectedLesson(lesson); setShowModal(true) }
@@ -1364,7 +1368,7 @@ export function LessonManager() {
     setLessons(prev => {
       const idx = prev.findIndex(l => l.id === lesson.id)
       if (idx >= 0) { const next = [...prev]; next[idx] = lesson; return next }
-      return [lesson, ...prev]
+      return [...prev, lesson].sort((a, b) => a.order_index - b.order_index)
     })
   }
 
@@ -1374,7 +1378,7 @@ export function LessonManager() {
     try {
       await fetch(`/api/admin/lessons/${lesson.id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus, updated_at: new Date().toISOString() }),
+        body: JSON.stringify({ status: newStatus }),
       })
     } catch {
       setLessons(prev => prev.map(l => l.id === lesson.id ? { ...l, status: lesson.status } : l))
@@ -1386,6 +1390,25 @@ export function LessonManager() {
     setLessons(prev => prev.filter(l => l.id !== id))
     try { await fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' }) } catch { /* ignore */ }
   }
+
+  const reorder = async (id: string, direction: 'up' | 'down') => {
+    setReordering(id)
+    try {
+      await fetch('/api/admin/lessons/reorder', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, direction }),
+      })
+      await fetchLessons()
+    } catch { /* ignore */ } finally { setReordering(null) }
+  }
+
+  // Group by level, sorted by order_index within each level
+  const grouped = LEVELS.reduce<Record<LessonLevel, LessonRow[]>>((acc, lvl) => {
+    acc[lvl] = lessons.filter(l => l.level === lvl).sort((a, b) => a.order_index - b.order_index)
+    return acc
+  }, {} as Record<LessonLevel, LessonRow[]>)
+
+  const filledLevels = LEVELS.filter(lvl => grouped[lvl].length > 0)
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -1417,62 +1440,109 @@ export function LessonManager() {
           <Button onClick={openCreate}><Plus size={15} /> Nueva lección</Button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-verde-900/30">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-verde-900/30 bg-verde-950/30">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide">Título</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide hidden sm:table-cell">Nivel</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide hidden md:table-cell">Media</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-verde-500 uppercase tracking-wide">Estado</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-verde-900/20">
-              {lessons.map(lesson => (
-                <tr key={lesson.id} className="hover:bg-verde-950/20 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-verde-200">{lesson.title}</div>
-                    <div className="text-xs text-verde-600 font-mono">{lesson.slug}</div>
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold border ${LEVEL_COLORS[lesson.level]}`}>
-                      {lesson.level}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <div className="flex items-center gap-2">
-                      {lesson.intro_video_url && <span title="Tiene video"><Video size={13} className="text-purple-400" /></span>}
-                      {lesson.exercises?.length > 0 && (
-                        <span className="text-xs text-blue-400" title={`${lesson.exercises.length} ejercicios`}>
-                          <Dumbbell size={13} />
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => toggleStatus(lesson)} className="flex items-center gap-1.5 group">
-                      {lesson.status === 'published' ? (
-                        <><ToggleRight size={16} className="text-verde-400" /><span className="text-xs text-verde-400 group-hover:text-verde-300">Publicado</span></>
-                      ) : (
-                        <><ToggleLeft size={16} className="text-verde-700" /><span className="text-xs text-verde-600 group-hover:text-verde-400">Borrador</span></>
-                      )}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(lesson)} title="Editar">
-                        <Pencil size={13} className="text-verde-500" />
-                      </Button>
-                      <Button variant="ghost" size="icon-sm" onClick={() => deleteLesson(lesson.id)} title="Eliminar">
-                        <Trash2 size={13} className="text-red-500" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-6">
+          {filledLevels.map(level => (
+            <div key={level} className="overflow-hidden rounded-2xl border border-verde-900/30">
+              <div className={`px-4 py-2.5 flex items-center gap-2 border-b border-verde-900/30 bg-verde-950/40`}>
+                <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${LEVEL_COLORS[level]}`}>{level}</span>
+                <span className="text-xs text-verde-500">{grouped[level].length} leccion{grouped[level].length !== 1 ? 'es' : ''}</span>
+                <span className="text-[10px] text-verde-700 ml-1">— el orden aquí es el orden que ve el alumno</span>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-verde-900/20 bg-verde-950/20">
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-verde-600 uppercase tracking-wide w-12">#</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-verde-500 uppercase tracking-wide">Título</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-verde-500 uppercase tracking-wide hidden md:table-cell">Contenido</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-verde-500 uppercase tracking-wide">Estado</th>
+                    <th className="px-4 py-2 text-xs font-semibold text-verde-500 uppercase tracking-wide text-right">Orden · Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-verde-900/20">
+                  {grouped[level].map((lesson, posIdx) => {
+                    const levelLessons = grouped[level]
+                    const isFirst = posIdx === 0
+                    const isLast = posIdx === levelLessons.length - 1
+                    const isMoving = reordering === lesson.id
+                    return (
+                      <tr key={lesson.id} className="hover:bg-verde-950/20 transition-colors">
+                        {/* Sequence number */}
+                        <td className="px-3 py-3 text-center">
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-verde-900/40 border border-verde-800/30 text-xs font-black text-verde-300">
+                            {posIdx + 1}
+                          </span>
+                        </td>
+                        {/* Title */}
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-verde-200">{lesson.title}</div>
+                          <div className="text-xs text-verde-600 font-mono mt-0.5">{lesson.slug}</div>
+                        </td>
+                        {/* Content indicators */}
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {lesson.intro_video_url && (
+                              <span title="Tiene video" className="flex items-center gap-1 text-[10px] text-purple-400 bg-purple-950/30 border border-purple-800/20 px-1.5 py-0.5 rounded">
+                                <Video size={11} /> Video
+                              </span>
+                            )}
+                            {(lesson.exercises?.length ?? 0) > 0 && (
+                              <span className="flex items-center gap-1 text-[10px] text-blue-400 bg-blue-950/30 border border-blue-800/20 px-1.5 py-0.5 rounded">
+                                <Dumbbell size={11} /> {lesson.exercises.length} ej.
+                              </span>
+                            )}
+                            {(lesson.audio_clips?.length ?? 0) > 0 && (
+                              <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-950/30 border border-amber-800/20 px-1.5 py-0.5 rounded">
+                                <Headphones size={11} /> {lesson.audio_clips!.length} audio
+                              </span>
+                            )}
+                            {(lesson.vocabulary?.length ?? 0) > 0 && (
+                              <span className="text-[10px] text-verde-600">{lesson.vocabulary!.length} vocab.</span>
+                            )}
+                          </div>
+                        </td>
+                        {/* Status */}
+                        <td className="px-4 py-3">
+                          <button onClick={() => toggleStatus(lesson)} className="flex items-center gap-1.5 group">
+                            {lesson.status === 'published' ? (
+                              <><ToggleRight size={16} className="text-verde-400" /><span className="text-xs text-verde-400 group-hover:text-verde-300">Publicado</span></>
+                            ) : (
+                              <><ToggleLeft size={16} className="text-verde-700" /><span className="text-xs text-verde-600 group-hover:text-verde-400">Borrador</span></>
+                            )}
+                          </button>
+                        </td>
+                        {/* Actions + reorder */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 justify-end">
+                            <button
+                              onClick={() => reorder(lesson.id, 'up')}
+                              disabled={isFirst || isMoving}
+                              title="Subir en la secuencia"
+                              className="p-1.5 rounded-lg text-verde-600 hover:text-verde-400 hover:bg-verde-900/30 disabled:opacity-20 transition-colors">
+                              {isMoving ? <Loader2 size={13} className="animate-spin" /> : <ChevronUp size={13} />}
+                            </button>
+                            <button
+                              onClick={() => reorder(lesson.id, 'down')}
+                              disabled={isLast || isMoving}
+                              title="Bajar en la secuencia"
+                              className="p-1.5 rounded-lg text-verde-600 hover:text-verde-400 hover:bg-verde-900/30 disabled:opacity-20 transition-colors">
+                              <ChevronDown size={13} />
+                            </button>
+                            <div className="w-px h-4 bg-verde-900/40 mx-0.5" />
+                            <Button variant="ghost" size="icon-sm" onClick={() => openEdit(lesson)} title="Editar">
+                              <Pencil size={13} className="text-verde-500" />
+                            </Button>
+                            <Button variant="ghost" size="icon-sm" onClick={() => deleteLesson(lesson.id)} title="Eliminar">
+                              <Trash2 size={13} className="text-red-500" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </div>
       )}
     </div>

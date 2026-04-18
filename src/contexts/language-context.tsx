@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 export type { Language, Translations } from '@/lib/i18n'
 export { LANGUAGES, translations } from '@/lib/i18n'
 import type { Language, Translations } from '@/lib/i18n'
@@ -20,6 +21,7 @@ const LanguageContext = createContext<LanguageContextValue>({
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Language>('es')
+  const router = useRouter()
 
   useEffect(() => {
     try {
@@ -28,13 +30,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [])
 
-  const setLang = (l: Language) => {
+  const setLang = useCallback((l: Language) => {
     setLangState(l)
     try {
       localStorage.setItem('italianto-lang', l)
       document.cookie = `italianto-lang=${l};path=/;max-age=31536000;SameSite=Lax`
     } catch {}
-  }
+    router.refresh()
+  }, [router])
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t: translations[lang] }}>
