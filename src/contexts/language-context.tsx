@@ -103,18 +103,22 @@ const translations = {
       audio: 'Audio generado',
       plans: {
         free: {
+          name: 'Gratis',
           description: 'Para empezar a explorar',
           features: ['Traductor básico (es ↔ it)', 'Conjugador de 20 verbos', 'Práctica de pronunciación', '3 diálogos escritos/mes', 'ItalianBot asistente', 'Videos y contenido básico'],
         },
         essenziale: {
+          name: 'Esencial',
           description: 'Para aprendizaje activo',
           features: ['Todo lo gratuito', '30 min Tutor AI/mes', '20 diálogos escritos/mes', '5 audios generados/mes', 'Acceso a lecciones básicas', 'Soporte por email'],
         },
         avanzato: {
+          name: 'Avanzado',
           description: 'Para hablar con fluidez',
           features: ['Todo lo esencial', '60 min Tutor AI/mes', '80 diálogos escritos/mes', '30 audios generados/mes', 'Cursos en vivo con descuento', 'Soporte prioritario'],
         },
         maestro: {
+          name: 'Maestro',
           description: 'Para la inmersión total',
           features: ['Todo lo avanzado', 'Tutor AI ilimitado', 'Diálogos ilimitados', 'Audios ilimitados', 'Cursos en vivo incluidos', 'Acceso anticipado a nuevas funciones', 'Manager de cuenta dedicado'],
         },
@@ -179,6 +183,7 @@ const translations = {
       cookies: 'Cookies',
     },
     dashboard: {
+      welcome: 'Bienvenido/a',
       subtitle: 'Tu espacio de aprendizaje del italiano.',
       appsTitle: 'Tus aplicaciones',
       sectionsTitle: 'Secciones de la plataforma',
@@ -306,18 +311,22 @@ const translations = {
       audio: 'Audio generato',
       plans: {
         free: {
+          name: 'Gratuito',
           description: 'Per iniziare a esplorare',
           features: ['Traduttore base (es ↔ it)', 'Coniugatore di 20 verbi', 'Pratica di pronuncia', '3 dialoghi scritti/mese', 'Assistente ItalianBot', 'Video e contenuto base'],
         },
         essenziale: {
+          name: 'Essenziale',
           description: 'Per apprendimento attivo',
           features: ['Tutto il gratuito', '30 min Tutor AI/mese', '20 dialoghi scritti/mese', '5 audio generati/mese', 'Accesso alle lezioni base', 'Supporto via email'],
         },
         avanzato: {
+          name: 'Avanzato',
           description: 'Per parlare con scioltezza',
           features: ["Tutto l'essenziale", '60 min Tutor AI/mese', '80 dialoghi scritti/mese', '30 audio generati/mese', 'Corsi dal vivo con sconto', 'Supporto prioritario'],
         },
         maestro: {
+          name: 'Maestro',
           description: "Per l'immersione totale",
           features: ["Tutto l'avanzato", 'Tutor AI illimitato', 'Dialoghi illimitati', 'Audio illimitati', 'Corsi dal vivo inclusi', 'Accesso anticipato alle nuove funzionalità', 'Account manager dedicato'],
         },
@@ -382,6 +391,7 @@ const translations = {
       cookies: 'Cookie',
     },
     dashboard: {
+      welcome: 'Benvenuto/a',
       subtitle: "Il tuo spazio di apprendimento dell'italiano.",
       appsTitle: 'Le tue applicazioni',
       sectionsTitle: 'Sezioni della piattaforma',
@@ -509,18 +519,22 @@ const translations = {
       audio: 'Generated audio',
       plans: {
         free: {
+          name: 'Free',
           description: 'To start exploring',
           features: ['Basic translator (es ↔ it)', '20-verb conjugator', 'Pronunciation practice', '3 written dialogues/mo', 'ItalianBot assistant', 'Videos and basic content'],
         },
         essenziale: {
+          name: 'Essential',
           description: 'For active learning',
           features: ['Everything in free', '30 min AI Tutor/mo', '20 written dialogues/mo', '5 generated audios/mo', 'Access to basic lessons', 'Email support'],
         },
         avanzato: {
+          name: 'Advanced',
           description: 'To speak fluently',
           features: ['Everything in essential', '60 min AI Tutor/mo', '80 written dialogues/mo', '30 generated audios/mo', 'Live courses at a discount', 'Priority support'],
         },
         maestro: {
+          name: 'Maestro',
           description: 'For total immersion',
           features: ['Everything in advanced', 'Unlimited AI Tutor', 'Unlimited dialogues', 'Unlimited audios', 'Live courses included', 'Early access to new features', 'Dedicated account manager'],
         },
@@ -585,6 +599,7 @@ const translations = {
       cookies: 'Cookies',
     },
     dashboard: {
+      welcome: 'Welcome',
       subtitle: 'Your Italian learning space.',
       appsTitle: 'Your applications',
       sectionsTitle: 'Platform sections',

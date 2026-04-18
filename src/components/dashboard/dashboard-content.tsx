@@ -68,7 +68,7 @@ export function DashboardContent({
       {/* Welcome */}
       <div>
         <h1 className="text-2xl font-extrabold text-verde-50">
-          Benvenuto{firstName ? `, ${firstName}` : ''}! 👋
+          {t.dashboard.welcome}{firstName ? `, ${firstName}` : ''}! 👋
         </h1>
         <p className="text-sm text-verde-500 mt-1">{t.dashboard.subtitle}</p>
       </div>

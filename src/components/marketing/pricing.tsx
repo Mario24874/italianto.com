@@ -212,7 +212,7 @@ export function Pricing() {
                       ? 'Redirigiendo...'
                       : plan.id === 'free'
                         ? t.pricing.startFree
-                        : `${t.pricing.choose} ${plan.name}`}
+                        : `${t.pricing.choose} ${t.pricing.plans[plan.id as keyof typeof t.pricing.plans].name}`}
                   </Button>
                 </div>
               </motion.div>
