@@ -18,6 +18,9 @@ export async function PATCH(
     await stripe.coupons.update(id, {
       metadata: { is_active: active ? 'true' : 'false' },
     })
+    // Sync active state to promotion codes
+    const promoCodes = await stripe.promotionCodes.list({ coupon: id, limit: 100 })
+    await Promise.all(promoCodes.data.map(pc => stripe.promotionCodes.update(pc.id, { active: !!active })))
     return NextResponse.json({ updated: true })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -35,6 +38,9 @@ export async function DELETE(
 
   try {
     const { id } = await params
+    // Delete associated promotion codes first
+    const promoCodes = await stripe.promotionCodes.list({ coupon: id, limit: 100 })
+    await Promise.all(promoCodes.data.map(pc => stripe.promotionCodes.update(pc.id, { active: false })))
     await stripe.coupons.del(id)
     return NextResponse.json({ deleted: true })
   } catch (err) {
