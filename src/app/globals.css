@@ -249,45 +249,109 @@ body {
   background: linear-gradient(to bottom, rgba(6,13,7,0.4) 0%, rgba(6,13,7,0.85) 100%);
 }
 
-/* ─── Light mode overrides ─────────────────────────────────────────────── */
-/* Near-white verde text → dark green in light mode for readability */
-html:not(.dark) .text-verde-50  { color: var(--color-verde-900) !important; }
-html:not(.dark) .text-verde-100 { color: var(--color-verde-900) !important; }
-html:not(.dark) .text-verde-200 { color: var(--color-verde-800) !important; }
-html:not(.dark) .text-verde-300 { color: var(--color-verde-700) !important; }
-html:not(.dark) .text-verde-400 { color: var(--color-verde-700) !important; }
-html:not(.dark) .text-verde-500 { color: var(--color-verde-600) !important; }
-html:not(.dark) .text-verde-600 { color: var(--color-verde-700) !important; }
-html:not(.dark) .text-verde-700 { color: var(--color-verde-800) !important; }
+/* ─── Light mode: CSS variable remap ──────────────────────────────────── */
+/*
+ * Strategy: remap CSS custom properties so ALL opacity variants
+ * (bg-verde-950/50, bg-bg-dark/80, etc.) auto-adapt via CSS cascade.
+ * Text overrides use hardcoded hex — immune to the variable remap.
+ */
+html:not(.dark) {
+  /* Dark bg tokens → light equivalents (opacity variants auto-adapt) */
+  --color-bg-dark:   #f8fdf8;
+  --color-bg-dark-2: #f0faf0;
+  --color-bg-dark-3: #f0faf0;
 
-/* Section backgrounds: dark → light */
-html:not(.dark) .bg-bg-dark   { background-color: var(--color-bg-light) !important; }
-html:not(.dark) .bg-bg-dark-2 { background-color: var(--color-bg-light-2) !important; }
-html:not(.dark) .bg-bg-dark-3 { background-color: var(--color-bg-light-2) !important; }
+  /* Verde: darkest tones → near-white so bg-verde-950/*, bg-verde-900/*
+     become subtle light tints instead of dark overlays */
+  --color-verde-950: #f0faf0;
+  --color-verde-900: #dcfce7;
 
-/* glass-dark → white card in light mode */
+  /* Other palettes: remap dark tones for level badges and section tints */
+  --color-emerald-950: #ecfdf5;  --color-emerald-900: #d1fae5;
+  --color-green-950:   #f0fdf4;  --color-green-900:   #dcfce7;
+  --color-yellow-950:  #fefce8;  --color-yellow-900:  #fef9c3;
+  --color-orange-950:  #fff7ed;  --color-orange-900:  #ffedd5;
+  --color-red-950:     #fff1f2;  --color-red-900:     #ffe4e6;
+  --color-purple-950:  #faf5ff;  --color-purple-900:  #f3e8ff;
+  --color-pink-950:    #fdf2f8;  --color-pink-900:    #fce7f3;
+  --color-blue-950:    #eff6ff;  --color-blue-900:    #dbeafe;
+  --color-cyan-950:    #ecfeff;  --color-cyan-900:    #cffafe;
+  --color-amber-950:   #fffbeb;  --color-amber-900:   #fef3c7;
+}
+
+/* ─── Light mode: text color overrides ─────────────────────────────────── */
+/* Verde: near-white → dark green (hardcoded hex, immune to var remap) */
+html:not(.dark) .text-verde-50  { color: #14532d !important; }
+html:not(.dark) .text-verde-100 { color: #14532d !important; }
+html:not(.dark) .text-verde-200 { color: #166534 !important; }
+html:not(.dark) .text-verde-300 { color: #15803d !important; }
+html:not(.dark) .text-verde-400 { color: #15803d !important; }
+html:not(.dark) .text-verde-500 { color: #16a34a !important; }
+html:not(.dark) .text-verde-600 { color: #15803d !important; }
+html:not(.dark) .text-verde-700 { color: #166534 !important; }
+
+/* Light text colors → dark readable equivalents in light mode */
+/* Greens */
+html:not(.dark) .text-emerald-300 { color: #065f46 !important; }
+html:not(.dark) .text-emerald-400 { color: #047857 !important; }
+html:not(.dark) .text-green-300   { color: #166534 !important; }
+html:not(.dark) .text-green-400   { color: #15803d !important; }
+/* Blues */
+html:not(.dark) .text-blue-200    { color: #1e3a8a !important; }
+html:not(.dark) .text-blue-300    { color: #1e40af !important; }
+html:not(.dark) .text-blue-400    { color: #1d4ed8 !important; }
+html:not(.dark) .text-cyan-300    { color: #155e75 !important; }
+html:not(.dark) .text-cyan-400    { color: #164e63 !important; }
+/* Purples & Pinks */
+html:not(.dark) .text-purple-300  { color: #581c87 !important; }
+html:not(.dark) .text-purple-400  { color: #6b21a8 !important; }
+html:not(.dark) .text-pink-300    { color: #831843 !important; }
+html:not(.dark) .text-pink-400    { color: #9d174d !important; }
+/* Reds & Oranges */
+html:not(.dark) .text-red-100     { color: #7f1d1d !important; }
+html:not(.dark) .text-red-200     { color: #7f1d1d !important; }
+html:not(.dark) .text-red-300     { color: #7f1d1d !important; }
+html:not(.dark) .text-red-400     { color: #b91c1c !important; }
+html:not(.dark) .text-red-700     { color: #991b1b !important; }
+html:not(.dark) .text-orange-300  { color: #7c2d12 !important; }
+/* Yellows & Ambers */
+html:not(.dark) .text-yellow-300  { color: #78350f !important; }
+html:not(.dark) .text-yellow-400  { color: #92400e !important; }
+html:not(.dark) .text-amber-200   { color: #78350f !important; }
+html:not(.dark) .text-amber-300   { color: #78350f !important; }
+html:not(.dark) .text-amber-400   { color: #92400e !important; }
+html:not(.dark) .text-amber-500   { color: #92400e !important; }
+
+/* ─── Light mode: component overrides ──────────────────────────────────── */
+/* glass-dark → white card */
 html:not(.dark) .glass-dark {
-  background: rgba(255, 255, 255, 0.92) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   border-color: rgba(21, 128, 61, 0.15) !important;
 }
 
-/* prose-invert forces white text — reset to dark green in light mode */
+/* Sidebar: subtle border + shadow */
+html:not(.dark) aside {
+  border-color: rgba(22, 101, 52, 0.12) !important;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06);
+}
+
+/* prose-invert: dark text in light mode (hardcoded hex) */
 html:not(.dark) .prose-invert {
-  --tw-prose-body: var(--color-verde-900);
-  --tw-prose-headings: var(--color-verde-900);
-  --tw-prose-lead: var(--color-verde-800);
-  --tw-prose-links: var(--color-verde-700);
-  --tw-prose-bold: var(--color-verde-900);
-  --tw-prose-counters: var(--color-verde-700);
-  --tw-prose-bullets: var(--color-verde-700);
-  --tw-prose-hr: var(--color-verde-300);
-  --tw-prose-quotes: var(--color-verde-800);
-  --tw-prose-quote-borders: var(--color-verde-400);
-  --tw-prose-captions: var(--color-verde-600);
-  --tw-prose-code: var(--color-verde-800);
-  --tw-prose-pre-bg: var(--color-verde-50);
-  --tw-prose-th-borders: var(--color-verde-300);
-  --tw-prose-td-borders: var(--color-verde-200);
+  --tw-prose-body: #14532d;
+  --tw-prose-headings: #14532d;
+  --tw-prose-lead: #166534;
+  --tw-prose-links: #15803d;
+  --tw-prose-bold: #14532d;
+  --tw-prose-counters: #15803d;
+  --tw-prose-bullets: #15803d;
+  --tw-prose-hr: #bbf7c2;
+  --tw-prose-quotes: #166534;
+  --tw-prose-quote-borders: #4ade5d;
+  --tw-prose-captions: #16a34a;
+  --tw-prose-code: #166534;
+  --tw-prose-pre-bg: #f0faf0;
+  --tw-prose-th-borders: #bbf7c2;
+  --tw-prose-td-borders: #dcfce0;
 }
 
 /* ─── Animate on scroll (base) ─────────────────────────────────────────── */
