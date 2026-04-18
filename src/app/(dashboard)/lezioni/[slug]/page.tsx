@@ -145,7 +145,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
       {/* Title */}
       <div>
-        <h1 className="text-3xl font-extrabold text-verde-50">{lesson.title}</h1>
+        <h1 className="text-3xl font-extrabold text-verde-900 dark:text-verde-50">{lesson.title}</h1>
       </div>
 
       {!accessible ? (
@@ -226,8 +226,8 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           {(lesson.content_html || (Array.isArray(lesson.vocabulary) && lesson.vocabulary.length > 0) || lesson.grammar_notes) && (
             <div className="rounded-2xl border border-verde-900/30 bg-verde-950/10 p-6">
               <div className="flex items-center gap-2 mb-5">
-                <AlignLeft size={16} className="text-verde-500" />
-                <h2 className="font-semibold text-verde-300 text-sm uppercase tracking-wide">Lezione</h2>
+                <AlignLeft size={16} className="text-verde-600 dark:text-verde-500" />
+                <h2 className="font-semibold text-verde-700 dark:text-verde-300 text-sm uppercase tracking-wide">Lezione</h2>
               </div>
               <LessonContentSwitcher
                 defaultContent={lesson.content_html}
@@ -242,8 +242,8 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           {Array.isArray(lesson.exercises) && lesson.exercises.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <GraduationCap size={16} className="text-blue-400" />
-                <h2 className="font-semibold text-blue-300 text-sm uppercase tracking-wide">
+                <GraduationCap size={16} className="text-blue-600 dark:text-blue-400" />
+                <h2 className="font-semibold text-blue-700 dark:text-blue-300 text-sm uppercase tracking-wide">
                   Esercizi interattivi ({lesson.exercises.length})
                 </h2>
               </div>

@@ -87,11 +87,11 @@ export default async function LezioniPage() {
     <div className="p-6 max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-verde-50 flex items-center gap-3">
-          <BookOpen size={28} className="text-verde-400" />
+        <h1 className="text-3xl font-extrabold text-verde-900 dark:text-verde-50 flex items-center gap-3">
+          <BookOpen size={28} className="text-verde-600 dark:text-verde-400" />
           Lezioni
         </h1>
-        <p className="text-verde-500 mt-1 text-sm">
+        <p className="text-verde-600 dark:text-verde-500 mt-1 text-sm">
           Impara l&apos;italiano passo dopo passo — livello {PLAN_LABELS[userPlan]}
         </p>
       </div>
@@ -140,7 +140,7 @@ export default async function LezioniPage() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-verde-200 group-hover:text-verde-100 transition-colors truncate">
+                          <div className="font-semibold text-verde-800 dark:text-verde-200 group-hover:text-verde-900 dark:group-hover:text-verde-100 transition-colors truncate">
                             {lesson.title}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5">
@@ -148,7 +148,7 @@ export default async function LezioniPage() {
                               <span className="text-xs text-verde-600">{vocabCount} parole</span>
                             )}
                             {progress && (
-                              <span className={`text-xs font-medium ${progress.status === 'passed' ? 'text-verde-400' : 'text-red-400'}`}>
+                              <span className={`text-xs font-medium ${progress.status === 'passed' ? 'text-verde-600 dark:text-verde-400' : 'text-red-600 dark:text-red-400'}`}>
                                 Punteggio: {progress.score}/10
                               </span>
                             )}
@@ -165,8 +165,8 @@ export default async function LezioniPage() {
                           <Lock size={16} className="text-verde-700" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-verde-500 truncate">{lesson.title}</div>
-                          <div className="text-xs text-verde-700 mt-0.5">
+                          <div className="font-semibold text-verde-600 dark:text-verde-500 truncate">{lesson.title}</div>
+                          <div className="text-xs text-verde-600 dark:text-verde-700 mt-0.5">
                             {!planOk
                               ? `Richiede piano ${PLAN_LABELS[lesson.plan_required as PlanType]}`
                               : 'Completa la lezione precedente per sbloccarla'}
