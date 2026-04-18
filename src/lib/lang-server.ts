@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
-import { translations } from '@/contexts/language-context'
-import type { Language, Translations } from '@/contexts/language-context'
+import { translations } from '@/lib/i18n'
+import type { Language, Translations } from '@/lib/i18n'
 
 const VALID_LANGS: Language[] = ['es', 'it', 'en']
 
