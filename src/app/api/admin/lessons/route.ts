@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const {
       title, slug, level, content_html, vocabulary, grammar_notes,
-      status, intro_video_url, video_subtitles, exercises,
+      status, intro_video_url, video_subtitles, exercises, audio_clips,
     } = body
 
     if (!title?.trim() || !slug?.trim() || !level) {
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
         intro_video_url: intro_video_url || null,
         video_subtitles: video_subtitles || {},
         exercises: exercises || [],
+        audio_clips: audio_clips || [],
       })
       .select()
       .single()

@@ -36,7 +36,8 @@ interface Props {
 
 export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planType, planName, billingInterval, periodEnd, cancelAtPeriodEnd, myMessages }: Props) {
   const { user } = useUser()
-  const { lang, setLang } = useLanguage()
+  const { lang, setLang, t } = useLanguage()
+  const ts = t.settings
   const [editFirst, setEditFirst] = useState(firstName)
   const [editLast, setEditLast] = useState(lastName)
   const [savingName, setSavingName] = useState(false)
@@ -51,9 +52,9 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
     setSavingName(true)
     try {
       await user.update({ firstName: editFirst, lastName: editLast })
-      toast.success('Nombre actualizado')
+      toast.success(ts.nameUpdated)
     } catch {
-      toast.error('Error al actualizar el nombre')
+      toast.error(ts.nameError)
     } finally {
       setSavingName(false)
     }
@@ -65,18 +66,18 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
     setUploadingAvatar(true)
     try {
       await user.setProfileImage({ file })
-      toast.success('Avatar actualizado')
+      toast.success(ts.avatarUpdated)
     } catch {
-      toast.error('Error al subir el avatar')
+      toast.error(ts.avatarError)
     } finally {
       setUploadingAvatar(false)
     }
   }
 
   const tabs = [
-    { id: 'perfil' as const, label: 'Perfil', icon: User },
-    { id: 'plan' as const, label: 'Mi Plan', icon: CreditCard },
-    { id: 'mensajes' as const, label: 'Mis Mensajes', icon: MessageSquare },
+    { id: 'perfil' as const, label: ts.tabs.profile, icon: User },
+    { id: 'plan' as const, label: ts.tabs.plan, icon: CreditCard },
+    { id: 'mensajes' as const, label: ts.tabs.messages, icon: MessageSquare },
   ]
 
   return (
@@ -84,9 +85,9 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
       <div>
         <h1 className="text-3xl font-extrabold text-verde-50 flex items-center gap-3">
           <Settings size={28} className="text-verde-400" />
-          Impostazioni
+          {ts.title}
         </h1>
-        <p className="text-verde-500 mt-1 text-sm">Gestiona tu perfil y preferencias</p>
+        <p className="text-verde-500 mt-1 text-sm">{ts.subtitle}</p>
       </div>
 
       {/* Tabs */}
@@ -110,7 +111,7 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
         <div className="space-y-4">
           {/* Avatar */}
           <div className="p-6 rounded-2xl border border-verde-900/30 bg-verde-950/20 space-y-4">
-            <h2 className="text-sm font-semibold text-verde-300 uppercase tracking-wide">Foto de perfil</h2>
+            <h2 className="text-sm font-semibold text-verde-300 uppercase tracking-wide">{ts.avatar}</h2>
             <div className="flex items-center gap-5">
               <div className="relative">
                 <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-verde-700/50 bg-verde-900">
@@ -135,9 +136,9 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-verde-900/40 border border-verde-800/40 text-verde-300 hover:bg-verde-900/60 transition-colors text-sm disabled:opacity-50"
                 >
                   <Camera size={14} />
-                  {uploadingAvatar ? 'Subiendo...' : 'Cambiar foto'}
+                  {uploadingAvatar ? ts.avatarUploading : ts.avatarChange}
                 </button>
-                <p className="text-xs text-verde-600 mt-1.5">JPG, PNG o GIF. Máx 10MB</p>
+                <p className="text-xs text-verde-600 mt-1.5">{ts.avatarHint}</p>
               </div>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
             </div>
@@ -145,10 +146,10 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
 
           {/* Name */}
           <div className="p-6 rounded-2xl border border-verde-900/30 bg-verde-950/20 space-y-4">
-            <h2 className="text-sm font-semibold text-verde-300 uppercase tracking-wide">Información personal</h2>
+            <h2 className="text-sm font-semibold text-verde-300 uppercase tracking-wide">{ts.personalInfo}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-verde-500 mb-1.5">Nombre</label>
+                <label className="block text-xs text-verde-500 mb-1.5">{ts.firstName}</label>
                 <input
                   value={editFirst}
                   onChange={e => setEditFirst(e.target.value)}
@@ -156,7 +157,7 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
                 />
               </div>
               <div>
-                <label className="block text-xs text-verde-500 mb-1.5">Apellido</label>
+                <label className="block text-xs text-verde-500 mb-1.5">{ts.lastName}</label>
                 <input
                   value={editLast}
                   onChange={e => setEditLast(e.target.value)}
@@ -165,9 +166,9 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
               </div>
             </div>
             <div>
-              <label className="block text-xs text-verde-500 mb-1.5">Email</label>
+              <label className="block text-xs text-verde-500 mb-1.5">{ts.email}</label>
               <input value={email} disabled className="w-full px-3 py-2.5 rounded-xl bg-verde-950/30 border border-verde-900/30 text-verde-500 text-sm cursor-not-allowed" />
-              <p className="text-xs text-verde-700 mt-1">El email se gestiona desde tu cuenta Clerk</p>
+              <p className="text-xs text-verde-700 mt-1">{ts.emailNote}</p>
             </div>
             <button
               onClick={saveName}
@@ -175,13 +176,13 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm transition-colors disabled:opacity-50"
             >
               <Save size={14} />
-              {savingName ? 'Guardando...' : 'Guardar cambios'}
+              {savingName ? ts.saving : ts.saveChanges}
             </button>
           </div>
 
           {/* Language */}
           <div className="p-6 rounded-2xl border border-verde-900/30 bg-verde-950/20 space-y-3">
-            <h2 className="text-sm font-semibold text-verde-300 uppercase tracking-wide">Idioma de la interfaz</h2>
+            <h2 className="text-sm font-semibold text-verde-300 uppercase tracking-wide">{ts.language}</h2>
             <div className="flex gap-2">
               {[
                 { code: 'es', flag: '🇪🇸', label: 'Español' },
@@ -217,21 +218,21 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
               <div>
                 <div className="font-bold text-verde-100 text-lg">Plan {planName ?? planType}</div>
                 <div className="text-sm text-verde-400 capitalize">
-                  {billingInterval === 'year' ? 'Facturación anual' : billingInterval === 'month' ? 'Facturación mensual' : 'Plan gratuito'}
-                  {cancelAtPeriodEnd && ' · Cancela al final del período'}
+                  {billingInterval === 'year' ? ts.plan.annual : billingInterval === 'month' ? ts.plan.monthly : ts.plan.free}
+                  {cancelAtPeriodEnd && ` · ${t.dashboard.cancelNote}`}
                 </div>
               </div>
             </div>
             {periodEnd && (
               <div className="text-xs text-verde-500 bg-verde-950/30 border border-verde-900/30 px-3 py-2 rounded-lg">
-                {cancelAtPeriodEnd ? 'Acceso hasta:' : 'Próxima renovación:'}{' '}
+                {cancelAtPeriodEnd ? ts.plan.until : ts.plan.nextRenewal}{' '}
                 <span className="text-verde-300 font-medium">
                   {new Date(periodEnd).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </span>
               </div>
             )}
             <Link href="/precios" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm transition-colors">
-              {planType === 'free' ? 'Ver planes' : 'Cambiar plan'}
+              {planType === 'free' ? ts.plan.viewPlans : ts.plan.changePlan}
             </Link>
           </div>
         </div>
@@ -243,7 +244,7 @@ export function ImpostazioniClient({ firstName, lastName, email, imageUrl, planT
           {myMessages.length === 0 ? (
             <div className="text-center py-12 text-verde-600">
               <MessageSquare size={36} className="mx-auto mb-3 text-verde-800" />
-              <p>No has enviado mensajes todavía.</p>
+              <p>{ts.noMessages}</p>
             </div>
           ) : (
             myMessages.map((msg: Message) => (

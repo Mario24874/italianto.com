@@ -277,6 +277,15 @@ export interface LessonTranslation {
 /** Keys: 'en' | 'it' (Spanish is the default, stored in the base columns) */
 export type LessonTranslations = Partial<Record<'en' | 'it', LessonTranslation>>
 
+// ─── Audio Clip ───────────────────────────────────────────────────────────────
+
+export interface AudioClip {
+  id: string
+  title: string
+  url: string
+  description?: string
+}
+
 // ─── Lesson Row ───────────────────────────────────────────────────────────────
 
 export interface LessonRow {
@@ -293,6 +302,7 @@ export interface LessonRow {
   intro_video_url: string | null
   video_subtitles: { es?: string; en?: string; it?: string }
   exercises: Exercise[]
+  audio_clips: AudioClip[]
   ui_language: LessonLanguage
   translations: LessonTranslations
   created_at: string

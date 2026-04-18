@@ -10,6 +10,7 @@ import { ChevronLeft, Lock, AlignLeft, GraduationCap, CalendarClock } from 'luci
 import { LessonExam } from './_lesson-exam'
 import { LessonExercises } from './_lesson-exercises'
 import { LessonContentSwitcher } from './_lesson-content-switcher'
+import { LessonAudio } from './_lesson-audio'
 
 const WEEKLY_LIMITS: Record<PlanType, number> = {
   free: 0,
@@ -242,6 +243,11 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 translations={lesson.translations ?? {}}
               />
             </div>
+          )}
+
+          {/* ── Audio Pronunciation ── */}
+          {Array.isArray(lesson.audio_clips) && lesson.audio_clips.length > 0 && (
+            <LessonAudio clips={lesson.audio_clips} />
           )}
 
           {/* ── Interactive Exercises ── */}

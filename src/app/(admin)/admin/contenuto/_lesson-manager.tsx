@@ -8,8 +8,9 @@ import {
   Upload, FileText, Sparkles, AlertTriangle,
   Video, Captions, Dumbbell,
   CheckCircle2, Languages, Trash,
+  ChevronDown, ChevronUp, ListOrdered, Headphones,
 } from 'lucide-react'
-import type { LessonRow, LessonLevel, LessonStatus, VocabularyItem, Exercise, LessonTranslations } from '@/types'
+import type { LessonRow, LessonLevel, LessonStatus, VocabularyItem, Exercise, LessonTranslations, AudioClip } from '@/types'
 import { RichEditor } from './_rich-editor'
 
 const LEVELS: LessonLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
@@ -49,6 +50,7 @@ interface LessonFormData {
   intro_video_url: string
   video_subtitles: { es: string; en: string; it: string }
   exercises: Exercise[]
+  audio_clips: AudioClip[]
 }
 
 const emptyForm = (): LessonFormData => ({
@@ -62,6 +64,7 @@ const emptyForm = (): LessonFormData => ({
   intro_video_url: '',
   video_subtitles: { es: '', en: '', it: '' },
   exercises: [],
+  audio_clips: [],
 })
 
 // ─── AI Lesson Import Panel ────────────────────────────────────────────────────
@@ -493,6 +496,269 @@ function TranslationPanel({
   )
 }
 
+// ─── Audio Section ────────────────────────────────────────────────────────────
+function AudioSection({
+  clips,
+  onChange,
+}: {
+  clips: AudioClip[]
+  onChange: (clips: AudioClip[]) => void
+}) {
+  const [uploading, setUploading] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = async (file: File) => {
+    const allowed = ['audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/wav', 'audio/webm', 'audio/aac']
+    if (!allowed.includes(file.type) && !file.name.match(/\.(mp3|ogg|wav|webm|aac|m4a)$/i)) {
+      alert('Usa MP3, OGG, WAV o AAC.'); return
+    }
+    if (file.size > 50 * 1024 * 1024) { alert('Máximo 50 MB por audio.'); return }
+
+    const tempId = `audio_${Date.now()}`
+    setUploading(tempId)
+    try {
+      const res = await fetch('/api/admin/lessons/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, contentType: file.type || 'audio/mpeg', folder: 'audios' }),
+      })
+      const { signedUrl, publicUrl } = await res.json()
+      if (!res.ok) throw new Error('No se pudo obtener URL de carga')
+      await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type || 'audio/mpeg' }, body: file })
+      const newClip: AudioClip = { id: tempId, title: file.name.replace(/\.[^.]+$/, ''), url: publicUrl }
+      onChange([...clips, newClip])
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al subir audio')
+    } finally { setUploading(null) }
+  }
+
+  const updateClip = (i: number, field: keyof AudioClip, val: string) =>
+    onChange(clips.map((c, idx) => idx === i ? { ...c, [field]: val } : c))
+
+  const removeClip = (i: number) => onChange(clips.filter((_, idx) => idx !== i))
+
+  return (
+    <div className="rounded-xl border border-amber-800/30 bg-amber-950/10 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Headphones size={14} className="text-amber-400" />
+          <span className="text-xs font-semibold text-amber-300 uppercase tracking-wide">Audios de pronunciación</span>
+          <span className="text-xs text-amber-700">— opcional</span>
+        </div>
+        <button type="button" onClick={() => fileRef.current?.click()}
+          disabled={!!uploading}
+          className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-amber-900/40 hover:bg-amber-800/40 text-amber-300 transition-colors disabled:opacity-40">
+          {uploading ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+          Subir audio
+        </button>
+        <input ref={fileRef} type="file" className="hidden" accept=".mp3,.ogg,.wav,.aac,.m4a,audio/*"
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }} />
+      </div>
+
+      {clips.length === 0 ? (
+        <div
+          onClick={() => fileRef.current?.click()}
+          className="flex flex-col items-center gap-2 py-4 rounded-lg border border-dashed border-amber-800/30 bg-amber-950/10 cursor-pointer hover:bg-amber-900/10 transition-all group"
+        >
+          <Headphones size={20} className="text-amber-700 group-hover:text-amber-500 transition-colors" />
+          <p className="text-xs text-amber-700 group-hover:text-amber-500">Arrastra o haz clic para subir audios MP3/OGG/WAV</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {clips.map((clip, i) => (
+            <div key={clip.id} className="flex items-center gap-2 rounded-lg border border-amber-800/20 bg-amber-950/20 px-3 py-2">
+              <Headphones size={13} className="text-amber-500 shrink-0" />
+              <input
+                type="text"
+                value={clip.title}
+                onChange={e => updateClip(i, 'title', e.target.value)}
+                placeholder="Título del audio"
+                className="flex-1 bg-transparent text-xs text-amber-200 placeholder:text-amber-700 focus:outline-none"
+              />
+              <input
+                type="text"
+                value={clip.description ?? ''}
+                onChange={e => updateClip(i, 'description', e.target.value)}
+                placeholder="Descripción (opcional)"
+                className="flex-1 bg-transparent text-xs text-amber-400 placeholder:text-amber-700 focus:outline-none hidden sm:block"
+              />
+              <audio src={clip.url} controls className="h-6 w-28 shrink-0" />
+              <button type="button" onClick={() => removeClip(i)}
+                className="p-1 text-red-500 hover:text-red-400 transition-colors shrink-0">
+                <X size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Exercise Editor ──────────────────────────────────────────────────────────
+const EXERCISE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
+  fill_blank: { label: 'Rellenar', color: 'bg-verde-900/50 text-verde-300 border-verde-700/40' },
+  choice:     { label: 'Opción múlt.', color: 'bg-blue-900/50 text-blue-300 border-blue-700/40' },
+  dialogue:   { label: 'Diálogo', color: 'bg-purple-900/50 text-purple-300 border-purple-700/40' },
+  free_write: { label: 'Escritura', color: 'bg-amber-900/50 text-amber-300 border-amber-700/40' },
+}
+
+function ExerciseEditor({
+  exercises,
+  onChange,
+}: {
+  exercises: Exercise[]
+  onChange: (exercises: Exercise[]) => void
+}) {
+  const [editIdx, setEditIdx] = useState<number | null>(null)
+  const [editJson, setEditJson] = useState('')
+  const [jsonError, setJsonError] = useState<string | null>(null)
+
+  const openEdit = (i: number) => {
+    setEditIdx(i)
+    setEditJson(JSON.stringify(exercises[i], null, 2))
+    setJsonError(null)
+  }
+
+  const closeEdit = () => { setEditIdx(null); setJsonError(null) }
+
+  const saveEdit = () => {
+    try {
+      const parsed = JSON.parse(editJson) as Exercise
+      const updated = [...exercises]
+      updated[editIdx!] = parsed
+      onChange(updated)
+      closeEdit()
+    } catch {
+      setJsonError('JSON inválido. Verifica la sintaxis.')
+    }
+  }
+
+  const deleteExercise = (i: number) => {
+    onChange(exercises.filter((_, idx) => idx !== i))
+    if (editIdx === i) closeEdit()
+  }
+
+  const moveUp = (i: number) => {
+    if (i === 0) return
+    const updated = [...exercises]
+    ;[updated[i - 1], updated[i]] = [updated[i], updated[i - 1]]
+    onChange(updated)
+  }
+
+  const moveDown = (i: number) => {
+    if (i === exercises.length - 1) return
+    const updated = [...exercises]
+    ;[updated[i], updated[i + 1]] = [updated[i + 1], updated[i]]
+    onChange(updated)
+  }
+
+  const addExercise = () => {
+    const newEx: Exercise = {
+      id: `ex_${Date.now()}`,
+      number: exercises.length + 1,
+      type: 'fill_blank',
+      title: 'Nuevo ejercicio',
+      instruction: '',
+      items: [],
+    } as Exercise
+    onChange([...exercises, newEx])
+    setTimeout(() => openEdit(exercises.length), 0)
+  }
+
+  if (exercises.length === 0) return (
+    <div className="rounded-xl border border-dashed border-verde-800/30 p-4 text-center">
+      <ListOrdered size={20} className="mx-auto text-verde-700 mb-2" />
+      <p className="text-xs text-verde-600 mb-3">Sin ejercicios. Importa desde un archivo o agrega manualmente.</p>
+      <button type="button" onClick={addExercise}
+        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-verde-900/40 hover:bg-verde-800/40 text-verde-300 transition-colors mx-auto">
+        <Plus size={12} /> Agregar ejercicio
+      </button>
+    </div>
+  )
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ListOrdered size={14} className="text-verde-500" />
+          <span className="text-xs font-semibold text-verde-400 uppercase tracking-wide">
+            Ejercicios ({exercises.length})
+          </span>
+        </div>
+        <button type="button" onClick={addExercise}
+          className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-verde-900/40 hover:bg-verde-800/40 text-verde-300 transition-colors">
+          <Plus size={11} /> Agregar
+        </button>
+      </div>
+
+      <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+        {exercises.map((ex, i) => {
+          const typeMeta = EXERCISE_TYPE_LABELS[ex.type] ?? { label: ex.type, color: 'bg-verde-900/30 text-verde-400' }
+          const isEditing = editIdx === i
+          return (
+            <div key={ex.id ?? i} className="rounded-xl border border-verde-900/30 bg-verde-950/20 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-xs text-verde-700 shrink-0 w-5">{i + 1}.</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border shrink-0 ${typeMeta.color}`}>
+                  {typeMeta.label}
+                </span>
+                <span className="text-xs text-verde-300 truncate flex-1">{ex.title}</span>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <button type="button" onClick={() => moveUp(i)} disabled={i === 0}
+                    className="p-1 text-verde-600 hover:text-verde-400 disabled:opacity-30 transition-colors">
+                    <ChevronUp size={13} />
+                  </button>
+                  <button type="button" onClick={() => moveDown(i)} disabled={i === exercises.length - 1}
+                    className="p-1 text-verde-600 hover:text-verde-400 disabled:opacity-30 transition-colors">
+                    <ChevronDown size={13} />
+                  </button>
+                  <button type="button" onClick={() => isEditing ? closeEdit() : openEdit(i)}
+                    className={`p-1 transition-colors ${isEditing ? 'text-verde-300' : 'text-verde-600 hover:text-verde-400'}`}>
+                    <Pencil size={13} />
+                  </button>
+                  <button type="button" onClick={() => deleteExercise(i)}
+                    className="p-1 text-red-600 hover:text-red-400 transition-colors">
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {isEditing && (
+                <div className="border-t border-verde-900/30 p-3 space-y-2 bg-verde-950/30">
+                  <p className="text-[10px] text-verde-600">Editor JSON — puedes modificar todos los campos del ejercicio.</p>
+                  <textarea
+                    value={editJson}
+                    onChange={e => { setEditJson(e.target.value); setJsonError(null) }}
+                    rows={10}
+                    spellCheck={false}
+                    className="w-full px-3 py-2 rounded-lg bg-bg-dark border border-verde-800/40 text-[11px] text-verde-200 font-mono focus:outline-none focus:border-verde-600 resize-y"
+                  />
+                  {jsonError && (
+                    <p className="text-xs text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={11} /> {jsonError}
+                    </p>
+                  )}
+                  <div className="flex gap-2 justify-end">
+                    <button type="button" onClick={closeEdit}
+                      className="text-xs px-3 py-1.5 rounded-lg text-verde-500 hover:text-verde-300 transition-colors">
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={saveEdit}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-verde-800/50 hover:bg-verde-700/50 text-verde-200 transition-colors">
+                      Aplicar cambios
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Lesson Modal ─────────────────────────────────────────────────────────────
 function LessonModal({
   lesson, onClose, onSave,
@@ -513,6 +779,7 @@ function LessonModal({
       intro_video_url: lesson.intro_video_url ?? '',
       video_subtitles: { es: lesson.video_subtitles?.es ?? '', en: lesson.video_subtitles?.en ?? '', it: lesson.video_subtitles?.it ?? '' },
       exercises: lesson.exercises ?? [],
+      audio_clips: lesson.audio_clips ?? [],
     } : emptyForm()
   )
   const [saving, setSaving] = useState(false)
@@ -572,6 +839,7 @@ function LessonModal({
             ...(form.video_subtitles.it && { it: form.video_subtitles.it }),
           },
           exercises: form.exercises,
+          audio_clips: form.audio_clips,
         }),
       })
       const data = await res.json()
@@ -649,6 +917,12 @@ function LessonModal({
               onChange={(url, subs) => setForm(f => ({ ...f, intro_video_url: url, video_subtitles: subs }))}
             />
 
+            {/* ── Audio Clips ── */}
+            <AudioSection
+              clips={form.audio_clips}
+              onChange={clips => setField('audio_clips', clips)}
+            />
+
             {/* ── Rich Content Editor ── */}
             <div>
               <label className="block text-xs font-medium text-verde-400 mb-1.5">Contenuto della lezione</label>
@@ -702,6 +976,12 @@ function LessonModal({
             <ExerciseImportPanel
               onImport={exercises => setField('exercises', exercises)}
               existingCount={form.exercises.length}
+            />
+
+            {/* ── Exercise Editor ── */}
+            <ExerciseEditor
+              exercises={form.exercises}
+              onChange={exercises => setField('exercises', exercises)}
             />
 
             {error && (
