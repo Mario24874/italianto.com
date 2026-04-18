@@ -40,7 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button onClick={() => setSidebarOpen(true)} className="p-1.5 text-verde-500 hover:text-verde-300 transition-colors">
             <Menu size={20} />
           </button>
-          <span className="text-sm font-semibold text-verde-200 flex-1">Mi Aula</span>
+          <span className="text-sm font-semibold text-verde-200 flex-1">{t.nav.aula}</span>
           {/* Language selector */}
           <div className="relative">
             <button

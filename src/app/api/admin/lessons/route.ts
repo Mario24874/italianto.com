@@ -41,12 +41,23 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin()
+
+    // Auto-assign order_index: max within same level + 1
+    const { data: existing } = await supabase
+      .from('lessons')
+      .select('order_index')
+      .eq('level', level)
+      .order('order_index', { ascending: false })
+      .limit(1)
+    const nextOrder = existing?.[0]?.order_index != null ? existing[0].order_index + 1 : 1
+
     const { data, error } = await supabase
       .from('lessons')
       .insert({
         title: title.trim(),
         slug: slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-'),
         level,
+        order_index: nextOrder,
         content_html: content_html || '',
         vocabulary: vocabulary || [],
         grammar_notes: grammar_notes || '',

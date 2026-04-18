@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect, notFound } from 'next/navigation'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { getServerLang } from '@/lib/lang-server'
 import type { PlanType } from '@/lib/plans'
 import type { LessonRow, LessonProgressRow, LessonLevel } from '@/types'
 import Link from 'next/link'
@@ -45,10 +46,15 @@ export async function generateMetadata(
   return { title: data ? `${data.title} (${data.level}) — Italianto` : 'Lezione — Italianto' }
 }
 
+const PLAN_LABELS_LESSON: Record<string, string> = {
+  free: 'Free', essenziale: 'Essenziale', avanzato: 'Avanzato', maestro: 'Maestro',
+}
+
 export default async function LessonPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const user = await currentUser()
   if (!user) redirect('/sign-in')
+  const { t } = await getServerLang()
 
   const supabase = getSupabaseAdmin()
   const [lessonResult, subResult] = await Promise.all([
@@ -62,11 +68,12 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const weekLimit = WEEKLY_LIMITS[userPlan]
   const weekStart = currentWeekStart()
 
-  // Check sequential unlock: find the lesson immediately before this one
+  // Check sequential unlock: only within the same level
   const { data: allLessons } = await supabase
     .from('lessons')
     .select('id,order_index')
     .eq('status', 'published')
+    .eq('level', lesson.level)
     .order('order_index', { ascending: true })
 
   let sequentiallyUnlocked = true
@@ -136,7 +143,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       {/* Back + level badge */}
       <div className="flex items-center gap-3">
         <Link href="/lezioni" className="flex items-center gap-1.5 text-sm text-verde-500 hover:text-verde-300 transition-colors">
-          <ChevronLeft size={16} />Lezioni
+          <ChevronLeft size={16} />{t.lessons.title}
         </Link>
         <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${LEVEL_COLORS[lesson.level]}`}>
           {lesson.level}
@@ -159,25 +166,24 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           <div>
             {lockedByProgress ? (
               <>
-                <h2 className="text-xl font-bold text-verde-200">Lezione bloccata</h2>
+                <h2 className="text-xl font-bold text-verde-200">{t.lessons.locked}</h2>
                 <p className="text-verde-500 text-sm mt-2 max-w-sm mx-auto">
-                  Devi superare la lezione precedente prima di accedere a questa.
+                  {t.lessons.lockedMsg}
                 </p>
               </>
             ) : quotaExhausted ? (
               <>
-                <h2 className="text-xl font-bold text-verde-200">Límite semanal alcanzado</h2>
+                <h2 className="text-xl font-bold text-verde-200">{t.lessons.weeklyLimit}</h2>
                 <p className="text-verde-500 text-sm mt-2 max-w-sm mx-auto">
-                  Tu plan <strong className="text-verde-300 capitalize">{userPlan}</strong> incluye{' '}
-                  <strong className="text-verde-300">{weekLimit} {weekLimit === 1 ? 'lección' : 'lecciones'} por semana</strong>.
-                  {' '}Vuelve el próximo lunes para continuar.
+                  {PLAN_LABELS_LESSON[userPlan]} · {weekLimit} {weekLimit === 1 ? t.lessons.lesson : t.lessons.lessonsWord} {t.lessons.perWeek}.
+                  {' '}{t.lessons.weeklyReset}
                 </p>
               </>
             ) : (
               <>
-                <h2 className="text-xl font-bold text-verde-200">Suscríbete para continuar</h2>
+                <h2 className="text-xl font-bold text-verde-200">{t.lessons.subscribeToContinue}</h2>
                 <p className="text-verde-500 text-sm mt-2 max-w-xs mx-auto">
-                  Accede a todas las lecciones con un plan de suscripción.
+                  {t.lessons.subscribeMsg}
                 </p>
               </>
             )}
@@ -185,12 +191,12 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           {lockedByProgress ? (
             <Link href="/lezioni"
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-verde-900 hover:bg-verde-800 text-verde-200 font-semibold rounded-xl transition-colors text-sm">
-              Volver a lecciones
+              {t.lessons.backToLessons}
             </Link>
           ) : (
             <Link href="/impostazioni"
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-verde-700 hover:bg-verde-600 text-white font-semibold rounded-xl transition-colors text-sm">
-              {quotaExhausted ? 'Ver planes superiores' : 'Ver planes'}
+              {quotaExhausted ? t.lessons.viewPlansUpgrade : t.lessons.viewPlans}
             </Link>
           )}
         </div>
@@ -227,7 +233,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
             <div className="rounded-2xl border border-verde-900/30 bg-verde-950/10 p-6">
               <div className="flex items-center gap-2 mb-5">
                 <AlignLeft size={16} className="text-verde-600 dark:text-verde-500" />
-                <h2 className="font-semibold text-verde-700 dark:text-verde-300 text-sm uppercase tracking-wide">Lezione</h2>
+                <h2 className="font-semibold text-verde-700 dark:text-verde-300 text-sm uppercase tracking-wide">{t.lessons.lessonSection}</h2>
               </div>
               <LessonContentSwitcher
                 defaultContent={lesson.content_html}
@@ -244,7 +250,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               <div className="flex items-center gap-2">
                 <GraduationCap size={16} className="text-blue-600 dark:text-blue-400" />
                 <h2 className="font-semibold text-blue-700 dark:text-blue-300 text-sm uppercase tracking-wide">
-                  Esercizi interattivi ({lesson.exercises.length})
+                  {t.lessons.exercisesSection} ({lesson.exercises.length})
                 </h2>
               </div>
               <LessonExercises exercises={lesson.exercises} />

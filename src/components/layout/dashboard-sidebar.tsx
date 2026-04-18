@@ -27,17 +27,19 @@ import {
   CalendarDays,
 } from 'lucide-react'
 
-const navItems = [
-  { label: "L'Aula", href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Orario', href: '/orario', icon: CalendarDays },
-  { label: 'Lezioni', href: '/lezioni', icon: BookOpen },
-  { label: 'Tutor AI', href: '/tutor', icon: BrainCircuit },
-  { label: 'Canzoni', href: '/canzoni', icon: Music },
-  { label: 'Passatempi', href: '/passatempi', icon: Gamepad2 },
-  { label: 'Info Interessanti', href: '/informazioni', icon: Info },
-  { label: 'Corsi dal Vivo', href: '/corsi', icon: Video },
-  { label: 'Download', href: '/downloads', icon: Download },
-  { label: 'Impostazioni', href: '/impostazioni', icon: Settings },
+type NavKey = 'aula' | 'schedule' | 'lessons' | 'tutor' | 'songs' | 'games' | 'info' | 'courses' | 'downloads' | 'settings'
+
+const navDefs: { key: NavKey; href: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { key: 'aula', href: '/dashboard', icon: LayoutDashboard },
+  { key: 'schedule', href: '/orario', icon: CalendarDays },
+  { key: 'lessons', href: '/lezioni', icon: BookOpen },
+  { key: 'tutor', href: '/tutor', icon: BrainCircuit },
+  { key: 'songs', href: '/canzoni', icon: Music },
+  { key: 'games', href: '/passatempi', icon: Gamepad2 },
+  { key: 'info', href: '/informazioni', icon: Info },
+  { key: 'courses', href: '/corsi', icon: Video },
+  { key: 'downloads', href: '/downloads', icon: Download },
+  { key: 'settings', href: '/impostazioni', icon: Settings },
 ]
 
 interface DashboardSidebarProps {
@@ -74,8 +76,9 @@ export function DashboardSidebar({ onClose, isMobile }: DashboardSidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ label, href, icon: Icon }) => {
+        {navDefs.map(({ key, href, icon: Icon }) => {
           const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+          const label = t.nav[key]
           return (
             <Link
               key={href}

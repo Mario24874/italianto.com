@@ -6,6 +6,7 @@ import {
   BrainCircuit, Loader2, CheckCircle2, XCircle,
   RotateCcw, Trophy, AlertTriangle,
 } from 'lucide-react'
+import { useLanguage } from '@/contexts/language-context'
 import type { TestQuestion, LessonProgressRow } from '@/types'
 
 type ExamState = 'idle' | 'loading' | 'exam' | 'submitting' | 'result'
@@ -13,26 +14,26 @@ type ExamState = 'idle' | 'loading' | 'exam' | 'submitting' | 'result'
 interface ResultInfo {
   score: number
   status: 'passed' | 'failed'
-  label: string
+  labelKey: 'excellent' | 'good' | 'passed' | 'failed'
   color: string
   icon: React.ReactNode
 }
 
 function getResult(score: number): ResultInfo {
   if (score >= 10) return {
-    score, status: 'passed', label: 'Eccellente!',
+    score, status: 'passed', labelKey: 'excellent',
     color: 'text-emerald-400', icon: <Trophy size={32} className="text-emerald-400" />,
   }
   if (score >= 9) return {
-    score, status: 'passed', label: 'Ottimo!',
+    score, status: 'passed', labelKey: 'good',
     color: 'text-green-400', icon: <CheckCircle2 size={32} className="text-green-400" />,
   }
   if (score >= 8) return {
-    score, status: 'passed', label: 'Approvato',
+    score, status: 'passed', labelKey: 'passed',
     color: 'text-verde-400', icon: <CheckCircle2 size={32} className="text-verde-400" />,
   }
   return {
-    score, status: 'failed', label: 'Non superato',
+    score, status: 'failed', labelKey: 'failed',
     color: 'text-red-400', icon: <XCircle size={32} className="text-red-400" />,
   }
 }
@@ -43,6 +44,8 @@ interface LessonExamProps {
 }
 
 export function LessonExam({ slug, initialProgress }: LessonExamProps) {
+  const { t } = useLanguage()
+  const te = t.lessons.exam
   const [state, setState] = useState<ExamState>('idle')
   const [questions, setQuestions] = useState<TestQuestion[]>([])
   const [answers, setAnswers] = useState<Record<number, string>>({})
@@ -56,7 +59,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
     try {
       const res = await fetch(`/api/lessons/${slug}/test`)
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al generar preguntas')
+      if (!res.ok) throw new Error(data.error || te.generating)
       setQuestions(data.questions)
       setAnswers({})
       setState('exam')
@@ -68,7 +71,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
 
   const submitExam = async () => {
     if (Object.keys(answers).length < questions.length) {
-      setError('Devi rispondere a tutte le domande prima di inviare.')
+      setError(te.answerFirst)
       return
     }
     setState('submitting')
@@ -87,7 +90,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
         body: JSON.stringify({ score }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al guardar progreso')
+      if (!res.ok) throw new Error(data.error || 'Error saving progress')
 
       setResult(getResult(data.score ?? score))
       setAttempts(data.attempts ?? attempts + 1)
@@ -114,25 +117,25 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
             <BrainCircuit size={24} className="text-verde-400" />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-verde-100 text-lg">Esame della lezione</h3>
+            <h3 className="font-bold text-verde-100 text-lg">{te.title}</h3>
             <p className="text-verde-500 text-sm mt-0.5">
-              10 domande generate dall&apos;IA — ogni tentativo è diverso.
+              {te.description}
               {attempts > 0 && (
                 <span className="ml-2 text-verde-600">
-                  Tentativi: {attempts} · Miglior punteggio: {initialProgress?.score ?? 0}/10
+                  {te.attempts}: {attempts} · {te.bestScore}: {initialProgress?.score ?? 0}/10
                 </span>
               )}
             </p>
           </div>
           <Button onClick={startExam} className="shrink-0">
             <BrainCircuit size={15} />
-            {attempts > 0 ? 'Riprova esame' : 'Presenta esame'}
+            {attempts > 0 ? te.retry : te.submit}
           </Button>
         </div>
         {initialProgress?.status === 'passed' && (
           <div className="mt-4 flex items-center gap-2 text-sm text-verde-400 bg-verde-900/20 rounded-xl px-4 py-2.5">
             <CheckCircle2 size={16} />
-            Lezione superata con {initialProgress.score}/10
+            {te.passedWith} {initialProgress.score}/10
           </div>
         )}
         {error && (
@@ -152,8 +155,8 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
         <div className="flex flex-col items-center gap-4 text-center">
           <Loader2 size={32} className="animate-spin text-verde-500" />
           <div>
-            <p className="font-semibold text-verde-200">Generando domande con l&apos;IA...</p>
-            <p className="text-verde-600 text-sm mt-1">Attendi qualche secondo</p>
+            <p className="font-semibold text-verde-200">{te.generating}</p>
+            <p className="text-verde-600 text-sm mt-1">{te.wait}</p>
           </div>
         </div>
       </div>
@@ -168,24 +171,22 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
           {result.icon}
           <div>
             <p className={`text-3xl font-extrabold ${result.color}`}>{result.score}/10</p>
-            <p className={`text-xl font-bold mt-1 ${result.color}`}>{result.label}</p>
+            <p className={`text-xl font-bold mt-1 ${result.color}`}>{te.labels[result.labelKey]}</p>
             <p className="text-verde-500 text-sm mt-2">
-              {result.status === 'passed'
-                ? 'Hai superato la lezione! Puoi continuare con la prossima.'
-                : 'Non hai raggiunto il punteggio minimo (8/10). Rileggi la lezione e riprova.'}
+              {result.status === 'passed' ? te.passedMsg : te.failedMsg}
             </p>
           </div>
           <div className="flex gap-3 mt-2">
             {result.status === 'failed' && (
               <Button onClick={retry} variant="outline">
                 <RotateCcw size={15} />
-                Riprova
+                {te.retry}
               </Button>
             )}
             {result.status === 'passed' && (
               <Button onClick={retry} variant="ghost" className="text-sm">
                 <RotateCcw size={14} />
-                Ritenta per migliorare
+                {te.retryImprove}
               </Button>
             )}
           </div>
@@ -193,7 +194,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
 
         {/* Show correct answers */}
         <div className="mt-6 space-y-3">
-          <h4 className="text-sm font-semibold text-verde-400 uppercase tracking-wide">Correzione</h4>
+          <h4 className="text-sm font-semibold text-verde-400 uppercase tracking-wide">{te.correction}</h4>
           {questions.map((q, i) => {
             const userAnswer = answers[i]
             const correct = q.answer
@@ -231,10 +232,10 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-verde-100 text-lg flex items-center gap-2">
           <BrainCircuit size={20} className="text-verde-400" />
-          Esame — {questions.length} domande
+          {te.title} — {questions.length} {te.questions}
         </h3>
         <span className="text-xs text-verde-600">
-          {Object.keys(answers).length}/{questions.length} risposte
+          {Object.keys(answers).length}/{questions.length} {te.answers}
         </span>
       </div>
 
@@ -282,7 +283,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
       <div className="flex items-center justify-between pt-2">
         {unanswered > 0 && (
           <p className="text-xs text-verde-600">
-            {unanswered} domand{unanswered === 1 ? 'a' : 'e'} senza risposta
+            {unanswered} {te.unanswered}
           </p>
         )}
         <Button
@@ -291,9 +292,9 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
           className="ml-auto"
         >
           {state === 'submitting' ? (
-            <><Loader2 size={14} className="animate-spin" /> Invio...</>
+            <><Loader2 size={14} className="animate-spin" /> {te.submittingLabel}</>
           ) : (
-            'Invia risposte'
+            te.submit
           )}
         </Button>
       </div>

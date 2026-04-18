@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { getServerLang } from '@/lib/lang-server'
 import type { PlanType } from '@/lib/plans'
 import type { LessonRow, LessonProgressRow, LessonLevel } from '@/types'
 import Link from 'next/link'
@@ -34,6 +35,7 @@ function hasAccess(userPlan: PlanType, required: PlanType): boolean {
 export default async function LezioniPage() {
   const user = await currentUser()
   if (!user) redirect('/sign-in')
+  const { t } = await getServerLang()
 
   const supabase = getSupabaseAdmin()
   const [lessonsResult, subResult, progressResult] = await Promise.all([
@@ -66,13 +68,16 @@ export default async function LezioniPage() {
     ])
   )
 
-  // Sequential unlock: each lesson requires the previous one to be 'passed'
-  // lessons is already sorted by order_index ascending
+  // Sequential unlock: each lesson requires the previous one within the SAME level to be 'passed'
   const sequentialUnlocked: Record<string, boolean> = {}
-  let prevPassed = true
-  for (const lesson of lessons) {
-    sequentialUnlocked[lesson.id] = prevPassed
-    prevPassed = progressMap[lesson.id]?.status === 'passed'
+  const levelOrder2: LessonLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+  for (const level of levelOrder2) {
+    const levelLessons = lessons.filter(l => l.level === level)
+    let prevPassed = true
+    for (const lesson of levelLessons) {
+      sequentialUnlocked[lesson.id] = prevPassed
+      prevPassed = progressMap[lesson.id]?.status === 'passed'
+    }
   }
 
   // Group by level
@@ -89,17 +94,17 @@ export default async function LezioniPage() {
       <div>
         <h1 className="text-3xl font-extrabold text-verde-900 dark:text-verde-50 flex items-center gap-3">
           <BookOpen size={28} className="text-verde-600 dark:text-verde-400" />
-          Lezioni
+          {t.lessons.title}
         </h1>
         <p className="text-verde-600 dark:text-verde-500 mt-1 text-sm">
-          Impara l&apos;italiano passo dopo passo — livello {PLAN_LABELS[userPlan]}
+          {t.lessons.subtitle} {PLAN_LABELS[userPlan]}
         </p>
       </div>
 
       {lessons.length === 0 ? (
         <div className="text-center py-20">
           <BookOpen size={48} className="text-verde-800 mx-auto mb-4" />
-          <p className="text-verde-500">Le lezioni arriveranno presto. Torna più tardi!</p>
+          <p className="text-verde-500">{t.lessons.comingSoon}</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -113,7 +118,7 @@ export default async function LezioniPage() {
                     {level}
                   </span>
                   <div className="flex-1 h-px bg-verde-900/40" />
-                  <span className="text-xs text-verde-600">{levelLessons.length} lezioni</span>
+                  <span className="text-xs text-verde-600">{levelLessons.length} {t.lessons.lessonsCount}</span>
                 </div>
 
                 <div className="space-y-2">
@@ -145,11 +150,11 @@ export default async function LezioniPage() {
                           </div>
                           <div className="flex items-center gap-3 mt-0.5">
                             {vocabCount > 0 && (
-                              <span className="text-xs text-verde-600">{vocabCount} parole</span>
+                              <span className="text-xs text-verde-600">{vocabCount} {t.lessons.words}</span>
                             )}
                             {progress && (
                               <span className={`text-xs font-medium ${progress.status === 'passed' ? 'text-verde-600 dark:text-verde-400' : 'text-red-600 dark:text-red-400'}`}>
-                                Punteggio: {progress.score}/10
+                                {t.lessons.score}: {progress.score}/10
                               </span>
                             )}
                           </div>
@@ -168,8 +173,8 @@ export default async function LezioniPage() {
                           <div className="font-semibold text-verde-600 dark:text-verde-500 truncate">{lesson.title}</div>
                           <div className="text-xs text-verde-600 dark:text-verde-700 mt-0.5">
                             {!planOk
-                              ? `Richiede piano ${PLAN_LABELS[lesson.plan_required as PlanType]}`
-                              : 'Completa la lezione precedente per sbloccarla'}
+                              ? `${t.lessons.requiredPlan} ${PLAN_LABELS[lesson.plan_required as PlanType]}`
+                              : t.lessons.completePrevious}
                           </div>
                         </div>
                         {!planOk && (
@@ -178,7 +183,7 @@ export default async function LezioniPage() {
                             onClick={e => e.stopPropagation()}
                             className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-verde-800/40 text-verde-500 hover:text-verde-300 hover:border-verde-600 transition-colors"
                           >
-                            Upgrade
+                            {t.lessons.upgrade}
                           </Link>
                         )}
                       </div>
