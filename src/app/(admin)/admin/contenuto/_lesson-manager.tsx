@@ -596,13 +596,385 @@ function AudioSection({
 }
 
 // ─── Exercise Editor ──────────────────────────────────────────────────────────
-const EXERCISE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  fill_blank: { label: 'Rellenar', color: 'bg-verde-900/50 text-verde-300 border-verde-700/40' },
-  choice:     { label: 'Opción múlt.', color: 'bg-blue-900/50 text-blue-300 border-blue-700/40' },
-  dialogue:   { label: 'Diálogo', color: 'bg-purple-900/50 text-purple-300 border-purple-700/40' },
-  free_write: { label: 'Escritura', color: 'bg-amber-900/50 text-amber-300 border-amber-700/40' },
+const EXERCISE_TYPE_META: Record<string, { label: string; color: string; desc: string }> = {
+  fill_blank: { label: 'Rellenar espacio', color: 'bg-verde-900/50 text-verde-300 border-verde-700/40', desc: 'El alumno escribe la respuesta correcta en un campo de texto' },
+  choice:     { label: 'Opción múltiple', color: 'bg-blue-900/50 text-blue-300 border-blue-700/40',  desc: 'El alumno elige entre varias opciones (una o varias correctas)' },
+  dialogue:   { label: 'Diálogo',         color: 'bg-purple-900/50 text-purple-300 border-purple-700/40', desc: 'El alumno completa los espacios de un diálogo' },
+  free_write: { label: 'Escritura libre', color: 'bg-amber-900/50 text-amber-300 border-amber-700/40', desc: 'El alumno escribe libremente (sin verificación automática)' },
 }
 
+// Shared input style
+const inp = 'w-full px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-xs text-verde-200 focus:outline-none focus:border-verde-500 transition-colors placeholder:text-verde-700'
+const inpSm = 'px-2 py-1 rounded-md bg-verde-950/50 border border-verde-800/40 text-xs text-verde-200 focus:outline-none focus:border-verde-500 transition-colors placeholder:text-verde-700'
+
+// ── Fill Blank visual editor ──────────────────────────────────────────────────
+function FillBlankForm({
+  ex,
+  onChange,
+}: { ex: import('@/types').ExerciseFillBlank; onChange: (e: import('@/types').ExerciseFillBlank) => void }) {
+  const addItem = () => onChange({ ...ex, items: [...ex.items, { id: `item_${Date.now()}`, label: '', answer: '', placeholder: '' }] })
+  const delItem = (i: number) => onChange({ ...ex, items: ex.items.filter((_, idx) => idx !== i) })
+  const updItem = (i: number, field: string, val: string) =>
+    onChange({ ...ex, items: ex.items.map((it, idx) => idx === i ? { ...it, [field]: val } : it) })
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-[10px] text-verde-600 mb-1.5 font-semibold uppercase tracking-wide">Campos del ejercicio</p>
+        <div className="space-y-1.5">
+          <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-1.5 px-1 mb-0.5">
+            <span className="text-[10px] text-verde-600">Etiqueta (ej: "La letra H")</span>
+            <span className="text-[10px] text-verde-600">Respuesta correcta</span>
+            <span className="text-[10px] text-verde-600">Texto guía (opcional)</span>
+            <span />
+          </div>
+          {ex.items.map((item, i) => (
+            <div key={item.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-1.5 items-center p-2 rounded-lg bg-verde-950/30 border border-verde-900/20">
+              <input value={item.label} onChange={e => updItem(i, 'label', e.target.value)}
+                placeholder="Etiqueta" className={inpSm} />
+              <input value={item.answer} onChange={e => updItem(i, 'answer', e.target.value)}
+                placeholder="Respuesta" className={inpSm} />
+              <input value={item.placeholder ?? ''} onChange={e => updItem(i, 'placeholder', e.target.value)}
+                placeholder="Pista" className={inpSm} />
+              <button type="button" onClick={() => delItem(i)} className="text-red-500 hover:text-red-400 p-0.5"><X size={13} /></button>
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addItem}
+          className="mt-1.5 flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-verde-900/30 hover:bg-verde-800/30 text-verde-400 transition-colors">
+          <Plus size={11} /> Agregar campo
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Choice visual editor ──────────────────────────────────────────────────────
+function ChoiceForm({
+  ex,
+  onChange,
+}: { ex: import('@/types').ExerciseChoice; onChange: (e: import('@/types').ExerciseChoice) => void }) {
+  const isGrouped = !!ex.questions && !ex.options
+  const toggleMode = (grouped: boolean) => {
+    if (grouped) onChange({ ...ex, options: undefined, questions: ex.questions ?? [{ id: `q_${Date.now()}`, text: '', options: [] }] })
+    else onChange({ ...ex, questions: undefined, options: ex.options ?? [] })
+  }
+  const addFlatOpt = () => onChange({ ...ex, options: [...(ex.options ?? []), { value: `opción ${(ex.options?.length ?? 0) + 1}`, correct: false }] })
+  const updFlatOpt = (i: number, field: string, val: unknown) =>
+    onChange({ ...ex, options: (ex.options ?? []).map((o, idx) => idx === i ? { ...o, [field]: val } : o) })
+  const delFlatOpt = (i: number) => onChange({ ...ex, options: (ex.options ?? []).filter((_, idx) => idx !== i) })
+
+  const addQuestion = () => onChange({ ...ex, questions: [...(ex.questions ?? []), { id: `q_${Date.now()}`, text: '', options: [] }] })
+  const updQuestion = (qi: number, field: string, val: unknown) =>
+    onChange({ ...ex, questions: (ex.questions ?? []).map((q, idx) => idx === qi ? { ...q, [field]: val } : q) })
+  const delQuestion = (qi: number) => onChange({ ...ex, questions: (ex.questions ?? []).filter((_, idx) => idx !== qi) })
+  const addQOpt = (qi: number) => onChange({ ...ex, questions: (ex.questions ?? []).map((q, idx) => idx === qi ? { ...q, options: [...q.options, { value: '', correct: false }] } : q) })
+  const updQOpt = (qi: number, oi: number, field: string, val: unknown) =>
+    onChange({ ...ex, questions: (ex.questions ?? []).map((q, idx) => idx === qi ? { ...q, options: q.options.map((o, oidx) => oidx === oi ? { ...o, [field]: val } : o) } : q) })
+  const delQOpt = (qi: number, oi: number) =>
+    onChange({ ...ex, questions: (ex.questions ?? []).map((q, idx) => idx === qi ? { ...q, options: q.options.filter((_, oidx) => oidx !== oi) } : q) })
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide">Modo:</span>
+          <button type="button" onClick={() => toggleMode(false)}
+            className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${!isGrouped ? 'bg-blue-900/50 text-blue-300 border-blue-700/40' : 'text-verde-500 border-verde-800/30 hover:text-verde-300'}`}>
+            Una pregunta
+          </button>
+          <button type="button" onClick={() => toggleMode(true)}
+            className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${isGrouped ? 'bg-blue-900/50 text-blue-300 border-blue-700/40' : 'text-verde-500 border-verde-800/30 hover:text-verde-300'}`}>
+            Varias preguntas
+          </button>
+        </div>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" checked={!!ex.multiSelect}
+            onChange={e => onChange({ ...ex, multiSelect: e.target.checked })}
+            className="rounded accent-blue-500" />
+          <span className="text-[11px] text-verde-400">Varias respuestas correctas</span>
+        </label>
+      </div>
+
+      {!isGrouped && (
+        <div>
+          <p className="text-[10px] text-verde-600 mb-1.5 font-semibold uppercase tracking-wide">Opciones — marca cuál(es) son correctas</p>
+          <div className="space-y-1.5">
+            {(ex.options ?? []).map((opt, i) => (
+              <div key={i} className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${opt.correct ? 'border-green-700/50 bg-green-950/20' : 'border-verde-900/20 bg-verde-950/20'}`}>
+                <button type="button" onClick={() => updFlatOpt(i, 'correct', !opt.correct)}
+                  title="Marcar como correcta"
+                  className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${opt.correct ? 'border-green-500 bg-green-900/50 text-green-300' : 'border-verde-700/50 text-verde-700 hover:border-verde-500'}`}>
+                  {opt.correct && <CheckCircle2 size={12} />}
+                </button>
+                <input value={opt.value} onChange={e => updFlatOpt(i, 'value', e.target.value)}
+                  placeholder="Texto de la opción" className={`flex-1 ${inpSm}`} />
+                <button type="button" onClick={() => delFlatOpt(i)} className="text-red-500 hover:text-red-400 p-0.5"><X size={13} /></button>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={addFlatOpt}
+            className="mt-1.5 flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-verde-900/30 hover:bg-verde-800/30 text-verde-400 transition-colors">
+            <Plus size={11} /> Agregar opción
+          </button>
+        </div>
+      )}
+
+      {isGrouped && (
+        <div className="space-y-3">
+          <p className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide">Preguntas y opciones</p>
+          {(ex.questions ?? []).map((q, qi) => (
+            <div key={q.id} className="rounded-lg border border-verde-900/30 bg-verde-950/20 p-2.5 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-verde-600 shrink-0">Pregunta {qi + 1}</span>
+                <input value={q.text} onChange={e => updQuestion(qi, 'text', e.target.value)}
+                  placeholder="Texto de la pregunta" className={`flex-1 ${inpSm}`} />
+                <button type="button" onClick={() => delQuestion(qi)} className="text-red-500 hover:text-red-400 p-0.5"><X size={13} /></button>
+              </div>
+              <div className="pl-2 space-y-1">
+                {q.options.map((opt, oi) => (
+                  <div key={oi} className={`flex items-center gap-2 p-1.5 rounded-md border ${opt.correct ? 'border-green-700/40 bg-green-950/20' : 'border-verde-900/20'}`}>
+                    <button type="button" onClick={() => updQOpt(qi, oi, 'correct', !opt.correct)}
+                      className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${opt.correct ? 'border-green-500 bg-green-900/50 text-green-300' : 'border-verde-700/50 text-verde-700 hover:border-verde-500'}`}>
+                      {opt.correct && <CheckCircle2 size={10} />}
+                    </button>
+                    <input value={opt.value} onChange={e => updQOpt(qi, oi, 'value', e.target.value)}
+                      placeholder="Opción" className={`flex-1 ${inpSm}`} />
+                    <button type="button" onClick={() => delQOpt(qi, oi)} className="text-red-500 hover:text-red-400 p-0.5"><X size={11} /></button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => addQOpt(qi)}
+                  className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-verde-900/30 hover:bg-verde-800/30 text-verde-500 transition-colors">
+                  <Plus size={10} /> Opción
+                </button>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addQuestion}
+            className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-verde-900/30 hover:bg-verde-800/30 text-verde-400 transition-colors">
+            <Plus size={11} /> Agregar pregunta
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Dialogue visual editor ────────────────────────────────────────────────────
+function DialogueForm({
+  ex,
+  onChange,
+}: { ex: import('@/types').ExerciseDialogue; onChange: (e: import('@/types').ExerciseDialogue) => void }) {
+  // Auto-detect blank ids from lines
+  const detectBlanks = (lines: typeof ex.lines) => {
+    const ids: string[] = []
+    lines.forEach(l => { const matches = l.text.match(/___(\w+)___/g); if (matches) matches.forEach(m => { const id = m.slice(3, -3); if (!ids.includes(id)) ids.push(id) }) })
+    return ids
+  }
+  const blankIds = detectBlanks(ex.lines)
+
+  const addLine = () => onChange({ ...ex, lines: [...ex.lines, { speaker: '', text: '' }] })
+  const updLine = (i: number, field: string, val: string) =>
+    onChange({ ...ex, lines: ex.lines.map((l, idx) => idx === i ? { ...l, [field]: val } : l) })
+  const delLine = (i: number) => onChange({ ...ex, lines: ex.lines.filter((_, idx) => idx !== i) })
+  const updAnswer = (id: string, val: string) => onChange({ ...ex, answers: { ...ex.answers, [id]: val } })
+  const updWordBank = (val: string) => onChange({ ...ex, wordBank: val ? val.split(',').map(w => w.trim()).filter(Boolean) : undefined })
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide">Banco de palabras (opcional, separadas por coma)</label>
+        <input
+          value={(ex.wordBank ?? []).join(', ')}
+          onChange={e => updWordBank(e.target.value)}
+          placeholder="ciao, come, stai, bene..."
+          className={`mt-1 ${inp}`}
+        />
+      </div>
+
+      <div>
+        <p className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide mb-1">
+          Líneas del diálogo — usa <code className="bg-verde-900/50 px-1 rounded">___id___</code> para crear espacios en blanco
+        </p>
+        <div className="space-y-1.5">
+          {ex.lines.map((line, i) => (
+            <div key={i} className="grid grid-cols-[100px_1fr_auto] gap-1.5 items-center p-2 rounded-lg bg-purple-950/20 border border-purple-900/20">
+              <input value={line.speaker} onChange={e => updLine(i, 'speaker', e.target.value)}
+                placeholder="Personaje" className={inpSm} />
+              <input value={line.text} onChange={e => updLine(i, 'text', e.target.value)}
+                placeholder='Ej: Ciao! ___b1___ come stai?' className={inpSm} />
+              <button type="button" onClick={() => delLine(i)} className="text-red-500 hover:text-red-400 p-0.5"><X size={13} /></button>
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addLine}
+          className="mt-1.5 flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-purple-900/30 hover:bg-purple-800/30 text-purple-400 transition-colors">
+          <Plus size={11} /> Agregar línea
+        </button>
+      </div>
+
+      {blankIds.length > 0 && (
+        <div>
+          <p className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide mb-1">Respuestas correctas para cada espacio</p>
+          <div className="space-y-1.5">
+            {blankIds.map(id => (
+              <div key={id} className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-purple-300 bg-purple-950/40 px-2 py-0.5 rounded border border-purple-800/30 shrink-0">
+                  ___{id}___
+                </span>
+                <span className="text-[10px] text-verde-600">→</span>
+                <input value={ex.answers[id] ?? ''} onChange={e => updAnswer(id, e.target.value)}
+                  placeholder="Respuesta correcta" className={`flex-1 ${inpSm}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Free Write visual editor ──────────────────────────────────────────────────
+function FreeWriteForm({
+  ex,
+  onChange,
+}: { ex: import('@/types').ExerciseFreeWrite; onChange: (e: import('@/types').ExerciseFreeWrite) => void }) {
+  const addField = () => onChange({ ...ex, fields: [...ex.fields, { id: `f_${Date.now()}`, prefix: '', placeholder: '' }] })
+  const updField = (i: number, field: string, val: string) =>
+    onChange({ ...ex, fields: ex.fields.map((f, idx) => idx === i ? { ...f, [field]: val } : f) })
+  const delField = (i: number) => onChange({ ...ex, fields: ex.fields.filter((_, idx) => idx !== i) })
+
+  return (
+    <div>
+      <p className="text-[10px] text-verde-600 mb-1.5 font-semibold uppercase tracking-wide">Campos de escritura — como los verá el alumno</p>
+      <div className="space-y-1.5">
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 px-1 mb-0.5">
+          <span className="text-[10px] text-verde-600">Prefijo (ej: "Mi chiamo")</span>
+          <span className="text-[10px] text-verde-600">Texto guía en el campo</span>
+          <span />
+        </div>
+        {ex.fields.map((f, i) => (
+          <div key={f.id} className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center p-2 rounded-lg bg-amber-950/20 border border-amber-900/20">
+            <input value={f.prefix} onChange={e => updField(i, 'prefix', e.target.value)}
+              placeholder="Mi chiamo" className={inpSm} />
+            <input value={f.placeholder} onChange={e => updField(i, 'placeholder', e.target.value)}
+              placeholder="tu nombre..." className={inpSm} />
+            <button type="button" onClick={() => delField(i)} className="text-red-500 hover:text-red-400 p-0.5"><X size={13} /></button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={addField}
+        className="mt-1.5 flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-amber-900/30 hover:bg-amber-800/30 text-amber-400 transition-colors">
+        <Plus size={11} /> Agregar campo
+      </button>
+    </div>
+  )
+}
+
+// ── Exercise form panel (shown when editing) ──────────────────────────────────
+function ExerciseFormPanel({
+  exercise,
+  onSave,
+  onCancel,
+}: {
+  exercise: Exercise
+  onSave: (e: Exercise) => void
+  onCancel: () => void
+}) {
+  const [local, setLocal] = useState<Exercise>({ ...exercise })
+
+  const setBase = (field: string, val: unknown) => setLocal(e => ({ ...e, [field]: val } as Exercise))
+
+  const changeType = (newType: Exercise['type']) => {
+    if (newType === local.type) return
+    const base = { id: local.id, number: local.number, title: local.title, instruction: local.instruction, section: local.section, answerPanel: local.answerPanel }
+    if (newType === 'fill_blank') setLocal({ ...base, type: 'fill_blank', items: [] })
+    else if (newType === 'choice') setLocal({ ...base, type: 'choice', multiSelect: false, options: [] })
+    else if (newType === 'dialogue') setLocal({ ...base, type: 'dialogue', lines: [], answers: {} })
+    else if (newType === 'free_write') setLocal({ ...base, type: 'free_write', fields: [] })
+  }
+
+  const answerPanelText = (local.answerPanel ?? []).join('\n')
+  const setAnswerPanel = (txt: string) => setBase('answerPanel', txt ? txt.split('\n') : undefined)
+
+  return (
+    <div className="border-t border-verde-900/40 bg-verde-950/40 p-4 space-y-4">
+      {/* Type selector */}
+      <div>
+        <p className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide mb-1.5">Tipo de ejercicio</p>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries(EXERCISE_TYPE_META).map(([type, meta]) => (
+            <button key={type} type="button" onClick={() => changeType(type as Exercise['type'])}
+              title={meta.desc}
+              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${local.type === type ? meta.color : 'text-verde-600 border-verde-800/30 hover:text-verde-300 hover:border-verde-700/40'}`}>
+              {meta.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-verde-700 mt-1">{EXERCISE_TYPE_META[local.type]?.desc}</p>
+      </div>
+
+      {/* Common fields */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide">Título del ejercicio</label>
+          <input value={local.title} onChange={e => setBase('title', e.target.value)}
+            placeholder="Ej: Completa las frases" className={`mt-1 ${inp}`} />
+        </div>
+        <div>
+          <label className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide">Sección (agrupa ejercicios visualmente)</label>
+          <input value={local.section ?? ''} onChange={e => setBase('section', e.target.value || undefined)}
+            placeholder="Ej: Parte 1 — Vocabulario" className={`mt-1 ${inp}`} />
+        </div>
+      </div>
+      <div>
+        <label className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide">Instrucción para el alumno</label>
+        <textarea value={local.instruction} onChange={e => setBase('instruction', e.target.value)}
+          placeholder="Ej: Completa los espacios con la palabra correcta." rows={2}
+          className={`mt-1 ${inp} resize-none`} />
+      </div>
+
+      {/* Type-specific form */}
+      <div className="rounded-xl border border-verde-900/30 bg-verde-950/20 p-3">
+        {local.type === 'fill_blank' && (
+          <FillBlankForm ex={local as import('@/types').ExerciseFillBlank} onChange={e => setLocal(e)} />
+        )}
+        {local.type === 'choice' && (
+          <ChoiceForm ex={local as import('@/types').ExerciseChoice} onChange={e => setLocal(e)} />
+        )}
+        {local.type === 'dialogue' && (
+          <DialogueForm ex={local as import('@/types').ExerciseDialogue} onChange={e => setLocal(e)} />
+        )}
+        {local.type === 'free_write' && (
+          <FreeWriteForm ex={local as import('@/types').ExerciseFreeWrite} onChange={e => setLocal(e)} />
+        )}
+      </div>
+
+      {/* Answer panel */}
+      <div>
+        <label className="text-[10px] text-verde-600 font-semibold uppercase tracking-wide">
+          Clave de respuestas (una por línea — aparece al alumno al hacer clic en &quot;Ver respuestas&quot;)
+        </label>
+        <textarea value={answerPanelText} onChange={e => setAnswerPanel(e.target.value)}
+          placeholder="Ej:&#10;La letra H = hotel&#10;La letra A = amore" rows={3}
+          className={`mt-1 ${inp} resize-none`} />
+      </div>
+
+      <div className="flex gap-2 justify-end pt-1 border-t border-verde-900/30">
+        <button type="button" onClick={onCancel}
+          className="text-xs px-4 py-2 rounded-lg text-verde-500 hover:text-verde-300 border border-verde-900/30 hover:border-verde-700/30 transition-colors">
+          Cancelar
+        </button>
+        <button type="button" onClick={() => onSave(local)}
+          className="text-xs px-4 py-2 rounded-lg bg-verde-700 hover:bg-verde-600 text-white font-semibold transition-colors flex items-center gap-1.5">
+          <CheckCircle2 size={13} /> Guardar ejercicio
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Main exercise list ────────────────────────────────────────────────────────
 function ExerciseEditor({
   exercises,
   onChange,
@@ -611,27 +983,14 @@ function ExerciseEditor({
   onChange: (exercises: Exercise[]) => void
 }) {
   const [editIdx, setEditIdx] = useState<number | null>(null)
-  const [editJson, setEditJson] = useState('')
-  const [jsonError, setJsonError] = useState<string | null>(null)
 
-  const openEdit = (i: number) => {
-    setEditIdx(i)
-    setEditJson(JSON.stringify(exercises[i], null, 2))
-    setJsonError(null)
-  }
+  const closeEdit = () => setEditIdx(null)
 
-  const closeEdit = () => { setEditIdx(null); setJsonError(null) }
-
-  const saveEdit = () => {
-    try {
-      const parsed = JSON.parse(editJson) as Exercise
-      const updated = [...exercises]
-      updated[editIdx!] = parsed
-      onChange(updated)
-      closeEdit()
-    } catch {
-      setJsonError('JSON inválido. Verifica la sintaxis.')
-    }
+  const saveExercise = (i: number, updated: Exercise) => {
+    const arr = [...exercises]
+    arr[i] = updated
+    onChange(arr)
+    closeEdit()
   }
 
   const deleteExercise = (i: number) => {
@@ -663,13 +1022,13 @@ function ExerciseEditor({
       items: [],
     } as Exercise
     onChange([...exercises, newEx])
-    setTimeout(() => openEdit(exercises.length), 0)
+    setEditIdx(exercises.length)
   }
 
   if (exercises.length === 0) return (
     <div className="rounded-xl border border-dashed border-verde-800/30 p-4 text-center">
       <ListOrdered size={20} className="mx-auto text-verde-700 mb-2" />
-      <p className="text-xs text-verde-600 mb-3">Sin ejercicios. Importa desde un archivo o agrega manualmente.</p>
+      <p className="text-xs text-verde-600 mb-3">Sin ejercicios. Importa un archivo o agrega manualmente.</p>
       <button type="button" onClick={addExercise}
         className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-verde-900/40 hover:bg-verde-800/40 text-verde-300 transition-colors mx-auto">
         <Plus size={12} /> Agregar ejercicio
@@ -692,64 +1051,46 @@ function ExerciseEditor({
         </button>
       </div>
 
-      <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+      <div className="space-y-1.5">
         {exercises.map((ex, i) => {
-          const typeMeta = EXERCISE_TYPE_LABELS[ex.type] ?? { label: ex.type, color: 'bg-verde-900/30 text-verde-400' }
+          const meta = EXERCISE_TYPE_META[ex.type] ?? EXERCISE_TYPE_META.fill_blank
           const isEditing = editIdx === i
           return (
             <div key={ex.id ?? i} className="rounded-xl border border-verde-900/30 bg-verde-950/20 overflow-hidden">
-              <div className="flex items-center gap-2 px-3 py-2">
-                <span className="text-xs text-verde-700 shrink-0 w-5">{i + 1}.</span>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border shrink-0 ${typeMeta.color}`}>
-                  {typeMeta.label}
+              <div className="flex items-center gap-2 px-3 py-2.5">
+                <span className="text-xs text-verde-700 shrink-0 w-5 font-mono">{i + 1}.</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border shrink-0 ${meta.color}`}>
+                  {meta.label}
                 </span>
-                <span className="text-xs text-verde-300 truncate flex-1">{ex.title}</span>
+                <span className="text-xs text-verde-300 truncate flex-1">{ex.title || '(sin título)'}</span>
                 <div className="flex items-center gap-0.5 shrink-0">
                   <button type="button" onClick={() => moveUp(i)} disabled={i === 0}
-                    className="p-1 text-verde-600 hover:text-verde-400 disabled:opacity-30 transition-colors">
+                    className="p-1 text-verde-600 hover:text-verde-400 disabled:opacity-30 transition-colors" title="Subir">
                     <ChevronUp size={13} />
                   </button>
                   <button type="button" onClick={() => moveDown(i)} disabled={i === exercises.length - 1}
-                    className="p-1 text-verde-600 hover:text-verde-400 disabled:opacity-30 transition-colors">
+                    className="p-1 text-verde-600 hover:text-verde-400 disabled:opacity-30 transition-colors" title="Bajar">
                     <ChevronDown size={13} />
                   </button>
-                  <button type="button" onClick={() => isEditing ? closeEdit() : openEdit(i)}
-                    className={`p-1 transition-colors ${isEditing ? 'text-verde-300' : 'text-verde-600 hover:text-verde-400'}`}>
+                  <button type="button"
+                    onClick={() => setEditIdx(isEditing ? null : i)}
+                    className={`p-1 transition-colors ${isEditing ? 'text-verde-200' : 'text-verde-600 hover:text-verde-400'}`}
+                    title="Editar">
                     <Pencil size={13} />
                   </button>
                   <button type="button" onClick={() => deleteExercise(i)}
-                    className="p-1 text-red-600 hover:text-red-400 transition-colors">
+                    className="p-1 text-red-600 hover:text-red-400 transition-colors" title="Eliminar">
                     <X size={13} />
                   </button>
                 </div>
               </div>
 
               {isEditing && (
-                <div className="border-t border-verde-900/30 p-3 space-y-2 bg-verde-950/30">
-                  <p className="text-[10px] text-verde-600">Editor JSON — puedes modificar todos los campos del ejercicio.</p>
-                  <textarea
-                    value={editJson}
-                    onChange={e => { setEditJson(e.target.value); setJsonError(null) }}
-                    rows={10}
-                    spellCheck={false}
-                    className="w-full px-3 py-2 rounded-lg bg-bg-dark border border-verde-800/40 text-[11px] text-verde-200 font-mono focus:outline-none focus:border-verde-600 resize-y"
-                  />
-                  {jsonError && (
-                    <p className="text-xs text-red-400 flex items-center gap-1">
-                      <AlertTriangle size={11} /> {jsonError}
-                    </p>
-                  )}
-                  <div className="flex gap-2 justify-end">
-                    <button type="button" onClick={closeEdit}
-                      className="text-xs px-3 py-1.5 rounded-lg text-verde-500 hover:text-verde-300 transition-colors">
-                      Cancelar
-                    </button>
-                    <button type="button" onClick={saveEdit}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-verde-800/50 hover:bg-verde-700/50 text-verde-200 transition-colors">
-                      Aplicar cambios
-                    </button>
-                  </div>
-                </div>
+                <ExerciseFormPanel
+                  exercise={ex}
+                  onSave={updated => saveExercise(i, updated)}
+                  onCancel={closeEdit}
+                />
               )}
             </div>
           )
