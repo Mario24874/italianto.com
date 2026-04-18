@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { CheckCircle2, XCircle, Eye, EyeOff, ChevronRight } from 'lucide-react'
 import type { Exercise, ExerciseFillBlank, ExerciseChoice, ExerciseDialogue, ExerciseFreeWrite } from '@/types'
+import { useLanguage } from '@/contexts/language-context'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -21,12 +22,14 @@ function answersMatch(correct: string, user: string): boolean {
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 
 function ProgressBar({ done, total }: { done: number; total: number }) {
+  const { t } = useLanguage()
+  const tEx = t.lessons.exercisesUi
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
   return (
     <div className="rounded-xl border border-verde-900/30 bg-verde-950/10 p-4 mb-2">
       <div className="flex justify-between text-xs font-semibold text-verde-500 mb-2">
-        <span>Tu progreso</span>
-        <span className="text-verde-400">{done} / {total} completados</span>
+        <span>{tEx.progress}</span>
+        <span className="text-verde-400">{done} / {total} {tEx.completed}</span>
       </div>
       <div className="h-2 bg-verde-950/50 rounded-full overflow-hidden">
         <div
@@ -53,19 +56,23 @@ function SectionDivider({ label }: { label: string }) {
 // ─── Result Box ───────────────────────────────────────────────────────────────
 
 function ResultBox({ correct, total }: { correct: number; total: number }) {
+  const { t } = useLanguage()
+  const tEx = t.lessons.exercisesUi
+  const of_ = tEx.resultOf
+  const cor = tEx.resultCorrect
   if (correct === total) return (
     <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-green-950/40 border border-green-700/40 text-green-400 text-sm font-semibold">
-      <CheckCircle2 size={16} /> ¡Perfetto! {correct} de {total} correctas.
+      <CheckCircle2 size={16} /> {tEx.resultPerfect} {correct} {of_} {total} {cor}.
     </div>
   )
   if (correct === 0) return (
     <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-red-950/30 border border-red-700/40 text-red-400 text-sm font-semibold">
-      <XCircle size={16} /> Ninguna correcta. ¡Revisa la lección!
+      <XCircle size={16} /> {tEx.resultNone}
     </div>
   )
   return (
     <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-yellow-950/30 border border-yellow-700/40 text-yellow-400 text-sm font-semibold">
-      <CheckCircle2 size={16} /> {correct} de {total} correctas. ¡Casi!
+      <CheckCircle2 size={16} /> {correct} {of_} {total} {cor}. {tEx.resultAlmost}
     </div>
   )
 }
@@ -79,6 +86,8 @@ function FillBlankExercise({
   ex: ExerciseFillBlank
   onComplete: (score: number) => void
 }) {
+  const { t } = useLanguage()
+  const tEx = t.lessons.exercisesUi
   const [values, setValues] = useState<Record<string, string>>({})
   const [checked, setChecked] = useState(false)
   const [showAnswers, setShowAnswers] = useState(false)
@@ -132,14 +141,14 @@ function FillBlankExercise({
         {!checked && (
           <button onClick={verify}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors">
-            <CheckCircle2 size={14} /> Verificar
+            <CheckCircle2 size={14} /> {tEx.verify}
           </button>
         )}
         {ex.answerPanel && (
           <button onClick={() => setShowAnswers(s => !s)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-verde-800/40 text-verde-500 hover:text-verde-300 text-sm transition-colors">
             {showAnswers ? <EyeOff size={14} /> : <Eye size={14} />}
-            {showAnswers ? 'Ocultar respuestas' : 'Ver respuestas'}
+            {showAnswers ? tEx.hideAnswers : tEx.showAnswers}
           </button>
         )}
       </div>
@@ -148,7 +157,7 @@ function FillBlankExercise({
 
       {showAnswers && ex.answerPanel && (
         <div className="rounded-xl bg-verde-950/30 border border-verde-800/30 p-3 space-y-1">
-          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">Respuestas correctas</p>
+          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">{tEx.correctAnswers}</p>
           {ex.answerPanel.map((line, i) => (
             <p key={i} className="text-xs text-verde-400 flex items-center gap-1.5">
               <ChevronRight size={10} className="text-verde-600 shrink-0" />{line}
@@ -169,9 +178,9 @@ function ChoiceExercise({
   ex: ExerciseChoice
   onComplete: (score: number) => void
 }) {
-  // For flat options (multiSelect or single)
+  const { t } = useLanguage()
+  const tEx = t.lessons.exercisesUi
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  // For grouped sub-questions
   const [groupSelected, setGroupSelected] = useState<Record<string, string>>({})
   const [checked, setChecked] = useState(false)
   const [showAnswers, setShowAnswers] = useState(false)
@@ -246,7 +255,6 @@ function ChoiceExercise({
     }
   }
 
-  // Calculate result for display
   let correct = 0; let total = 0
   if (checked) {
     if (isFlat && ex.options) {
@@ -264,7 +272,6 @@ function ChoiceExercise({
 
   return (
     <div className="space-y-3">
-      {/* Flat options */}
       {isFlat && ex.options && (
         <div className="flex flex-wrap gap-2">
           {ex.options.map(opt => (
@@ -276,7 +283,6 @@ function ChoiceExercise({
         </div>
       )}
 
-      {/* Grouped sub-questions */}
       {isGrouped && ex.questions && (
         <div className="space-y-3">
           {ex.questions.map(q => (
@@ -299,14 +305,14 @@ function ChoiceExercise({
         {!checked && (
           <button onClick={verify}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors">
-            <CheckCircle2 size={14} /> Verificar
+            <CheckCircle2 size={14} /> {tEx.verify}
           </button>
         )}
         {ex.answerPanel && (
           <button onClick={() => setShowAnswers(s => !s)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-verde-800/40 text-verde-500 hover:text-verde-300 text-sm transition-colors">
             {showAnswers ? <EyeOff size={14} /> : <Eye size={14} />}
-            {showAnswers ? 'Ocultar' : 'Ver respuestas'}
+            {showAnswers ? tEx.hideAnswers : tEx.showAnswers}
           </button>
         )}
       </div>
@@ -315,7 +321,7 @@ function ChoiceExercise({
 
       {showAnswers && ex.answerPanel && (
         <div className="rounded-xl bg-verde-950/30 border border-verde-800/30 p-3 space-y-1">
-          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">Respuestas correctas</p>
+          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">{tEx.correctAnswers}</p>
           {ex.answerPanel.map((line, i) => (
             <p key={i} className="text-xs text-verde-400 flex items-center gap-1.5">
               <ChevronRight size={10} className="text-verde-600 shrink-0" />{line}
@@ -329,12 +335,11 @@ function ChoiceExercise({
 
 // ─── Dialogue Exercise ────────────────────────────────────────────────────────
 
-// Parse "___id___ text ___id2___" into an array of segments
 function parseDialogueLine(text: string): { type: 'text' | 'blank'; content: string }[] {
   const parts = text.split(/(___\w+___)/g)
   return parts.map(p => {
-    if (/^___\w+___$/.test(p)) return { type: 'blank', content: p.slice(3, -3) }
-    return { type: 'text', content: p }
+    if (/^___\w+___$/.test(p)) return { type: 'blank' as const, content: p.slice(3, -3) }
+    return { type: 'text' as const, content: p }
   }).filter(p => p.content !== '')
 }
 
@@ -345,6 +350,8 @@ function DialogueExercise({
   ex: ExerciseDialogue
   onComplete: (score: number) => void
 }) {
+  const { t } = useLanguage()
+  const tEx = t.lessons.exercisesUi
   const [values, setValues] = useState<Record<string, string>>({})
   const [checked, setChecked] = useState(false)
   const [showAnswers, setShowAnswers] = useState(false)
@@ -413,14 +420,14 @@ function DialogueExercise({
         {!checked && (
           <button onClick={verify}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors">
-            <CheckCircle2 size={14} /> Verificar
+            <CheckCircle2 size={14} /> {tEx.verify}
           </button>
         )}
         {ex.answerPanel && (
           <button onClick={() => setShowAnswers(s => !s)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-verde-800/40 text-verde-500 hover:text-verde-300 text-sm transition-colors">
             {showAnswers ? <EyeOff size={14} /> : <Eye size={14} />}
-            {showAnswers ? 'Ocultar' : 'Ver respuestas'}
+            {showAnswers ? tEx.hideAnswers : tEx.showAnswers}
           </button>
         )}
       </div>
@@ -429,7 +436,7 @@ function DialogueExercise({
 
       {showAnswers && ex.answerPanel && (
         <div className="rounded-xl bg-verde-950/30 border border-verde-800/30 p-3 space-y-1">
-          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">Diálogo completo</p>
+          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">{tEx.completeDialogue}</p>
           {ex.answerPanel.map((line, i) => (
             <p key={i} className="text-xs text-verde-400 flex items-center gap-1.5">
               <ChevronRight size={10} className="text-verde-600 shrink-0" />{line}
@@ -450,6 +457,8 @@ function FreeWriteExercise({
   ex: ExerciseFreeWrite
   onComplete: (score: number) => void
 }) {
+  const { t } = useLanguage()
+  const tEx = t.lessons.exercisesUi
   const [values, setValues] = useState<Record<string, string>>({})
   const [shown, setShown] = useState(false)
 
@@ -476,13 +485,13 @@ function FreeWriteExercise({
       {!shown && (
         <button onClick={showResult}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors">
-          <CheckCircle2 size={14} /> Ver mi resultado
+          <CheckCircle2 size={14} /> {tEx.viewResult}
         </button>
       )}
 
       {shown && filled > 0 && (
         <div className="rounded-xl bg-verde-950/30 border border-verde-800/30 p-4 space-y-1.5">
-          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">Tu presentación</p>
+          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">{tEx.myPresentation}</p>
           {ex.fields.map(field => values[field.id]?.trim() && (
             <p key={field.id} className="text-sm text-verde-300">
               <span className="font-semibold text-verde-400">{field.prefix}</span> {values[field.id]}
@@ -530,21 +539,23 @@ function ExerciseCard({
 // ─── Score Panel ──────────────────────────────────────────────────────────────
 
 function ScorePanel({ scores, total }: { scores: Record<string, number>; total: number }) {
+  const { t } = useLanguage()
+  const tEx = t.lessons.exercisesUi
   const count = Object.keys(scores).length
   if (count === 0) return null
   const avg = Math.round((Object.values(scores).reduce((a, b) => a + b, 0) / count) * 100)
 
-  const label = avg >= 90 ? '¡Eccellente! Estás listo para el examen.' :
-    avg >= 70 ? '¡Molto bene! Repasa los errores.' :
-    avg >= 50 ? 'Bene. Vuelve a revisar la lección.' :
-    'Sigue practicando. ¡Repasa antes del examen!'
+  const label = avg >= 90 ? tEx.scoreExcellent :
+    avg >= 70 ? tEx.scoreGood :
+    avg >= 50 ? tEx.scoreOk :
+    tEx.scorePractice
 
   return (
     <div className="rounded-2xl border border-verde-900/30 bg-verde-950/10 p-6 text-center space-y-2">
-      <p className="text-xs font-semibold text-verde-500 uppercase tracking-wide">Resultado de ejercicios</p>
+      <p className="text-xs font-semibold text-verde-500 uppercase tracking-wide">{tEx.exercisesResult}</p>
       <p className="text-5xl font-black text-verde-400">{avg}%</p>
       <p className="text-sm text-verde-400">{label}</p>
-      <p className="text-xs text-verde-600">{count} de {total} ejercicios verificados</p>
+      <p className="text-xs text-verde-600">{count} {tEx.resultOf} {total} {tEx.exercisesVerified}</p>
     </div>
   )
 }
@@ -552,6 +563,8 @@ function ScorePanel({ scores, total }: { scores: Record<string, number>; total: 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function LessonExercises({ exercises }: { exercises: Exercise[] }) {
+  const { t } = useLanguage()
+  const tEx = t.lessons.exercisesUi
   const [scores, setScores] = useState<Record<string, number>>({})
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
 
