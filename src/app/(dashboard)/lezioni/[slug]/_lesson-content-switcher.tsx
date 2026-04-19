@@ -28,7 +28,7 @@ export function LessonContentSwitcher({
   translations,
 }: Props) {
   // Build available language list: Spanish always first, then whatever has a translation
-  const available: string[] = ['es', ...Object.keys(translations).filter(l => !!translations[l as 'en' | 'it'])]
+  const available: string[] = ['es', ...Object.keys(translations).filter(l => !!translations[l as 'en' | 'it' | 'es'])]
 
   const [lang, setLang] = useState<string>('es')
 
@@ -46,10 +46,10 @@ export function LessonContentSwitcher({
     try { localStorage.setItem(LS_KEY, l) } catch { /* ignore */ }
   }
 
-  // Resolve content for selected lang
-  const t = lang !== 'es' ? translations[lang as 'en' | 'it'] : null
-  const contentHtml = t?.content_html ?? defaultContent
-  const grammarNotes = t?.grammar_notes ?? defaultGrammarNotes
+  // Resolve content for selected lang — check translations first (ES may have a generated translation)
+  const t = translations[lang as 'en' | 'it' | 'es'] ?? null
+  const contentHtml = t?.content_html ?? (lang === 'es' ? defaultContent : null) ?? defaultContent
+  const grammarNotes = t?.grammar_notes ?? (lang === 'es' ? defaultGrammarNotes : null) ?? defaultGrammarNotes
   const vocabulary = t?.vocabulary ?? defaultVocabulary
 
   return (

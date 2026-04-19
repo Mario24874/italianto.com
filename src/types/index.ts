@@ -274,8 +274,8 @@ export interface LessonTranslation {
   vocabulary: VocabularyItem[]
 }
 
-/** Keys: 'en' | 'it' (Spanish is the default, stored in the base columns) */
-export type LessonTranslations = Partial<Record<'en' | 'it', LessonTranslation>>
+/** Keys: 'en' | 'it' | 'es' — Spanish can also be stored as a translation when original content_html is in Italian */
+export type LessonTranslations = Partial<Record<'en' | 'it' | 'es', LessonTranslation>>
 
 // ─── Audio Clip ───────────────────────────────────────────────────────────────
 

@@ -385,7 +385,8 @@ function VideoSection({
 }
 
 // ─── Translation Panel ────────────────────────────────────────────────────────
-const TRANSLATION_LANGS: { value: 'en' | 'it'; label: string; flag: string }[] = [
+const TRANSLATION_LANGS: { value: 'en' | 'it' | 'es'; label: string; flag: string }[] = [
+  { value: 'es', label: 'Español', flag: '🇪🇸' },
   { value: 'en', label: 'English', flag: '🇬🇧' },
   { value: 'it', label: 'Italiano', flag: '🇮🇹' },
 ]
@@ -399,10 +400,10 @@ function TranslationPanel({
   translations: LessonTranslations
   onUpdate: (t: LessonTranslations) => void
 }) {
-  const [translating, setTranslating] = useState<'en' | 'it' | null>(null)
-  const [deleting, setDeleting] = useState<'en' | 'it' | null>(null)
+  const [translating, setTranslating] = useState<'en' | 'it' | 'es' | null>(null)
+  const [deleting, setDeleting] = useState<'en' | 'it' | 'es' | null>(null)
 
-  const handleTranslate = async (lang: 'en' | 'it') => {
+  const handleTranslate = async (lang: 'en' | 'it' | 'es') => {
     setTranslating(lang)
     try {
       const res = await fetch(`/api/admin/lessons/${lessonId}/translate`, {
@@ -418,7 +419,7 @@ function TranslationPanel({
     } finally { setTranslating(null) }
   }
 
-  const handleDelete = async (lang: 'en' | 'it') => {
+  const handleDelete = async (lang: 'en' | 'it' | 'es') => {
     if (!confirm('¿Eliminar esta traducción?')) return
     setDeleting(lang)
     try {

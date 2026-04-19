@@ -9,6 +9,7 @@ export const maxDuration = 60
 const LANG_NAMES: Record<string, string> = {
   en: 'English',
   it: 'Italian',
+  es: 'Spanish',
 }
 
 function buildPrompt(lang: string, lesson: LessonRow): string {
@@ -67,8 +68,8 @@ export async function POST(
   const body = await req.json()
   const lang = body.lang as string
 
-  if (!['en', 'it'].includes(lang)) {
-    return NextResponse.json({ error: 'lang must be "en" or "it"' }, { status: 400 })
+  if (!['en', 'it', 'es'].includes(lang)) {
+    return NextResponse.json({ error: 'lang must be "en", "it", or "es"' }, { status: 400 })
   }
 
   const supabase = getSupabaseAdmin()
@@ -141,14 +142,14 @@ export async function DELETE(
   const url = new URL(_req.url)
   const lang = url.searchParams.get('lang')
 
-  if (!lang || !['en', 'it'].includes(lang)) {
-    return NextResponse.json({ error: 'lang param required (en or it)' }, { status: 400 })
+  if (!lang || !['en', 'it', 'es'].includes(lang)) {
+    return NextResponse.json({ error: 'lang param required (en, it, or es)' }, { status: 400 })
   }
 
   const supabase = getSupabaseAdmin()
   const { data: lesson } = await supabase.from('lessons').select('translations').eq('id', id).single()
   const translations = { ...(lesson?.translations ?? {}) }
-  delete translations[lang as 'en' | 'it']
+  delete translations[lang as 'en' | 'it' | 'es']
 
   await supabase.from('lessons').update({ translations, updated_at: new Date().toISOString() }).eq('id', id)
   return NextResponse.json({ ok: true })
