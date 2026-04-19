@@ -346,8 +346,8 @@ export function TutorEditor() {
 
       {/* ── Edit/Create Tutor Modal ── */}
       {editingTutor && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1a0f] border border-verde-900/50 rounded-2xl p-6 w-full max-w-lg space-y-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-dark border border-verde-900/50 rounded-2xl p-6 w-full max-w-lg space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-verde-100 font-bold">{editingTutor.id ? 'Editar Tutor' : 'Nuevo Tutor'}</h3>
               <button onClick={() => setEditingTutor(null)} className="text-verde-600 hover:text-verde-300">

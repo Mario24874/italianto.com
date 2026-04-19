@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Video, Loader2, X, ToggleLeft, ToggleRight } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Pencil, Trash2, Video, Loader2, X, ToggleLeft, ToggleRight, Upload, CheckCircle2, ExternalLink, Clapperboard } from 'lucide-react'
 import { toast } from 'sonner'
+import { uploadToStorage } from '@/lib/upload'
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const PLANS = ['free', 'essenziale', 'avanzato', 'maestro']
@@ -14,15 +15,20 @@ function slugify(t: string) {
   return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-')
 }
 
-interface Corso { id: string; slug: string; title: string; description: string; instructor: string; schedule_text: string; meeting_url: string | null; meeting_platform: string; level: string; plan_required: string; status: string; max_students: number | null; order_index: number; starts_at: string | null }
+interface Corso { id: string; slug: string; title: string; description: string; instructor: string; schedule_text: string; meeting_url: string | null; meeting_platform: string; level: string; plan_required: string; status: string; max_students: number | null; order_index: number; starts_at: string | null; recording_url: string | null }
 type FormData = Omit<Corso, 'id'> & { id?: string }
-const empty = (): FormData => ({ slug: '', title: '', description: '', instructor: '', schedule_text: '', meeting_url: '', meeting_platform: 'zoom', level: 'A1', plan_required: 'essenziale', status: 'draft', max_students: null, order_index: 0, starts_at: null })
+const empty = (): FormData => ({ slug: '', title: '', description: '', instructor: '', schedule_text: '', meeting_url: '', meeting_platform: 'zoom', level: 'A1', plan_required: 'essenziale', status: 'draft', max_students: null, order_index: 0, starts_at: null, recording_url: null })
 
 export function CorsiManager() {
   const [items, setItems] = useState<Corso[]>([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<FormData | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploadingRec, setUploadingRec] = useState(false)
+  const [recProgress, setRecProgress] = useState(0)
+  const [recDragOver, setRecDragOver] = useState(false)
+  const [uploadedRecName, setUploadedRecName] = useState<string | null>(null)
+  const recRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -36,7 +42,13 @@ export function CorsiManager() {
   async function save() {
     if (!form?.title.trim()) { toast.error('El título es obligatorio'); return }
     setSaving(true)
-    const payload = { ...form, slug: form.slug || slugify(form.title), meeting_url: form.meeting_url || null, starts_at: form.starts_at || null }
+    const payload = {
+      ...form,
+      slug: form.slug || slugify(form.title),
+      meeting_url: form.meeting_url || null,
+      starts_at: form.starts_at || null,
+      recording_url: form.recording_url || null,
+    }
     const res = form.id
       ? await fetch(`/api/admin/corsi/${form.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       : await fetch('/api/admin/corsi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -50,6 +62,33 @@ export function CorsiManager() {
     if ((await fetch(`/api/admin/corsi/${id}`, { method: 'DELETE' })).ok) { toast.success('Eliminado'); load() }
   }
 
+  async function handleRecFile(file: File) {
+    const maxMB = 500
+    if (file.size > maxMB * 1024 * 1024) { toast.error(`La grabación no puede superar ${maxMB}MB`); return }
+    setUploadingRec(true)
+    setRecProgress(0)
+    setUploadedRecName(null)
+    try {
+      const url = await uploadToStorage(file, 'corsi/recordings', (pct) => setRecProgress(pct))
+      setUploadedRecName(file.name)
+      setForm(f => f ? { ...f, recording_url: url } : f)
+      toast.success('Grabación subida correctamente')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al subir grabación')
+    } finally {
+      setUploadingRec(false)
+      setRecProgress(0)
+      if (recRef.current) recRef.current.value = ''
+    }
+  }
+
+  function openForm(item?: Corso) {
+    setUploadedRecName(null)
+    setForm(item ? { ...item } : empty())
+  }
+
+  const withRecordings = items.filter(i => i.recording_url)
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -58,7 +97,7 @@ export function CorsiManager() {
           <h1 className="text-2xl font-extrabold text-verde-50">Corsi dal Vivo</h1>
           <span className="text-xs text-verde-600 bg-verde-950/40 border border-verde-900/30 px-2 py-1 rounded-lg">{items.length} corsi</span>
         </div>
-        <button onClick={() => setForm(empty())} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors">
+        <button onClick={() => openForm()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors">
           <Plus size={16} /> Nuevo curso
         </button>
       </div>
@@ -70,7 +109,7 @@ export function CorsiManager() {
               <h2 className="text-lg font-bold text-verde-100">{form.id ? 'Editar' : 'Nuevo'} curso</h2>
               <button onClick={() => setForm(null)} className="text-verde-600 hover:text-verde-300"><X size={18} /></button>
             </div>
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-verde-500 mb-1">Título *</label>
@@ -128,9 +167,74 @@ export function CorsiManager() {
                 <textarea value={form.description} onChange={e => setForm(f => f ? { ...f, description: e.target.value } : f)} rows={3}
                   className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none resize-none" />
               </div>
+
+              {/* Recording Section */}
+              <div className="border border-purple-900/30 rounded-xl p-4 bg-purple-950/10 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Clapperboard size={14} className="text-purple-400" />
+                  <span className="text-xs font-semibold text-purple-300">Grabación de la clase (post-clase)</span>
+                </div>
+                <input
+                  ref={recRef}
+                  type="file"
+                  accept=".mp4,.webm,.mov,.avi,.mkv,video/*"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleRecFile(f) }}
+                />
+                <div
+                  onDragOver={e => { e.preventDefault(); setRecDragOver(true) }}
+                  onDragLeave={() => setRecDragOver(false)}
+                  onDrop={e => {
+                    e.preventDefault()
+                    setRecDragOver(false)
+                    const f = e.dataTransfer.files[0]
+                    if (f) handleRecFile(f)
+                  }}
+                  onClick={() => !uploadingRec && recRef.current?.click()}
+                  className={`rounded-xl border-2 border-dashed transition-colors cursor-pointer ${
+                    recDragOver
+                      ? 'border-purple-500 bg-purple-950/30'
+                      : 'border-purple-900/40 bg-purple-950/10 hover:border-purple-700/60 hover:bg-purple-950/20'
+                  } ${uploadingRec ? 'pointer-events-none' : ''}`}
+                >
+                  <div className="flex flex-col items-center justify-center py-5 gap-1.5">
+                    {uploadingRec ? (
+                      <>
+                        <Loader2 size={20} className="animate-spin text-purple-400" />
+                        <span className="text-xs text-purple-300">Subiendo grabación... {recProgress}%</span>
+                        <div className="w-full max-w-xs px-4 mt-1">
+                          <div className="h-1.5 rounded-full bg-purple-900/60 overflow-hidden">
+                            <div className="h-full bg-purple-500 rounded-full transition-all duration-200" style={{ width: `${recProgress}%` }} />
+                          </div>
+                        </div>
+                      </>
+                    ) : uploadedRecName || (form.recording_url && form.recording_url.startsWith('http') && !form.recording_url.includes('youtube') && !form.recording_url.includes('vimeo')) ? (
+                      <>
+                        <CheckCircle2 size={20} className="text-verde-400" />
+                        <span className="text-xs text-verde-300 font-medium">{uploadedRecName ?? 'Grabación vinculada'}</span>
+                        <span className="text-xs text-purple-700">Haz clic para reemplazar</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={20} className="text-purple-700" />
+                        <span className="text-xs text-purple-400">Arrastra un video (MP4/WebM/MOV, max 500MB)</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <input
+                  value={form.recording_url ?? ''}
+                  onChange={e => {
+                    setUploadedRecName(null)
+                    setForm(f => f ? { ...f, recording_url: e.target.value } : f)
+                  }}
+                  placeholder="o pega URL (YouTube, Vimeo, enlace externo)..."
+                  className="w-full px-3 py-2 rounded-xl bg-purple-950/20 border border-purple-900/30 text-purple-200 text-sm focus:outline-none focus:border-purple-700 placeholder-purple-800"
+                />
+              </div>
             </div>
             <div className="flex gap-3 px-6 py-4 border-t border-verde-900/30">
-              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm disabled:opacity-50">
+              <button onClick={save} disabled={saving || uploadingRec} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm disabled:opacity-50">
                 {saving && <Loader2 size={14} className="animate-spin" />} {saving ? 'Guardando...' : 'Guardar'}
               </button>
               <button onClick={() => setForm(null)} className="px-5 py-2.5 rounded-xl border border-verde-800/40 text-verde-400 text-sm">Cancelar</button>
@@ -144,22 +248,72 @@ export function CorsiManager() {
       ) : items.length === 0 ? (
         <div className="text-center py-20 text-verde-600"><Video size={36} className="mx-auto mb-3 text-verde-800" /><p>No hay corsi todavía</p></div>
       ) : (
-        <div className="rounded-2xl border border-verde-900/40 bg-bg-dark-2/70 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-verde-900/30">{['Título', 'Instructor', 'Plataforma', 'Estado', ''].map(h => <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-verde-500 uppercase tracking-wide">{h}</th>)}</tr></thead>
-            <tbody className="divide-y divide-verde-900/10">
-              {items.map(item => (
-                <tr key={item.id} className="hover:bg-verde-950/20">
-                  <td className="px-4 py-3"><div className="font-medium text-verde-200">{item.title}</div><div className="text-xs text-verde-500">{item.schedule_text}</div></td>
-                  <td className="px-4 py-3 text-xs text-verde-400">{item.instructor || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-purple-400 capitalize">{item.meeting_platform}</td>
-                  <td className="px-4 py-3 text-xs text-verde-400">{STATUS_LABELS[item.status] ?? item.status}</td>
-                  <td className="px-4 py-3"><div className="flex gap-2 justify-end"><button onClick={() => setForm({ ...item })} className="p-1.5 text-verde-600 hover:text-verde-300"><Pencil size={13} /></button><button onClick={() => del(item.id)} className="p-1.5 text-red-700 hover:text-red-400"><Trash2 size={13} /></button></div></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="rounded-2xl border border-verde-900/40 bg-bg-dark-2/70 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-verde-900/30">{['Título', 'Instructor', 'Plataforma', 'Estado', 'Rec', ''].map(h => <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-verde-500 uppercase tracking-wide">{h}</th>)}</tr></thead>
+              <tbody className="divide-y divide-verde-900/10">
+                {items.map(item => (
+                  <tr key={item.id} className="hover:bg-verde-950/20">
+                    <td className="px-4 py-3"><div className="font-medium text-verde-200">{item.title}</div><div className="text-xs text-verde-500">{item.schedule_text}</div></td>
+                    <td className="px-4 py-3 text-xs text-verde-400">{item.instructor || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-purple-400 capitalize">{item.meeting_platform}</td>
+                    <td className="px-4 py-3 text-xs text-verde-400">{STATUS_LABELS[item.status] ?? item.status}</td>
+                    <td className="px-4 py-3">
+                      {item.recording_url ? (
+                        <a href={item.recording_url} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-900/40 border border-purple-800/30 text-purple-300 text-xs hover:bg-purple-900/60 transition-colors">
+                          <Clapperboard size={11} /> REC
+                        </a>
+                      ) : (
+                        <span className="text-verde-800 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3"><div className="flex gap-2 justify-end"><button onClick={() => openForm(item)} className="p-1.5 text-verde-600 hover:text-verde-300"><Pencil size={13} /></button><button onClick={() => del(item.id)} className="p-1.5 text-red-700 hover:text-red-400"><Trash2 size={13} /></button></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Archive of recordings */}
+          {withRecordings.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Clapperboard size={16} className="text-purple-400" />
+                <h2 className="text-base font-bold text-purple-200">Archivo de clases</h2>
+                <span className="text-xs text-purple-600 bg-purple-950/40 border border-purple-900/30 px-2 py-0.5 rounded-lg">{withRecordings.length} grabaciones</span>
+              </div>
+              <div className="rounded-2xl border border-purple-900/30 bg-purple-950/10 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-purple-900/20">{['Clase', 'Instructor', 'Grabación'].map(h => <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-purple-500 uppercase tracking-wide">{h}</th>)}</tr></thead>
+                  <tbody className="divide-y divide-purple-900/10">
+                    {withRecordings.map(item => (
+                      <tr key={item.id} className="hover:bg-purple-950/20">
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-purple-200">{item.title}</div>
+                          <div className="text-xs text-purple-600">{item.schedule_text}</div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-purple-400">{item.instructor || '—'}</td>
+                        <td className="px-4 py-3">
+                          <a
+                            href={item.recording_url!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-purple-300 hover:text-purple-100 transition-colors"
+                          >
+                            <ExternalLink size={12} />
+                            Ver grabación
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

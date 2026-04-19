@@ -146,7 +146,7 @@ body {
 }
 
 .dark .glass-dark {
-  background: rgba(6, 13, 7, 0.6);
+  background: rgba(6, 13, 7, 0.97);
   border-color: rgba(46, 125, 50, 0.2);
 }
 
@@ -325,7 +325,7 @@ html:not(.dark) .text-amber-500   { color: #92400e !important; }
 /* ─── Light mode: component overrides ──────────────────────────────────── */
 /* glass-dark → white card */
 html:not(.dark) .glass-dark {
-  background: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(255, 255, 255, 1) !important;
   border-color: rgba(21, 128, 61, 0.15) !important;
 }
 

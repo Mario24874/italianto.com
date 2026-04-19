@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Info, Loader2, X, ToggleLeft, ToggleRight } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Pencil, Trash2, Info, Loader2, X, ToggleLeft, ToggleRight, ImageIcon, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { uploadToStorage } from '@/lib/upload'
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const PLANS = ['free', 'essenziale', 'avanzato', 'maestro']
@@ -26,6 +27,8 @@ export function ArticlesManager() {
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<FormData | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const imageRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -57,6 +60,20 @@ export function ArticlesManager() {
     const status = item.status === 'published' ? 'draft' : 'published'
     await fetch(`/api/admin/info-articles/${item.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, status } : i))
+  }
+
+  async function handleImageFile(file: File) {
+    setUploadingImage(true)
+    try {
+      const url = await uploadToStorage(file, 'articles')
+      setForm(f => f ? { ...f, image_url: url } : f)
+      toast.success('Imagen subida correctamente')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al subir imagen')
+    } finally {
+      setUploadingImage(false)
+      if (imageRef.current) imageRef.current.value = ''
+    }
   }
 
   return (
@@ -109,10 +126,46 @@ export function ArticlesManager() {
                     </select>
                   </div>
                 </div>
+
+                {/* Image Upload */}
                 <div>
-                  <label className="block text-xs text-verde-500 mb-1">URL Imagen</label>
-                  <input value={form.image_url ?? ''} onChange={e => setForm(f => f ? { ...f, image_url: e.target.value } : f)}
-                    placeholder="https://..." className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none" />
+                  <label className="block text-xs text-verde-500 mb-1">Imagen</label>
+                  <input
+                    ref={imageRef}
+                    type="file"
+                    accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.svg"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f) }}
+                  />
+                  <div className="flex items-center gap-2">
+                    {form.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={form.image_url}
+                        alt="preview"
+                        className="w-10 h-10 rounded-lg object-cover border border-verde-800/40 shrink-0"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => imageRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-300 text-xs hover:border-verde-600 hover:text-verde-200 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      {uploadingImage
+                        ? <Loader2 size={13} className="animate-spin" />
+                        : form.image_url
+                          ? <CheckCircle2 size={13} className="text-verde-400" />
+                          : <ImageIcon size={13} />}
+                      {uploadingImage ? 'Subiendo...' : form.image_url ? 'Cambiar' : 'Subir imagen'}
+                    </button>
+                  </div>
+                  <input
+                    value={form.image_url ?? ''}
+                    onChange={e => setForm(f => f ? { ...f, image_url: e.target.value } : f)}
+                    placeholder="o pega URL de imagen..."
+                    className="mt-2 w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none focus:border-verde-600"
+                  />
                 </div>
               </div>
               <div>
@@ -121,13 +174,13 @@ export function ArticlesManager() {
                   className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none resize-none" />
               </div>
               <div>
-                <label className="block text-xs text-verde-500 mb-1">Contenido HTML</label>
+                <label className="block text-xs text-verde-500 mb-1">Contenido</label>
                 <textarea value={form.content_html} onChange={e => setForm(f => f ? { ...f, content_html: e.target.value } : f)} rows={8}
-                  className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none resize-none font-mono text-xs" />
+                  className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none resize-none" />
               </div>
             </div>
             <div className="flex gap-3 px-6 py-4 border-t border-verde-900/30">
-              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm disabled:opacity-50">
+              <button onClick={save} disabled={saving || uploadingImage} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm disabled:opacity-50">
                 {saving && <Loader2 size={14} className="animate-spin" />} {saving ? 'Guardando...' : 'Guardar'}
               </button>
               <button onClick={() => setForm(null)} className="px-5 py-2.5 rounded-xl border border-verde-800/40 text-verde-400 text-sm">Cancelar</button>
@@ -147,7 +200,18 @@ export function ArticlesManager() {
             <tbody className="divide-y divide-verde-900/10">
               {items.map(item => (
                 <tr key={item.id} className="hover:bg-verde-950/20">
-                  <td className="px-4 py-3"><div className="font-medium text-verde-200">{item.title}</div><div className="text-xs text-verde-500 truncate max-w-[220px]">{item.excerpt}</div></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {item.image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.image_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-verde-900/30 shrink-0" />
+                      )}
+                      <div>
+                        <div className="font-medium text-verde-200">{item.title}</div>
+                        <div className="text-xs text-verde-500 truncate max-w-[220px]">{item.excerpt}</div>
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-xs text-blue-400 capitalize">{item.category}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-bold ${LEVEL_COLORS[item.level]}`}>{item.level}</span></td>
                   <td className="px-4 py-3"><button onClick={() => toggleStatus(item)} className="flex items-center gap-1 text-xs">{item.status === 'published' ? <><ToggleRight size={15} className="text-verde-400" /><span className="text-verde-400">Pub</span></> : <><ToggleLeft size={15} className="text-verde-700" /><span className="text-verde-600">Draft</span></>}</button></td>

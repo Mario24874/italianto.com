@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Music, Loader2, X, ToggleLeft, ToggleRight } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Pencil, Trash2, Music, Loader2, X, ToggleLeft, ToggleRight, Paperclip, CheckCircle2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
+import { uploadToStorage } from '@/lib/upload'
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const PLANS = ['free', 'essenziale', 'avanzato', 'maestro']
@@ -26,6 +27,12 @@ export function SongsManager() {
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<FormData | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploadingAudio, setUploadingAudio] = useState(false)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
+  const [videoProgress, setVideoProgress] = useState(0)
+  const [videoDragOver, setVideoDragOver] = useState(false)
+  const audioRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { load() }, [])
 
@@ -59,6 +66,40 @@ export function SongsManager() {
     const newStatus = song.status === 'published' ? 'draft' : 'published'
     await fetch(`/api/admin/songs/${song.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) })
     setSongs(prev => prev.map(s => s.id === song.id ? { ...s, status: newStatus } : s))
+  }
+
+  async function handleAudioFile(file: File) {
+    const maxMB = 50
+    if (file.size > maxMB * 1024 * 1024) { toast.error(`El audio no puede superar ${maxMB}MB`); return }
+    setUploadingAudio(true)
+    try {
+      const url = await uploadToStorage(file, 'songs/audio')
+      setForm(f => f ? { ...f, audio_url: url } : f)
+      toast.success('Audio subido correctamente')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al subir audio')
+    } finally {
+      setUploadingAudio(false)
+      if (audioRef.current) audioRef.current.value = ''
+    }
+  }
+
+  async function handleVideoFile(file: File) {
+    const maxMB = 500
+    if (file.size > maxMB * 1024 * 1024) { toast.error(`El video no puede superar ${maxMB}MB`); return }
+    setUploadingVideo(true)
+    setVideoProgress(0)
+    try {
+      const url = await uploadToStorage(file, 'songs/video', (pct) => setVideoProgress(pct))
+      setForm(f => f ? { ...f, video_url: url } : f)
+      toast.success('Video subido correctamente')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al subir video')
+    } finally {
+      setUploadingVideo(false)
+      setVideoProgress(0)
+      if (videoRef.current) videoRef.current.value = ''
+    }
   }
 
   return (
@@ -115,17 +156,101 @@ export function SongsManager() {
                     </select>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-verde-500 mb-1">URL Audio</label>
-                  <input value={form.audio_url ?? ''} onChange={e => setForm(f => f ? { ...f, audio_url: e.target.value } : f)}
-                    placeholder="https://..." className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none focus:border-verde-600" />
-                </div>
-                <div>
-                  <label className="block text-xs text-verde-500 mb-1">URL Video</label>
-                  <input value={form.video_url ?? ''} onChange={e => setForm(f => f ? { ...f, video_url: e.target.value } : f)}
-                    placeholder="https://youtube.com/..." className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none focus:border-verde-600" />
-                </div>
               </div>
+
+              {/* Audio Upload */}
+              <div>
+                <label className="block text-xs text-verde-500 mb-2">Audio (MP3/OGG/WAV/AAC — max 50MB)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={audioRef}
+                    type="file"
+                    accept=".mp3,.ogg,.wav,.aac,.m4a,.flac,audio/*"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleAudioFile(f) }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => audioRef.current?.click()}
+                    disabled={uploadingAudio}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-300 text-xs hover:border-verde-600 hover:text-verde-200 transition-colors disabled:opacity-50 shrink-0"
+                  >
+                    {uploadingAudio
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : form.audio_url
+                        ? <CheckCircle2 size={13} className="text-verde-400" />
+                        : <Paperclip size={13} />}
+                    {uploadingAudio ? 'Subiendo...' : 'Subir audio'}
+                  </button>
+                  <input
+                    value={form.audio_url ?? ''}
+                    onChange={e => setForm(f => f ? { ...f, audio_url: e.target.value } : f)}
+                    placeholder="o pega URL del audio..."
+                    className="flex-1 px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none focus:border-verde-600"
+                  />
+                </div>
+                {form.audio_url && !uploadingAudio && (
+                  <p className="mt-1 text-xs text-verde-600 truncate">{form.audio_url}</p>
+                )}
+              </div>
+
+              {/* Video Upload */}
+              <div>
+                <label className="block text-xs text-verde-500 mb-2">Video (MP4/WebM/MOV — max 500MB)</label>
+                <input
+                  ref={videoRef}
+                  type="file"
+                  accept=".mp4,.webm,.mov,.avi,.mkv,video/*"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleVideoFile(f) }}
+                />
+                <div
+                  onDragOver={e => { e.preventDefault(); setVideoDragOver(true) }}
+                  onDragLeave={() => setVideoDragOver(false)}
+                  onDrop={e => {
+                    e.preventDefault()
+                    setVideoDragOver(false)
+                    const f = e.dataTransfer.files[0]
+                    if (f) handleVideoFile(f)
+                  }}
+                  onClick={() => !uploadingVideo && videoRef.current?.click()}
+                  className={`relative rounded-xl border-2 border-dashed transition-colors cursor-pointer ${
+                    videoDragOver
+                      ? 'border-verde-500 bg-verde-950/40'
+                      : 'border-verde-800/40 bg-verde-950/20 hover:border-verde-700/60 hover:bg-verde-950/30'
+                  } ${uploadingVideo ? 'pointer-events-none' : ''}`}
+                >
+                  <div className="flex flex-col items-center justify-center py-4 px-3 gap-1">
+                    {uploadingVideo ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin text-verde-500" />
+                        <span className="text-xs text-verde-400">Subiendo video... {videoProgress}%</span>
+                        <div className="w-full mt-1 h-1.5 rounded-full bg-verde-900/60 overflow-hidden">
+                          <div className="h-full bg-purple-500 rounded-full transition-all duration-200" style={{ width: `${videoProgress}%` }} />
+                        </div>
+                      </>
+                    ) : form.video_url && form.video_url.startsWith('http') ? (
+                      <>
+                        <CheckCircle2 size={18} className="text-verde-400" />
+                        <span className="text-xs text-verde-400">Video subido</span>
+                        <span className="text-xs text-verde-600 truncate max-w-full px-2">{form.video_url}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={18} className="text-verde-700" />
+                        <span className="text-xs text-verde-500">Arrastra un video o haz clic para seleccionar</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <input
+                  value={form.video_url ?? ''}
+                  onChange={e => setForm(f => f ? { ...f, video_url: e.target.value } : f)}
+                  placeholder="o pega URL del video (YouTube, etc.)..."
+                  className="mt-2 w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none focus:border-verde-600"
+                />
+              </div>
+
               <div>
                 <label className="block text-xs text-verde-500 mb-1">Letra</label>
                 <textarea value={form.lyrics} onChange={e => setForm(f => f ? { ...f, lyrics: e.target.value } : f)} rows={6}
@@ -138,7 +263,7 @@ export function SongsManager() {
               </div>
             </div>
             <div className="flex gap-3 px-6 py-4 border-t border-verde-900/30">
-              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm disabled:opacity-50">
+              <button onClick={save} disabled={saving || uploadingAudio || uploadingVideo} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm disabled:opacity-50">
                 {saving ? <Loader2 size={14} className="animate-spin" /> : null} {saving ? 'Guardando...' : 'Guardar'}
               </button>
               <button onClick={() => setForm(null)} className="px-5 py-2.5 rounded-xl border border-verde-800/40 text-verde-400 hover:text-verde-200 text-sm">Cancelar</button>

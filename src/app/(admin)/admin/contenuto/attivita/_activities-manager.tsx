@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Gamepad2, Loader2, X, ToggleLeft, ToggleRight } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Pencil, Trash2, Gamepad2, Loader2, X, ToggleLeft, ToggleRight, Upload, CheckCircle2, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
+import { uploadToStorage } from '@/lib/upload'
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const PLANS = ['free', 'essenziale', 'avanzato', 'maestro']
@@ -18,15 +19,20 @@ function slugify(t: string) {
   return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-')
 }
 
-interface Activity { id: string; slug: string; title: string; description: string; type: string; level: string; plan_required: string; status: string; order_index: number }
+interface Activity { id: string; slug: string; title: string; description: string; type: string; content: string; file_url: string | null; level: string; plan_required: string; status: string; order_index: number }
 type FormData = Omit<Activity, 'id'> & { id?: string }
-const empty = (): FormData => ({ slug: '', title: '', description: '', type: 'game', level: 'A1', plan_required: 'free', status: 'draft', order_index: 0 })
+const empty = (): FormData => ({ slug: '', title: '', description: '', type: 'game', content: '', file_url: null, level: 'A1', plan_required: 'free', status: 'draft', order_index: 0 })
 
 export function ActivitiesManager() {
   const [items, setItems] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<FormData | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [dragOver, setDragOver] = useState(false)
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -40,7 +46,7 @@ export function ActivitiesManager() {
   async function save() {
     if (!form?.title.trim()) { toast.error('El título es obligatorio'); return }
     setSaving(true)
-    const payload = { ...form, slug: form.slug || slugify(form.title) }
+    const payload = { ...form, slug: form.slug || slugify(form.title), file_url: form.file_url || null }
     const res = form.id
       ? await fetch(`/api/admin/activities/${form.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       : await fetch('/api/admin/activities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -60,6 +66,29 @@ export function ActivitiesManager() {
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, status } : i))
   }
 
+  async function handleFile(file: File) {
+    setUploading(true)
+    setUploadProgress(0)
+    setUploadedFileName(null)
+    try {
+      const url = await uploadToStorage(file, 'activities', (pct) => setUploadProgress(pct))
+      setUploadedFileName(file.name)
+      setForm(f => f ? { ...f, file_url: url } : f)
+      toast.success('Archivo subido correctamente')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al subir archivo')
+    } finally {
+      setUploading(false)
+      setUploadProgress(0)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  function openForm(item?: Activity) {
+    setUploadedFileName(null)
+    setForm(item ? { ...item } : empty())
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -68,7 +97,7 @@ export function ActivitiesManager() {
           <h1 className="text-2xl font-extrabold text-verde-50">Attività</h1>
           <span className="text-xs text-verde-600 bg-verde-950/40 border border-verde-900/30 px-2 py-1 rounded-lg">{items.length} attività</span>
         </div>
-        <button onClick={() => setForm(empty())} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors">
+        <button onClick={() => openForm()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors">
           <Plus size={16} /> Nueva actividad
         </button>
       </div>
@@ -114,9 +143,81 @@ export function ActivitiesManager() {
                   </select>
                 </div>
               </div>
+
+              {/* File Upload */}
+              <div>
+                <label className="block text-xs text-verde-500 mb-2">Archivo adjunto (PDF u otros)</label>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+                />
+                <div
+                  onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={e => {
+                    e.preventDefault()
+                    setDragOver(false)
+                    const f = e.dataTransfer.files[0]
+                    if (f) handleFile(f)
+                  }}
+                  onClick={() => !uploading && fileRef.current?.click()}
+                  className={`rounded-xl border-2 border-dashed transition-colors cursor-pointer ${
+                    dragOver
+                      ? 'border-amber-500 bg-amber-950/20'
+                      : 'border-verde-800/40 bg-verde-950/20 hover:border-verde-700/60 hover:bg-verde-950/30'
+                  } ${uploading ? 'pointer-events-none' : ''}`}
+                >
+                  <div className="flex flex-col items-center justify-center py-5 gap-1.5">
+                    {uploading ? (
+                      <>
+                        <Loader2 size={20} className="animate-spin text-amber-400" />
+                        <span className="text-xs text-verde-400">Subiendo... {uploadProgress}%</span>
+                        <div className="w-full max-w-xs px-4 mt-1">
+                          <div className="h-1.5 rounded-full bg-verde-900/60 overflow-hidden">
+                            <div className="h-full bg-verde-500 rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
+                          </div>
+                        </div>
+                      </>
+                    ) : uploadedFileName || (form.file_url && form.file_url.startsWith('http')) ? (
+                      <>
+                        <CheckCircle2 size={20} className="text-verde-400" />
+                        <span className="text-xs text-verde-300 font-medium">{uploadedFileName ?? 'Archivo vinculado'}</span>
+                        {form.file_url && (
+                          <a
+                            href={form.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="flex items-center gap-1 text-xs text-verde-600 hover:text-verde-400 transition-colors"
+                          >
+                            <ExternalLink size={11} /> Ver archivo
+                          </a>
+                        )}
+                        <span className="text-xs text-verde-700">Haz clic para reemplazar</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={20} className="text-verde-700" />
+                        <span className="text-xs text-verde-500">Arrastra un archivo o haz clic para seleccionar</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {form.file_url && !uploadedFileName && (
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => f ? { ...f, file_url: null } : f)}
+                    className="mt-1 text-xs text-red-500 hover:text-red-400 transition-colors"
+                  >
+                    Quitar archivo
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex gap-3 px-6 py-4 border-t border-verde-900/30">
-              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm disabled:opacity-50">
+              <button onClick={save} disabled={saving || uploading} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white font-semibold text-sm disabled:opacity-50">
                 {saving && <Loader2 size={14} className="animate-spin" />} {saving ? 'Guardando...' : 'Guardar'}
               </button>
               <button onClick={() => setForm(null)} className="px-5 py-2.5 rounded-xl border border-verde-800/40 text-verde-400 text-sm">Cancelar</button>
@@ -136,12 +237,22 @@ export function ActivitiesManager() {
             <tbody className="divide-y divide-verde-900/10">
               {items.map(item => (
                 <tr key={item.id} className="hover:bg-verde-950/20">
-                  <td className="px-4 py-3"><div className="font-medium text-verde-200">{item.title}</div><div className="text-xs text-verde-500 truncate max-w-[200px]">{item.description}</div></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium text-verde-200">{item.title}</div>
+                      {item.file_url && (
+                        <a href={item.file_url} target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:text-amber-400 transition-colors" title="Archivo adjunto">
+                          <ExternalLink size={11} />
+                        </a>
+                      )}
+                    </div>
+                    <div className="text-xs text-verde-500 truncate max-w-[200px]">{item.description}</div>
+                  </td>
                   <td className="px-4 py-3 text-xs text-amber-400">{TYPE_LABELS[item.type] ?? item.type}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-bold ${LEVEL_COLORS[item.level]}`}>{item.level}</span></td>
                   <td className="px-4 py-3 text-xs text-verde-400 capitalize">{item.plan_required}</td>
                   <td className="px-4 py-3"><button onClick={() => toggleStatus(item)} className="flex items-center gap-1 text-xs">{item.status === 'published' ? <><ToggleRight size={15} className="text-verde-400" /><span className="text-verde-400">Pub</span></> : <><ToggleLeft size={15} className="text-verde-700" /><span className="text-verde-600">Draft</span></>}</button></td>
-                  <td className="px-4 py-3"><div className="flex gap-2 justify-end"><button onClick={() => setForm({ ...item })} className="p-1.5 text-verde-600 hover:text-verde-300"><Pencil size={13} /></button><button onClick={() => del(item.id)} className="p-1.5 text-red-700 hover:text-red-400"><Trash2 size={13} /></button></div></td>
+                  <td className="px-4 py-3"><div className="flex gap-2 justify-end"><button onClick={() => openForm(item)} className="p-1.5 text-verde-600 hover:text-verde-300"><Pencil size={13} /></button><button onClick={() => del(item.id)} className="p-1.5 text-red-700 hover:text-red-400"><Trash2 size={13} /></button></div></td>
                 </tr>
               ))}
             </tbody>
