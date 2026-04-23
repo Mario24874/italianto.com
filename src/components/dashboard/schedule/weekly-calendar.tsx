@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, addWeeks, subWeeks, startOfWeek, addDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/language-context'
 import { StudySession, TYPE_META, DAYS_IT, HOURS } from './types'
 
 interface WeeklyCalendarProps {
@@ -28,6 +29,8 @@ function getSessionHeight(durationMin: number) {
 }
 
 export function WeeklyCalendar({ sessions, onSlotClick, onSessionClick }: WeeklyCalendarProps) {
+  const { t } = useLanguage()
+  const sc = t.schedule
   const [weekOffset, setWeekOffset] = useState(0)
   const [hoveredSlot, setHoveredSlot] = useState<{ day: number; slotIndex: number } | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -70,7 +73,7 @@ export function WeeklyCalendar({ sessions, onSlotClick, onSessionClick }: Weekly
               onClick={() => setWeekOffset(0)}
               className="text-xs text-verde-600 hover:text-verde-400 transition-colors px-2 py-0.5 rounded-lg border border-verde-900/40 hover:border-verde-800/60"
             >
-              Oggi
+              {sc.goToday}
             </button>
           )}
         </div>
@@ -107,7 +110,7 @@ export function WeeklyCalendar({ sessions, onSlotClick, onSessionClick }: Weekly
               </span>
               {isToday && (
                 <span className="mt-1 text-[9px] font-bold text-verde-400 bg-verde-900/60 border border-verde-700/50 rounded-full px-1.5 py-0.5 leading-none">
-                  OGGI
+                  {sc.today}
                 </span>
               )}
             </div>

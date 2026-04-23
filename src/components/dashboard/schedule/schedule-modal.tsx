@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Bell, BellOff, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/language-context'
 import { StudySession, StudyType, TYPE_META, DAYS_IT, DAYS_FULL_IT } from './types'
 
 interface ScheduleModalProps {
@@ -52,6 +53,8 @@ export function ScheduleModal({
   onDelete,
   onClose,
 }: ScheduleModalProps) {
+  const { t } = useLanguage()
+  const m = t.schedule.modal
   const isEdit = !!session
 
   const [title, setTitle] = useState('')
@@ -124,7 +127,6 @@ export function ScheduleModal({
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -134,7 +136,6 @@ export function ScheduleModal({
             onClick={onClose}
           />
 
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -142,14 +143,13 @@ export function ScheduleModal({
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-verde-800/50 bg-bg-dark-2 shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-verde-900/30">
               <div>
                 <h2 className="text-lg font-bold text-verde-100">
-                  {isEdit ? 'Modifica Sessione' : 'Nuova Sessione'}
+                  {isEdit ? m.editTitle : m.newTitle}
                 </h2>
                 <p className="text-xs text-verde-600 mt-0.5">
-                  {isEdit ? 'Aggiorna i dettagli della sessione' : 'Aggiungi una sessione ricorrente al tuo orario'}
+                  {isEdit ? m.editSubtitle : m.newSubtitle}
                 </p>
               </div>
               <button
@@ -161,22 +161,20 @@ export function ScheduleModal({
             </div>
 
             <div className="px-6 py-5 space-y-6">
-              {/* Title */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">Titolo</label>
+                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">{m.titleLabel}</label>
                 <input
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  placeholder="es. Grammatica avanzata..."
+                  placeholder={m.titlePlaceholder}
                   maxLength={80}
                   className="w-full px-4 py-2.5 rounded-xl bg-bg-dark border border-verde-900/50 text-verde-100 placeholder-verde-800 text-sm focus:outline-none focus:border-verde-700 focus:ring-1 focus:ring-verde-700/50 transition-colors"
                 />
               </div>
 
-              {/* Type grid */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">Tipo</label>
+                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">{m.typeLabel}</label>
                 <div className="grid grid-cols-4 gap-2">
                   {(Object.entries(TYPE_META) as [StudyType, typeof TYPE_META[StudyType]][]).map(([key, meta]) => (
                     <button
@@ -196,9 +194,8 @@ export function ScheduleModal({
                 </div>
               </div>
 
-              {/* Day */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">Giorno</label>
+                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">{m.dayLabel}</label>
                 <div className="grid grid-cols-7 gap-1.5">
                   {DAYS_IT.slice(1).map((d, i) => {
                     const dow = i + 1
@@ -221,16 +218,15 @@ export function ScheduleModal({
                 </div>
               </div>
 
-              {/* Time */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">Ora di inizio</label>
+                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">{m.timeLabel}</label>
                 <div className="relative">
                   <select
                     value={`${hour}:${minute}`}
                     onChange={e => {
-                      const [h, m] = e.target.value.split(':').map(Number)
+                      const [h, mo] = e.target.value.split(':').map(Number)
                       setHour(h)
-                      setMinute(m)
+                      setMinute(mo)
                     }}
                     className="w-full px-4 py-2.5 rounded-xl bg-bg-dark border border-verde-900/50 text-verde-100 text-sm focus:outline-none focus:border-verde-700 focus:ring-1 focus:ring-verde-700/50 transition-colors appearance-none cursor-pointer"
                   >
@@ -246,9 +242,8 @@ export function ScheduleModal({
                 </div>
               </div>
 
-              {/* Duration */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">Durata</label>
+                <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">{m.durationLabel}</label>
                 <div className="flex gap-2">
                   {DURATION_OPTIONS.map(opt => (
                     <button
@@ -267,10 +262,9 @@ export function ScheduleModal({
                 </div>
               </div>
 
-              {/* Reminder */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">Promemoria email</label>
+                  <label className="text-xs font-semibold text-verde-500 uppercase tracking-wider">{m.reminderLabel}</label>
                   <button
                     onClick={() => setReminderEnabled(r => !r)}
                     className={cn(
@@ -281,7 +275,7 @@ export function ScheduleModal({
                     )}
                   >
                     {reminderEnabled ? <Bell size={12} /> : <BellOff size={12} />}
-                    {reminderEnabled ? 'Attivo' : 'Disattivo'}
+                    {reminderEnabled ? m.reminderOn : m.reminderOff}
                   </button>
                 </div>
                 <AnimatePresence>
@@ -293,7 +287,7 @@ export function ScheduleModal({
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <p className="text-xs text-verde-700 mb-2">Ricevi un email prima della sessione:</p>
+                      <p className="text-xs text-verde-700 mb-2">{m.reminderBefore}</p>
                       <div className="flex gap-2">
                         {REMINDER_OPTIONS.map(opt => (
                           <button
@@ -316,7 +310,6 @@ export function ScheduleModal({
               </div>
             </div>
 
-            {/* Footer */}
             <div className="flex items-center gap-3 px-6 pb-6 pt-2">
               {isEdit && onDelete && (
                 <button
@@ -325,7 +318,7 @@ export function ScheduleModal({
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-900/50 text-red-400 hover:bg-red-900/20 hover:border-red-800/60 text-sm font-medium transition-all disabled:opacity-50"
                 >
                   <Trash2 size={14} />
-                  {deleting ? 'Eliminando...' : 'Elimina'}
+                  {deleting ? m.deleting : m.deleteLabel}
                 </button>
               )}
               <div className="flex-1" />
@@ -333,14 +326,14 @@ export function ScheduleModal({
                 onClick={onClose}
                 className="px-4 py-2.5 rounded-xl border border-verde-900/40 text-verde-500 hover:text-verde-300 hover:border-verde-800/60 text-sm font-medium transition-all"
               >
-                Annulla
+                {m.cancel}
               </button>
               <button
                 onClick={handleSave}
                 disabled={!title.trim() || saving}
                 className="px-5 py-2.5 rounded-xl bg-verde-800 hover:bg-verde-700 text-verde-100 text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {saving ? 'Salvando...' : isEdit ? 'Aggiorna' : 'Salva'}
+                {saving ? m.saving : isEdit ? m.update : m.save}
               </button>
             </div>
           </motion.div>
