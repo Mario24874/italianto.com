@@ -10,11 +10,24 @@ export default async function AdminNotificacionesPage() {
   await requireAdmin()
   const supabase = getSupabaseAdmin()
 
-  const { data: messages } = await supabase
-    .from('contact_messages')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(200)
+  const [{ data: messages }, sysResult] = await Promise.all([
+    supabase
+      .from('contact_messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200),
+    supabase
+      .from('system_notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .catch(() => ({ data: [] })),
+  ])
 
-  return <NotificacionesClient initialMessages={messages ?? []} />
+  return (
+    <NotificacionesClient
+      initialMessages={messages ?? []}
+      initialSysNotifs={(sysResult as { data: unknown[] }).data ?? []}
+    />
+  )
 }

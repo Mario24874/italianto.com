@@ -2,9 +2,120 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Bell, Mail, Bug, Star, MessageSquare, ChevronDown, ChevronUp, Trash2, CheckCheck } from 'lucide-react'
+import { Bell, Mail, Bug, Star, MessageSquare, ChevronDown, ChevronUp, Trash2, CheckCheck, ShieldAlert, AlertTriangle, Info, CheckCircle2, Database } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
+
+interface SysNotif {
+  id: string
+  type: string
+  severity: string
+  title: string
+  message: string
+  source: string
+  metadata: Record<string, unknown>
+  created_at: string
+  resolved_at: string | null
+  resolved_by: string | null
+}
+
+const SEVERITY_CONFIG: Record<string, { icon: React.ElementType; color: string; bg: string; border: string; label: string }> = {
+  critical: { icon: ShieldAlert,    color: 'text-red-400',    bg: 'bg-red-950/20',    border: 'border-red-800/50',    label: 'Crítico' },
+  warning:  { icon: AlertTriangle,  color: 'text-amber-400',  bg: 'bg-amber-950/20',  border: 'border-amber-800/50',  label: 'Advertencia' },
+  info:     { icon: Info,           color: 'text-blue-400',   bg: 'bg-blue-950/10',   border: 'border-blue-900/30',   label: 'Info' },
+}
+
+function SystemNotificationsPanel({ initialSysNotifs }: { initialSysNotifs: SysNotif[] }) {
+  const [notifs, setNotifs] = useState<SysNotif[]>(initialSysNotifs)
+  const [showResolved, setShowResolved] = useState(false)
+
+  const active = notifs.filter(n => !n.resolved_at)
+  const resolved = notifs.filter(n => n.resolved_at)
+  const visible = showResolved ? notifs : active
+
+  async function resolve(id: string) {
+    const res = await fetch('/api/admin/system-notifications', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, resolved_by: 'admin' }),
+    })
+    if (res.ok) {
+      setNotifs(prev => prev.map(n => n.id === id ? { ...n, resolved_at: new Date().toISOString() } : n))
+      toast.success('Alerta resuelta')
+    }
+  }
+
+  async function resolveAll() {
+    const res = await fetch('/api/admin/system-notifications?resolve_all=1', { method: 'DELETE' })
+    if (res.ok) {
+      setNotifs(prev => prev.map(n => ({ ...n, resolved_at: n.resolved_at ?? new Date().toISOString() })))
+      toast.success('Todas las alertas resueltas')
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-verde-900/30 bg-verde-950/10 p-5 space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Database size={16} className="text-verde-500" />
+          <h2 className="font-bold text-verde-200 text-sm">Alertas del Sistema</h2>
+          {active.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-900/40 text-red-300 border border-red-800/40">
+              {active.length} activa{active.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {active.length > 1 && (
+            <button onClick={resolveAll} className="text-xs px-3 py-1.5 rounded-lg border border-verde-800/30 text-verde-500 hover:text-verde-300 transition-all">
+              Resolver todas
+            </button>
+          )}
+          <button
+            onClick={() => setShowResolved(v => !v)}
+            className="text-xs px-3 py-1.5 rounded-lg border border-verde-800/30 text-verde-500 hover:text-verde-300 transition-all"
+          >
+            {showResolved ? 'Ocultar resueltas' : `Ver resueltas (${resolved.length})`}
+          </button>
+        </div>
+      </div>
+
+      {visible.length === 0 && (
+        <div className="flex items-center gap-2 text-xs text-verde-600 py-2">
+          <CheckCircle2 size={14} className="text-emerald-600" />
+          Sin alertas activas — sistema operando normalmente
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {visible.map(n => {
+          const sev = SEVERITY_CONFIG[n.severity] ?? SEVERITY_CONFIG.info
+          const SevIcon = sev.icon
+          const isResolved = !!n.resolved_at
+          return (
+            <div key={n.id} className={`rounded-xl border p-3 flex items-start gap-3 transition-all ${isResolved ? 'opacity-50 border-verde-900/20 bg-transparent' : `${sev.bg} ${sev.border}`}`}>
+              <SevIcon size={14} className={`mt-0.5 shrink-0 ${isResolved ? 'text-verde-700' : sev.color}`} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-xs font-semibold ${isResolved ? 'text-verde-600' : 'text-verde-200'}`}>{n.title}</span>
+                  <span className="text-[10px] text-verde-600 font-mono">{n.type}</span>
+                  <span className="text-[10px] text-verde-700">{formatDate(n.created_at)}</span>
+                  {isResolved && <span className="text-[10px] text-emerald-700">✓ Resuelto</span>}
+                </div>
+                <p className={`text-xs mt-0.5 ${isResolved ? 'text-verde-700' : 'text-verde-400'}`}>{n.message}</p>
+              </div>
+              {!isResolved && (
+                <button onClick={() => resolve(n.id)} className="shrink-0 text-[10px] px-2 py-1 rounded-lg border border-verde-800/30 text-verde-500 hover:text-verde-300 hover:border-verde-700/40 transition-all">
+                  Resolver
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 interface Message {
   id: string
@@ -35,7 +146,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'info'
 const FILTERS = ['all', 'unread', 'contact', 'bug_report', 'comment', 'feature_request']
 const FILTER_LABELS: Record<string, string> = { all: 'Todos', unread: 'Sin leer', contact: 'Contacto', bug_report: 'Reportes', comment: 'Comentarios', feature_request: 'Sugerencias' }
 
-export function NotificacionesClient({ initialMessages }: { initialMessages: Message[] }) {
+export function NotificacionesClient({ initialMessages, initialSysNotifs = [] }: { initialMessages: Message[]; initialSysNotifs?: SysNotif[] }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [filter, setFilter] = useState('all')
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -85,6 +196,9 @@ export function NotificacionesClient({ initialMessages }: { initialMessages: Mes
 
   return (
     <div className="p-6 space-y-6 max-w-[1200px] mx-auto">
+      {/* System Alerts Panel */}
+      <SystemNotificationsPanel initialSysNotifs={initialSysNotifs} />
+
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <Bell size={24} className="text-verde-400" />

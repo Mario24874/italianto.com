@@ -13,11 +13,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json()
     const supabase = getSupabaseAdmin()
 
+    // Fetch current lesson to protect slug of published lessons
+    const { data: current } = await supabase
+      .from('lessons')
+      .select('slug, status')
+      .eq('id', id)
+      .single()
+
+    const protectedSlug = current?.status === 'published'
+      ? current.slug  // slug locked — ignore incoming slug
+      : body.slug?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
+
     const { data, error } = await supabase
       .from('lessons')
       .update({
         ...body,
-        slug: body.slug?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+        slug: protectedSlug,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

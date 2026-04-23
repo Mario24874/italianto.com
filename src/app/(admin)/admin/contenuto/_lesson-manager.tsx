@@ -8,7 +8,7 @@ import {
   Upload, FileText, Sparkles, AlertTriangle,
   Video, Captions, Dumbbell,
   CheckCircle2, Languages, Trash,
-  ChevronDown, ChevronUp, ListOrdered, Headphones,
+  ChevronDown, ChevronUp, ListOrdered, Headphones, Lock,
 } from 'lucide-react'
 import type { LessonRow, LessonLevel, LessonStatus, VocabularyItem, Exercise, LessonTranslations, AudioClip } from '@/types'
 import { RichEditor } from './_rich-editor'
@@ -1129,11 +1129,20 @@ function LessonModal({
   const [editorKey, setEditorKey] = useState(0)
   const [translations, setTranslations] = useState<LessonTranslations>(lesson?.translations ?? {})
 
+  const isPublished = lesson?.status === 'published'
+
   const setField = <K extends keyof LessonFormData>(k: K, v: LessonFormData[K]) =>
     setForm(f => ({ ...f, [k]: v }))
 
   const handleTitleChange = (title: string) =>
     setForm(f => ({ ...f, title, slug: lesson ? f.slug : slugify(title) }))
+
+  const handleAutoNumber = () => {
+    const lessonNumber = (lesson?.order_index ?? 0) + 1
+    const base = form.title.replace(/^Lezione\s+\d+:\s*/i, '').trim()
+    const numbered = `Lezione ${lessonNumber}: ${base}`
+    setForm(f => ({ ...f, title: numbered }))
+  }
 
   const addVocab = () =>
     setForm(f => ({ ...f, vocabulary: [...f.vocabulary, { word: '', translation: '', example: '' }] }))
@@ -1148,7 +1157,7 @@ function LessonModal({
     setForm(f => ({
       ...f,
       title: data.title || f.title,
-      slug: data.title ? slugify(data.title) : f.slug,
+      slug: (data.title && !lesson) ? slugify(data.title) : f.slug,
       level: (data.level as LessonLevel) || f.level,
       content_html: data.content_html || f.content_html,
       grammar_notes: data.grammar_notes || f.grammar_notes,
@@ -1224,12 +1233,35 @@ function LessonModal({
             {/* ── Title (prominent) ── */}
             <div>
               <label className="block text-xs font-medium text-verde-400 mb-1.5">Título de la lección *</label>
-              <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)}
-                placeholder="ej. I saluti italiani"
-                className="w-full px-3 py-2.5 rounded-xl bg-verde-950/50 border border-verde-800/40 text-base text-verde-100 placeholder:text-verde-600 focus:outline-none focus:border-verde-600"
-                required />
+              <div className="flex gap-2">
+                <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)}
+                  placeholder="ej. I saluti italiani"
+                  className="flex-1 px-3 py-2.5 rounded-xl bg-verde-950/50 border border-verde-800/40 text-base text-verde-100 placeholder:text-verde-600 focus:outline-none focus:border-verde-600"
+                  required />
+                {lesson && (
+                  <button
+                    type="button"
+                    onClick={handleAutoNumber}
+                    title={`Añadir prefijo "Lezione ${(lesson.order_index ?? 0) + 1}:"`}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-verde-900/40 border border-verde-800/40 text-verde-400 hover:text-verde-200 hover:bg-verde-900/70 transition-colors text-xs whitespace-nowrap"
+                  >
+                    <ListOrdered size={13} />
+                    Numerar
+                  </button>
+                )}
+              </div>
               {form.slug && (
-                <p className="text-[10px] text-verde-700 mt-1 font-mono">/{form.slug}</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  {isPublished ? (
+                    <>
+                      <Lock size={10} className="text-amber-500 flex-shrink-0" />
+                      <span className="text-[10px] text-amber-600 font-mono">/lezioni/{form.slug}</span>
+                      <span className="text-[9px] text-amber-700/80">— slug bloqueado · cambia a Borrador para editar</span>
+                    </>
+                  ) : (
+                    <span className="text-[10px] text-verde-700 font-mono">/lezioni/{form.slug}</span>
+                  )}
+                </div>
               )}
             </div>
 
