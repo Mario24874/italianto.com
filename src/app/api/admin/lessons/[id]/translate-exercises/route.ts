@@ -85,8 +85,20 @@ export async function POST(
     return NextResponse.json({ error: 'No hay ejercicios para traducir. Importa ejercicios primero y guarda la lección.' }, { status: 400 })
   }
 
+  // If source lang == target, just store the source as-is (no translation needed)
   if (source.sourceLang === lang) {
-    return NextResponse.json({ error: 'El idioma fuente y destino son iguales.' }, { status: 400 })
+    const existingTr = ((lesson.exercise_translations ?? {}) as ExerciseTranslations)
+    const updatedTr: ExerciseTranslations = { ...existingTr, [lang]: source.exercises }
+    const { error: updateErr } = await supabase
+      .from('lessons')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update({ exercise_translations: updatedTr as any, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    if (updateErr) {
+      const msg = updateErr instanceof Error ? updateErr.message : String(updateErr)
+      return NextResponse.json({ error: msg }, { status: 500 })
+    }
+    return NextResponse.json({ exercises: source.exercises, lang })
   }
 
   const prompt = buildPrompt(source.exercises, source.sourceLang, lang)
