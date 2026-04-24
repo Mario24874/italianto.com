@@ -13,9 +13,15 @@ function normalize(s: string) {
     .replace(/\s+/g, ' ')
 }
 
+// Remove ___id___ placeholders from fill_blank labels (Gemini sometimes puts them there)
+function cleanLabel(label: string) {
+  return label.replace(/___\w+___/g, '[ ]')
+}
+
 function answersMatch(correct: string, user: string): boolean {
   const c = normalize(correct)
   const u = normalize(user)
+  if (!u) return false
   return c === u || c.includes(u) || u.includes(c)
 }
 
@@ -111,7 +117,7 @@ function FillBlankExercise({
           return (
             <div key={item.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-verde-950/20 border border-verde-900/20 hover:border-verde-800/40 transition-colors">
               <span className="text-sm text-verde-300 font-medium min-w-0 flex-shrink-0" style={{ minWidth: '120px' }}>
-                {item.label}
+                {cleanLabel(item.label)}
               </span>
               <input
                 type="text"

@@ -150,6 +150,8 @@ function ExerciseImportPanel({
   exerciseTranslations: ExerciseTranslations
   onImport: (lang: 'es' | 'it' | 'en', exercises: Exercise[]) => void
 }) {
+  const hasAny = EXERCISE_LANGS.some(l => (exerciseTranslations[l.value]?.length ?? 0) > 0)
+  const [expanded, setExpanded] = useState(!hasAny)
   const [baseLang, setBaseLang] = useState<'es' | 'it' | 'en'>('it')
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -180,63 +182,78 @@ function ExerciseImportPanel({
   const existingCount = exerciseTranslations[baseLang]?.length ?? 0
 
   return (
-    <div className="rounded-xl border border-dashed border-blue-700/40 bg-blue-950/10 p-4 space-y-3">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+    <div className="rounded-xl border border-dashed border-blue-700/40 bg-blue-950/10 p-3 space-y-3">
+      <button
+        type="button"
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between gap-2"
+      >
         <div className="flex items-center gap-2">
           <Dumbbell size={14} className="text-blue-400" />
-          <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">Importar ejercicios base</span>
+          <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">
+            {hasAny ? 'Reimportar ejercicios base' : 'Importar ejercicios base'}
+          </span>
+          {hasAny && !expanded && (
+            <span className="text-[10px] text-blue-600">— clic para expandir</span>
+          )}
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-blue-600">Idioma:</span>
-          <div className="flex gap-1">
-            {EXERCISE_LANGS.map(({ value, flag }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setBaseLang(value)}
-                className={[
-                  'px-2 py-0.5 rounded-md border text-xs transition-all',
-                  baseLang === value
-                    ? 'border-blue-500/70 bg-blue-950/50 text-blue-200'
-                    : 'border-blue-900/30 text-blue-600 hover:text-blue-400',
-                ].join(' ')}
-              >
-                {flag}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div
-        onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
-        onDragOver={e => e.preventDefault()}
-        onClick={() => fileRef.current?.click()}
-        className="flex flex-col items-center gap-2 py-4 rounded-lg border border-blue-800/30 bg-blue-950/20 cursor-pointer hover:bg-blue-900/20 hover:border-blue-700/40 transition-all group"
-      >
-        <input ref={fileRef} type="file" className="hidden" accept=".pdf,.docx,.txt,.md"
-          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
-        {importing ? (
-          <>
-            <Loader2 size={20} className="animate-spin text-blue-400" />
-            <div className="text-center">
-              <p className="text-sm font-medium text-blue-300">Generando ejercicios con IA...</p>
-              <p className="text-xs text-blue-600 mt-0.5">{fileName}</p>
+        {expanded
+          ? <ChevronUp size={14} className="text-blue-600 shrink-0" />
+          : <ChevronDown size={14} className="text-blue-600 shrink-0" />}
+      </button>
+
+      {expanded && (
+        <>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-blue-600">Idioma del archivo:</span>
+            <div className="flex gap-1">
+              {EXERCISE_LANGS.map(({ value, flag }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setBaseLang(value)}
+                  className={[
+                    'px-2 py-0.5 rounded-md border text-xs transition-all',
+                    baseLang === value
+                      ? 'border-blue-500/70 bg-blue-950/50 text-blue-200'
+                      : 'border-blue-900/30 text-blue-600 hover:text-blue-400',
+                  ].join(' ')}
+                >
+                  {flag}
+                </button>
+              ))}
             </div>
-          </>
-        ) : (
-          <>
-            <Upload size={20} className="text-blue-600 group-hover:text-blue-400 transition-colors" />
-            <p className="text-sm text-blue-400 group-hover:text-blue-300">
-              {existingCount > 0
-                ? `Reemplazar ejercicios ${EXERCISE_LANGS.find(l => l.value === baseLang)?.flag}`
-                : 'Arrastra o haz clic — PDF, DOCX o TXT'}
-            </p>
-            <p className="text-xs text-blue-600 text-center">
-              Gemini generará ejercicios. Luego traduce con IA abajo.
-            </p>
-          </>
-        )}
-      </div>
+          </div>
+          <div
+            onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
+            onDragOver={e => e.preventDefault()}
+            onClick={() => fileRef.current?.click()}
+            className="flex flex-col items-center gap-2 py-4 rounded-lg border border-blue-800/30 bg-blue-950/20 cursor-pointer hover:bg-blue-900/20 hover:border-blue-700/40 transition-all group"
+          >
+            <input ref={fileRef} type="file" className="hidden" accept=".pdf,.docx,.txt,.md"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+            {importing ? (
+              <>
+                <Loader2 size={20} className="animate-spin text-blue-400" />
+                <div className="text-center">
+                  <p className="text-sm font-medium text-blue-300">Generando ejercicios con IA...</p>
+                  <p className="text-xs text-blue-600 mt-0.5">{fileName}</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <Upload size={20} className="text-blue-600 group-hover:text-blue-400 transition-colors" />
+                <p className="text-sm text-blue-400 group-hover:text-blue-300">
+                  Arrastra o haz clic — PDF, DOCX o TXT
+                </p>
+                <p className="text-xs text-blue-600 text-center">
+                  Reemplazará los ejercicios {EXERCISE_LANGS.find(l => l.value === baseLang)?.flag} existentes
+                </p>
+              </>
+            )}
+          </div>
+        </>
+      )}
       {error && (
         <div className="flex items-center gap-2 text-xs text-red-400 bg-red-950/30 border border-red-800/30 rounded-lg px-3 py-2">
           <AlertTriangle size={13} className="shrink-0" />{error}
@@ -250,14 +267,19 @@ function ExerciseImportPanel({
 function ExerciseTranslationsPanel({
   lessonId,
   exerciseTranslations,
+  legacyExerciseCount,
   onUpdate,
 }: {
   lessonId: string
   exerciseTranslations: ExerciseTranslations
+  legacyExerciseCount: number
   onUpdate: (t: ExerciseTranslations) => void
 }) {
   const [translating, setTranslating] = useState<'en' | 'it' | 'es' | null>(null)
   const [deleting, setDeleting] = useState<'en' | 'it' | 'es' | null>(null)
+
+  const maxTrCount = Math.max(...EXERCISE_LANGS.map(l => exerciseTranslations[l.value]?.length ?? 0), 0)
+  const hasMismatch = legacyExerciseCount > maxTrCount && maxTrCount > 0
 
   const handleTranslate = async (lang: 'en' | 'it' | 'es') => {
     setTranslating(lang)
@@ -296,6 +318,15 @@ function ExerciseTranslationsPanel({
       <p className="text-xs text-blue-700/80">
         Gemini traducirá las instrucciones. Los contenidos en italiano permanecen sin cambios.
       </p>
+      {hasMismatch && (
+        <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-950/30 border border-amber-800/30 rounded-lg px-3 py-2">
+          <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+          <span>
+            El editor tiene {legacyExerciseCount} ejercicios pero las traducciones tienen {maxTrCount}.
+            Haz clic en Re-gen para actualizar.
+          </span>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-2">
         {EXERCISE_LANGS.map(({ value, label, flag }) => {
           const count = exerciseTranslations[value]?.length ?? 0
@@ -1505,6 +1536,7 @@ function LessonModal({
               <ExerciseTranslationsPanel
                 lessonId={lesson.id}
                 exerciseTranslations={exTranslations}
+                legacyExerciseCount={form.exercises.length}
                 onUpdate={updated => {
                   setExTranslations(updated)
                   setForm(f => ({ ...f, exercise_translations: updated }))

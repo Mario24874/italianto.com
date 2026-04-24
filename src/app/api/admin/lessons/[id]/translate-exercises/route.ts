@@ -17,11 +17,22 @@ function findSource(lesson: Pick<LessonRow, 'exercises' | 'exercise_translations
   sourceLang: string
 } | null {
   const exTr = (lesson.exercise_translations ?? {}) as ExerciseTranslations
+  const legacyCount = lesson.exercises?.length ?? 0
+
+  // Find best translation (most exercises)
+  let bestTr: { exercises: Exercise[]; sourceLang: string } | null = null
   for (const lang of ['it', 'es', 'en'] as const) {
-    if (exTr[lang]?.length) return { exercises: exTr[lang]!, sourceLang: lang }
+    if ((exTr[lang]?.length ?? 0) > (bestTr?.exercises.length ?? 0)) {
+      bestTr = { exercises: exTr[lang]!, sourceLang: lang }
+    }
   }
-  if (lesson.exercises?.length) return { exercises: lesson.exercises, sourceLang: 'it' }
-  return null
+
+  // Prefer legacy exercises[] when it has MORE items (includes manually-added exercises)
+  if (legacyCount > 0 && legacyCount >= (bestTr?.exercises.length ?? 0)) {
+    return { exercises: lesson.exercises!, sourceLang: 'it' }
+  }
+
+  return bestTr
 }
 
 function buildPrompt(exercises: Exercise[], sourceLang: string, targetLang: string): string {
