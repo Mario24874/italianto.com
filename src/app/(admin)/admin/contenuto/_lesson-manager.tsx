@@ -150,7 +150,7 @@ function ExerciseImportPanel({
   exerciseTranslations: ExerciseTranslations
   onImport: (lang: 'es' | 'it' | 'en', exercises: Exercise[]) => void
 }) {
-  const [activeLang, setActiveLang] = useState<'es' | 'it' | 'en'>('es')
+  const [baseLang, setBaseLang] = useState<'es' | 'it' | 'en'>('it')
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -166,47 +166,45 @@ function ExerciseImportPanel({
     setFileName(file.name); setImporting(true); setError(null)
     const form = new FormData()
     form.append('file', file)
-    form.append('language', activeLang)
+    form.append('language', baseLang)
     try {
       const res = await fetch('/api/admin/lessons/import-exercises', { method: 'POST', body: form })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al generar ejercicios')
-      onImport(activeLang, data.exercises)
+      onImport(baseLang, data.exercises)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error')
     } finally { setImporting(false) }
   }
 
-  const existingCount = exerciseTranslations[activeLang]?.length ?? 0
+  const existingCount = exerciseTranslations[baseLang]?.length ?? 0
 
   return (
     <div className="rounded-xl border border-dashed border-blue-700/40 bg-blue-950/10 p-4 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Dumbbell size={14} className="text-blue-400" />
-          <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">Ejercicios interactivos</span>
+          <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">Importar ejercicios base</span>
         </div>
-        <div className="flex gap-1">
-          {EXERCISE_LANGS.map(({ value, flag }) => {
-            const count = exerciseTranslations[value]?.length ?? 0
-            const isActive = activeLang === value
-            return (
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-blue-600">Idioma:</span>
+          <div className="flex gap-1">
+            {EXERCISE_LANGS.map(({ value, flag }) => (
               <button
                 key={value}
                 type="button"
-                onClick={() => setActiveLang(value)}
+                onClick={() => setBaseLang(value)}
                 className={[
-                  'flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs transition-all',
-                  isActive
+                  'px-2 py-0.5 rounded-md border text-xs transition-all',
+                  baseLang === value
                     ? 'border-blue-500/70 bg-blue-950/50 text-blue-200'
-                    : 'border-blue-900/30 bg-blue-950/10 text-blue-600 hover:text-blue-400 hover:border-blue-800/50',
+                    : 'border-blue-900/30 text-blue-600 hover:text-blue-400',
                 ].join(' ')}
               >
-                <span>{flag}</span>
-                {count > 0 && <span className="text-green-400 font-semibold">{count}</span>}
+                {flag}
               </button>
-            )
-          })}
+            ))}
+          </div>
         </div>
       </div>
       <div
@@ -230,11 +228,11 @@ function ExerciseImportPanel({
             <Upload size={20} className="text-blue-600 group-hover:text-blue-400 transition-colors" />
             <p className="text-sm text-blue-400 group-hover:text-blue-300">
               {existingCount > 0
-                ? `Reemplazar ejercicios ${EXERCISE_LANGS.find(l => l.value === activeLang)?.flag}`
-                : `Subir guía → ${EXERCISE_LANGS.find(l => l.value === activeLang)?.label}`}
+                ? `Reemplazar ejercicios ${EXERCISE_LANGS.find(l => l.value === baseLang)?.flag}`
+                : 'Arrastra o haz clic — PDF, DOCX o TXT'}
             </p>
             <p className="text-xs text-blue-600 text-center">
-              Gemini generará ejercicios interactivos en el idioma seleccionado
+              Gemini generará ejercicios. Luego traduce con IA abajo.
             </p>
           </>
         )}
@@ -244,6 +242,117 @@ function ExerciseImportPanel({
           <AlertTriangle size={13} className="shrink-0" />{error}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Exercise Translations Panel ──────────────────────────────────────────────
+function ExerciseTranslationsPanel({
+  lessonId,
+  exerciseTranslations,
+  onUpdate,
+}: {
+  lessonId: string
+  exerciseTranslations: ExerciseTranslations
+  onUpdate: (t: ExerciseTranslations) => void
+}) {
+  const [translating, setTranslating] = useState<'en' | 'it' | 'es' | null>(null)
+  const [deleting, setDeleting] = useState<'en' | 'it' | 'es' | null>(null)
+
+  const handleTranslate = async (lang: 'en' | 'it' | 'es') => {
+    setTranslating(lang)
+    try {
+      const res = await fetch(`/api/admin/lessons/${lessonId}/translate-exercises`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al traducir')
+      onUpdate({ ...exerciseTranslations, [lang]: data.exercises })
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Error al traducir')
+    } finally { setTranslating(null) }
+  }
+
+  const handleDelete = async (lang: 'en' | 'it' | 'es') => {
+    if (!confirm('¿Eliminar los ejercicios en este idioma?')) return
+    setDeleting(lang)
+    try {
+      await fetch(`/api/admin/lessons/${lessonId}/translate-exercises?lang=${lang}`, { method: 'DELETE' })
+      const updated = { ...exerciseTranslations }
+      delete updated[lang]
+      onUpdate(updated)
+    } finally { setDeleting(null) }
+  }
+
+  return (
+    <div className="rounded-xl border border-blue-800/30 bg-blue-950/10 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Languages size={14} className="text-blue-400" />
+        <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">Traducciones de ejercicios</span>
+        <span className="text-xs text-blue-700">— el alumno elige idioma</span>
+      </div>
+      <p className="text-xs text-blue-700/80">
+        Gemini traducirá las instrucciones. Los contenidos en italiano permanecen sin cambios.
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {EXERCISE_LANGS.map(({ value, label, flag }) => {
+          const count = exerciseTranslations[value]?.length ?? 0
+          const exists = count > 0
+          const isTranslating = translating === value
+          const isDeleting = deleting === value
+          return (
+            <div key={value} className={[
+              'flex flex-col gap-2 rounded-lg border px-3 py-2.5',
+              exists ? 'border-green-700/40 bg-green-950/20' : 'border-blue-800/20 bg-blue-950/20',
+            ].join(' ')}>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">{flag}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-blue-200 truncate">{label}</p>
+                  <p className="text-[10px] text-blue-700">
+                    {exists ? `${count} ejercicios` : 'Sin traducción'}
+                  </p>
+                </div>
+              </div>
+              {exists ? (
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleTranslate(value)}
+                    disabled={!!translating}
+                    title="Re-generar"
+                    className="flex-1 flex items-center justify-center gap-1 py-1 text-[10px] rounded-md bg-blue-900/30 hover:bg-blue-800/40 text-blue-400 transition-colors disabled:opacity-40"
+                  >
+                    {isTranslating ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                    Re-gen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(value)}
+                    disabled={!!deleting}
+                    title="Eliminar"
+                    className="flex items-center justify-center p-1 rounded-md text-red-600 hover:text-red-400 hover:bg-red-950/30 transition-colors disabled:opacity-40"
+                  >
+                    {isDeleting ? <Loader2 size={10} className="animate-spin" /> : <Trash size={10} />}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleTranslate(value)}
+                  disabled={!!translating}
+                  className="flex items-center justify-center gap-1 py-1 text-[10px] rounded-md bg-blue-800/30 hover:bg-blue-700/40 text-blue-300 transition-colors disabled:opacity-40"
+                >
+                  {isTranslating ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                  Generar
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -1159,6 +1268,7 @@ function LessonModal({
   const [error, setError] = useState<string | null>(null)
   const [editorKey, setEditorKey] = useState(0)
   const [translations, setTranslations] = useState<LessonTranslations>(lesson?.translations ?? {})
+  const [exTranslations, setExTranslations] = useState<ExerciseTranslations>(lesson?.exercise_translations ?? {})
 
   const isPublished = lesson?.status === 'published'
 
@@ -1381,11 +1491,26 @@ function LessonModal({
             {/* ── Exercise Guide Import ── */}
             <ExerciseImportPanel
               exerciseTranslations={form.exercise_translations}
-              onImport={(lang, exercises) => setForm(f => ({
-                ...f,
-                exercise_translations: { ...f.exercise_translations, [lang]: exercises },
-              }))}
+              onImport={(lang, exercises) => {
+                setForm(f => ({
+                  ...f,
+                  exercise_translations: { ...f.exercise_translations, [lang]: exercises },
+                }))
+                setExTranslations(t => ({ ...t, [lang]: exercises }))
+              }}
             />
+
+            {/* ── Exercise Translations (only for saved lessons) ── */}
+            {lesson && (
+              <ExerciseTranslationsPanel
+                lessonId={lesson.id}
+                exerciseTranslations={exTranslations}
+                onUpdate={updated => {
+                  setExTranslations(updated)
+                  setForm(f => ({ ...f, exercise_translations: updated }))
+                }}
+              />
+            )}
 
             {/* ── Exercise Editor ── */}
             <ExerciseEditor
