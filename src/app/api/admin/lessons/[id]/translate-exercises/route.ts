@@ -27,9 +27,10 @@ function findSource(lesson: Pick<LessonRow, 'exercises' | 'exercise_translations
     }
   }
 
-  // Prefer legacy exercises[] when it has MORE items (includes manually-added exercises)
+  // Prefer legacy exercises[] when it has MORE items (includes manually-added exercises).
+  // Legacy exercises were always generated in Spanish (original hardcoded language: 'es').
   if (legacyCount > 0 && legacyCount >= (bestTr?.exercises.length ?? 0)) {
-    return { exercises: lesson.exercises!, sourceLang: 'it' }
+    return { exercises: lesson.exercises!, sourceLang: 'es' }
   }
 
   return bestTr
