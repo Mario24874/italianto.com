@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
       `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} https://api.anthropic.com https://generativelanguage.googleapis.com https://api.deepl.com https://api.stripe.com https://api.emailjs.com https://*.clerk.accounts.dev https://clerk.italianto.com`,
       "img-src 'self' data: blob: https://img.clerk.com https://*.supabase.co https://images.unsplash.com https://images.pexels.com https://*.cloudinary.com",
       "media-src 'self' https://*.supabase.co blob:",
-      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
+      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com",
       "worker-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",
