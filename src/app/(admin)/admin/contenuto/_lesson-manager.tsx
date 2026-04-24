@@ -10,7 +10,7 @@ import {
   CheckCircle2, Languages, Trash,
   ChevronDown, ChevronUp, ListOrdered, Headphones, Lock,
 } from 'lucide-react'
-import type { LessonRow, LessonLevel, LessonStatus, VocabularyItem, Exercise, LessonTranslations, AudioClip } from '@/types'
+import type { LessonRow, LessonLevel, LessonStatus, VocabularyItem, Exercise, LessonTranslations, ExerciseTranslations, AudioClip } from '@/types'
 import { RichEditor } from './_rich-editor'
 
 const LEVELS: LessonLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
@@ -50,6 +50,7 @@ interface LessonFormData {
   intro_video_url: string
   video_subtitles: { es: string; en: string; it: string }
   exercises: Exercise[]
+  exercise_translations: ExerciseTranslations
   audio_clips: AudioClip[]
 }
 
@@ -64,6 +65,7 @@ const emptyForm = (): LessonFormData => ({
   intro_video_url: '',
   video_subtitles: { es: '', en: '', it: '' },
   exercises: [],
+  exercise_translations: {},
   audio_clips: [],
 })
 
@@ -135,13 +137,20 @@ function ImportPanel({ onImport }: { onImport: (data: Partial<LessonFormData>) =
 }
 
 // ─── Exercise Import Panel ─────────────────────────────────────────────────────
+const EXERCISE_LANGS: { value: 'es' | 'it' | 'en'; label: string; flag: string }[] = [
+  { value: 'es', label: 'Español', flag: '🇪🇸' },
+  { value: 'it', label: 'Italiano', flag: '🇮🇹' },
+  { value: 'en', label: 'English', flag: '🇬🇧' },
+]
+
 function ExerciseImportPanel({
+  exerciseTranslations,
   onImport,
-  existingCount,
 }: {
-  onImport: (exercises: Exercise[]) => void
-  existingCount: number
+  exerciseTranslations: ExerciseTranslations
+  onImport: (lang: 'es' | 'it' | 'en', exercises: Exercise[]) => void
 }) {
+  const [activeLang, setActiveLang] = useState<'es' | 'it' | 'en'>('es')
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -157,29 +166,48 @@ function ExerciseImportPanel({
     setFileName(file.name); setImporting(true); setError(null)
     const form = new FormData()
     form.append('file', file)
-    form.append('language', 'es')
+    form.append('language', activeLang)
     try {
       const res = await fetch('/api/admin/lessons/import-exercises', { method: 'POST', body: form })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al generar ejercicios')
-      onImport(data.exercises)
+      onImport(activeLang, data.exercises)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error')
     } finally { setImporting(false) }
   }
 
+  const existingCount = exerciseTranslations[activeLang]?.length ?? 0
+
   return (
     <div className="rounded-xl border border-dashed border-blue-700/40 bg-blue-950/10 p-4 space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Dumbbell size={14} className="text-blue-400" />
           <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">Ejercicios interactivos</span>
         </div>
-        {existingCount > 0 && (
-          <span className="flex items-center gap-1 text-xs text-green-400">
-            <CheckCircle2 size={12} />{existingCount} ejercicios generados
-          </span>
-        )}
+        <div className="flex gap-1">
+          {EXERCISE_LANGS.map(({ value, flag }) => {
+            const count = exerciseTranslations[value]?.length ?? 0
+            const isActive = activeLang === value
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setActiveLang(value)}
+                className={[
+                  'flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs transition-all',
+                  isActive
+                    ? 'border-blue-500/70 bg-blue-950/50 text-blue-200'
+                    : 'border-blue-900/30 bg-blue-950/10 text-blue-600 hover:text-blue-400 hover:border-blue-800/50',
+                ].join(' ')}
+              >
+                <span>{flag}</span>
+                {count > 0 && <span className="text-green-400 font-semibold">{count}</span>}
+              </button>
+            )
+          })}
+        </div>
       </div>
       <div
         onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
@@ -201,10 +229,12 @@ function ExerciseImportPanel({
           <>
             <Upload size={20} className="text-blue-600 group-hover:text-blue-400 transition-colors" />
             <p className="text-sm text-blue-400 group-hover:text-blue-300">
-              {existingCount > 0 ? 'Reemplazar guía de ejercicios' : 'Subir guía de ejercicios'}
+              {existingCount > 0
+                ? `Reemplazar ejercicios ${EXERCISE_LANGS.find(l => l.value === activeLang)?.flag}`
+                : `Subir guía → ${EXERCISE_LANGS.find(l => l.value === activeLang)?.label}`}
             </p>
             <p className="text-xs text-blue-600 text-center">
-              Gemini generará ejercicios interactivos a partir del archivo
+              Gemini generará ejercicios interactivos en el idioma seleccionado
             </p>
           </>
         )}
@@ -1121,6 +1151,7 @@ function LessonModal({
       intro_video_url: lesson.intro_video_url ?? '',
       video_subtitles: { es: lesson.video_subtitles?.es ?? '', en: lesson.video_subtitles?.en ?? '', it: lesson.video_subtitles?.it ?? '' },
       exercises: lesson.exercises ?? [],
+      exercise_translations: lesson.exercise_translations ?? {},
       audio_clips: lesson.audio_clips ?? [],
     } : emptyForm()
   )
@@ -1190,6 +1221,7 @@ function LessonModal({
             ...(form.video_subtitles.it && { it: form.video_subtitles.it }),
           },
           exercises: form.exercises,
+          exercise_translations: form.exercise_translations,
           audio_clips: form.audio_clips,
         }),
       })
@@ -1348,8 +1380,11 @@ function LessonModal({
 
             {/* ── Exercise Guide Import ── */}
             <ExerciseImportPanel
-              onImport={exercises => setField('exercises', exercises)}
-              existingCount={form.exercises.length}
+              exerciseTranslations={form.exercise_translations}
+              onImport={(lang, exercises) => setForm(f => ({
+                ...f,
+                exercise_translations: { ...f.exercise_translations, [lang]: exercises },
+              }))}
             />
 
             {/* ── Exercise Editor ── */}

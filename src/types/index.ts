@@ -277,6 +277,9 @@ export interface LessonTranslation {
 /** Keys: 'en' | 'it' | 'es' — Spanish can also be stored as a translation when original content_html is in Italian */
 export type LessonTranslations = Partial<Record<'en' | 'it' | 'es', LessonTranslation>>
 
+/** Per-language exercise sets — student picks their preferred language */
+export type ExerciseTranslations = Partial<Record<'es' | 'it' | 'en', Exercise[]>>
+
 // ─── Audio Clip ───────────────────────────────────────────────────────────────
 
 export interface AudioClip {
@@ -302,6 +305,7 @@ export interface LessonRow {
   intro_video_url: string | null
   video_subtitles: { es?: string; en?: string; it?: string }
   exercises: Exercise[]
+  exercise_translations: ExerciseTranslations
   audio_clips: AudioClip[]
   ui_language: LessonLanguage
   translations: LessonTranslations

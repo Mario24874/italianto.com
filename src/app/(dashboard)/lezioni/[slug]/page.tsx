@@ -251,17 +251,28 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           )}
 
           {/* ── Interactive Exercises ── */}
-          {Array.isArray(lesson.exercises) && lesson.exercises.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <GraduationCap size={16} className="text-blue-600 dark:text-blue-400" />
-                <h2 className="font-semibold text-blue-700 dark:text-blue-300 text-sm uppercase tracking-wide">
-                  {t.lessons.exercisesSection} ({lesson.exercises.length})
-                </h2>
+          {(() => {
+            const hasLegacy = Array.isArray(lesson.exercises) && lesson.exercises.length > 0
+            const hasTranslated = Object.values(lesson.exercise_translations ?? {}).some(a => a?.length)
+            const totalCount = hasTranslated
+              ? Math.max(...Object.values(lesson.exercise_translations ?? {}).map(a => a?.length ?? 0))
+              : (lesson.exercises?.length ?? 0)
+            if (!hasLegacy && !hasTranslated) return null
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={16} className="text-blue-600 dark:text-blue-400" />
+                  <h2 className="font-semibold text-blue-700 dark:text-blue-300 text-sm uppercase tracking-wide">
+                    {t.lessons.exercisesSection} ({totalCount})
+                  </h2>
+                </div>
+                <LessonExercises
+                  exercises={lesson.exercises ?? []}
+                  exerciseTranslations={lesson.exercise_translations ?? {}}
+                />
               </div>
-              <LessonExercises exercises={lesson.exercises} />
-            </div>
-          )}
+            )
+          })()}
 
           {/* ── Exam ── */}
           <LessonExam

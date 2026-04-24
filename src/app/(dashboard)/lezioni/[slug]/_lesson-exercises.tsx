@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { CheckCircle2, XCircle, Eye, EyeOff, ChevronRight } from 'lucide-react'
-import type { Exercise, ExerciseFillBlank, ExerciseChoice, ExerciseDialogue, ExerciseFreeWrite } from '@/types'
+import type { Exercise, ExerciseFillBlank, ExerciseChoice, ExerciseDialogue, ExerciseFreeWrite, ExerciseTranslations } from '@/types'
 import { useLanguage } from '@/contexts/language-context'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -560,28 +560,76 @@ function ScorePanel({ scores, total }: { scores: Record<string, number>; total: 
   )
 }
 
+// ─── Lang flags ───────────────────────────────────────────────────────────────
+const LANG_FLAGS: Record<string, string> = { es: '🇪🇸', it: '🇮🇹', en: '🇬🇧' }
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function LessonExercises({ exercises }: { exercises: Exercise[] }) {
-  const { t } = useLanguage()
+export function LessonExercises({
+  exercises,
+  exerciseTranslations,
+}: {
+  exercises: Exercise[]
+  exerciseTranslations?: ExerciseTranslations
+}) {
+  const { t, lang } = useLanguage()
   const tEx = t.lessons.exercisesUi
   const [scores, setScores] = useState<Record<string, number>>({})
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
+
+  const availableLangs = (['es', 'it', 'en'] as const).filter(
+    l => (exerciseTranslations?.[l]?.length ?? 0) > 0
+  )
+
+  const [selectedLang, setSelectedLang] = useState<'es' | 'it' | 'en'>(() => {
+    const userLang = lang as 'es' | 'it' | 'en'
+    return availableLangs.includes(userLang) ? userLang : availableLangs[0] ?? 'es'
+  })
+
+  const activeExercises = availableLangs.length > 0
+    ? (exerciseTranslations?.[selectedLang] ?? exercises)
+    : exercises
 
   const handleComplete = useCallback((id: string, score: number) => {
     setScores(s => ({ ...s, [id]: score }))
     setCompletedIds(s => new Set([...s, id]))
   }, [])
 
-  if (!exercises || exercises.length === 0) return null
+  const handleLangChange = (l: 'es' | 'it' | 'en') => {
+    setSelectedLang(l)
+    setScores({})
+    setCompletedIds(new Set())
+  }
+
+  if (!activeExercises || activeExercises.length === 0) return null
 
   return (
     <div className="space-y-4">
-      <ProgressBar done={completedIds.size} total={exercises.length} />
+      {availableLangs.length > 1 && (
+        <div className="flex items-center gap-2">
+          {availableLangs.map(l => (
+            <button
+              key={l}
+              onClick={() => handleLangChange(l)}
+              className={[
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all',
+                selectedLang === l
+                  ? 'border-blue-500/70 bg-blue-950/40 text-blue-200'
+                  : 'border-verde-900/30 bg-verde-950/10 text-verde-500 hover:text-verde-300 hover:border-verde-800/40',
+              ].join(' ')}
+            >
+              <span>{LANG_FLAGS[l]}</span>
+              <span className="uppercase">{l}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
-      {exercises.map((ex, idx) => (
+      <ProgressBar done={completedIds.size} total={activeExercises.length} />
+
+      {activeExercises.map((ex, idx) => (
         <div key={ex.id}>
-          {ex.section && (idx === 0 || exercises[idx - 1].section !== ex.section) && (
+          {ex.section && (idx === 0 || activeExercises[idx - 1].section !== ex.section) && (
             <SectionDivider label={ex.section} />
           )}
           <ExerciseCard
@@ -592,7 +640,7 @@ export function LessonExercises({ exercises }: { exercises: Exercise[] }) {
       ))}
 
       {completedIds.size > 0 && (
-        <ScorePanel scores={scores} total={exercises.length} />
+        <ScorePanel scores={scores} total={activeExercises.length} />
       )}
     </div>
   )
