@@ -72,6 +72,28 @@ const nextConfig: NextConfig = {
         source: '/app/:path*',
         destination: `${italiantoappUrl}/app/:path*`,
       },
+      // Dialoghi Studio API routes — called from /studio/* pages as relative fetch("/api/...")
+      // Browser resolves them against italianto.com origin, so proxy them to dialoghi-studio
+      {
+        source: '/api/subscription/:path*',
+        destination: `${dialoghiUrl}/studio/api/subscription/:path*`,
+      },
+      {
+        source: '/api/generate-dialogue/:path*',
+        destination: `${dialoghiUrl}/studio/api/generate-dialogue/:path*`,
+      },
+      {
+        source: '/api/generate-audio/:path*',
+        destination: `${dialoghiUrl}/studio/api/generate-audio/:path*`,
+      },
+      {
+        source: '/api/extract-text/:path*',
+        destination: `${dialoghiUrl}/studio/api/extract-text/:path*`,
+      },
+      {
+        source: '/api/translate/:path*',
+        destination: `${dialoghiUrl}/studio/api/translate/:path*`,
+      },
     ]
   },
 }
