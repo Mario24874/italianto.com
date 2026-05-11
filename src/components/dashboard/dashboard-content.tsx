@@ -9,7 +9,7 @@ import Image from 'next/image'
 import {
   BookOpen, Music, Gamepad2, Info, Video, Download,
   ExternalLink, Zap, Crown, Star, Languages, BookMarked,
-  Mic, MessageSquare, Bot,
+  Mic, MessageSquare,
 } from 'lucide-react'
 import type { PlanType } from '@/lib/plans'
 
@@ -100,22 +100,6 @@ export function DashboardContent({
       color: 'text-rose-400',
       bg: 'bg-rose-950/40 border-rose-800/30',
     },
-    {
-      label: 'ItalianBot',
-      description: 'Asistente de italiano',
-      href: `${appUrl}/tutor`,
-      icon: Bot,
-      color: 'text-amber-400',
-      bg: 'bg-amber-950/40 border-amber-800/30',
-    },
-    {
-      label: 'Videos básicos',
-      description: 'Contenido gratuito',
-      href: '/lezioni',
-      icon: Video,
-      color: 'text-pink-400',
-      bg: 'bg-pink-950/40 border-pink-800/30',
-    },
   ]
 
   return (
@@ -161,32 +145,34 @@ export function DashboardContent({
         </div>
       )}
 
-      {/* Quick access to apps */}
-      <div>
-        <h2 className="text-sm font-semibold text-verde-400 uppercase tracking-wider mb-3">
-          {t.dashboard.appsTitle}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {externalApps.map(app => (
-            <a
-              key={app.name}
-              href={app.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center gap-4 p-4 rounded-2xl border border-verde-900/40 bg-verde-950/20 hover:bg-verde-950/40 hover:border-verde-800/50 transition-all"
-            >
-              <div className="size-10 rounded-xl bg-verde-950 border border-verde-800/40 flex items-center justify-center shrink-0 overflow-hidden">
-                <Image src={app.logoSrc} alt={app.name} width={32} height={32} className="object-contain rounded-lg" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-verde-200 text-sm">{app.name}</div>
-                <div className="text-xs text-verde-500 truncate">{app.description}</div>
-              </div>
-              <ExternalLink size={14} className="text-verde-600 group-hover:text-verde-400 transition-colors shrink-0" />
-            </a>
-          ))}
+      {/* Quick access to apps — paid plans only */}
+      {isPaid && (
+        <div>
+          <h2 className="text-sm font-semibold text-verde-400 uppercase tracking-wider mb-3">
+            {t.dashboard.appsTitle}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {externalApps.map(app => (
+              <a
+                key={app.name}
+                href={app.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-4 p-4 rounded-2xl border border-verde-900/40 bg-verde-950/20 hover:bg-verde-950/40 hover:border-verde-800/50 transition-all"
+              >
+                <div className="size-10 rounded-xl bg-verde-950 border border-verde-800/40 flex items-center justify-center shrink-0 overflow-hidden">
+                  <Image src={app.logoSrc} alt={app.name} width={32} height={32} className="object-contain rounded-lg" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-verde-200 text-sm">{app.name}</div>
+                  <div className="text-xs text-verde-500 truncate">{app.description}</div>
+                </div>
+                <ExternalLink size={14} className="text-verde-600 group-hover:text-verde-400 transition-colors shrink-0" />
+              </a>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Platform Sections */}
       <div>

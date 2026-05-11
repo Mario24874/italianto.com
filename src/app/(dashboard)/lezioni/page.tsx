@@ -35,9 +35,19 @@ function hasAccess(userPlan: PlanType, required: PlanType): boolean {
 export default async function LezioniPage() {
   const user = await currentUser()
   if (!user) redirect('/sign-in')
-  const { t } = await getServerLang()
 
   const supabase = getSupabaseAdmin()
+  const { data: subCheck } = await supabase
+    .from('subscriptions')
+    .select('plan_type')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle()
+  const planCheck = (subCheck?.plan_type ?? 'free') as PlanType
+  if (planCheck === 'free') redirect('/precios')
+
+  const { t } = await getServerLang()
+
   const [lessonsResult, subResult, progressResult] = await Promise.all([
     supabase
       .from('lessons')

@@ -35,6 +35,15 @@ export default async function CorsiPage() {
   if (!user) redirect('/sign-in')
 
   const supabase = getSupabaseAdmin()
+  const { data: subCheck } = await supabase
+    .from('subscriptions')
+    .select('plan_type')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle()
+  const planCheck = (subCheck?.plan_type ?? 'free') as PlanType
+  if (planCheck === 'free') redirect('/precios')
+
   const [corsiResult, subResult] = await Promise.all([
     supabase.from('corsi_dal_vivo').select('id,title,description,instructor,schedule_text,meeting_url,meeting_platform,level,plan_required,status,max_students').in('status', ['published','full']).order('order_index', { ascending: true }),
     supabase.from('subscriptions').select('plan_type').eq('user_id', user.id).eq('status', 'active').maybeSingle(),

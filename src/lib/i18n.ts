@@ -113,7 +113,7 @@ export const translations = {
         free: {
           name: 'Gratis',
           description: 'Para empezar a explorar',
-          features: ['Traductor básico (es ↔ it)', 'Conjugador de 20 verbos', 'Práctica de pronunciación', '3 diálogos escritos/mes', 'ItalianBot asistente', 'Videos y contenido básico'],
+          features: ['Traductor básico (es ↔ it)', 'Conjugador de 20 verbos', 'Práctica de pronunciación', '3 diálogos escritos/mes', 'Videos y contenido básico'],
         },
         essenziale: {
           name: 'Esencial',
@@ -498,7 +498,7 @@ export const translations = {
         free: {
           name: 'Gratuito',
           description: 'Per iniziare a esplorare',
-          features: ['Traduttore base (es ↔ it)', 'Coniugatore di 20 verbi', 'Pratica di pronuncia', '3 dialoghi scritti/mese', 'Assistente ItalianBot', 'Video e contenuto base'],
+          features: ['Traduttore base (es ↔ it)', 'Coniugatore di 20 verbi', 'Pratica di pronuncia', '3 dialoghi scritti/mese', 'Video e contenuto base'],
         },
         essenziale: {
           name: 'Essenziale',
@@ -883,7 +883,7 @@ export const translations = {
         free: {
           name: 'Free',
           description: 'To start exploring',
-          features: ['Basic translator (es ↔ it)', '20-verb conjugator', 'Pronunciation practice', '3 written dialogues/mo', 'ItalianBot assistant', 'Videos and basic content'],
+          features: ['Basic translator (es ↔ it)', '20-verb conjugator', 'Pronunciation practice', '3 written dialogues/mo', 'Videos and basic content'],
         },
         essenziale: {
           name: 'Essential',

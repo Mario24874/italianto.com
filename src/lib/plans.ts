@@ -37,7 +37,6 @@ export const PLANS: Plan[] = [
       'Conjugador de 20 verbos',
       'Práctica de pronunciación',
       '3 diálogos escritos/mes',
-      'ItalianBot asistente',
       'Videos y contenido básico',
     ],
     limits: { tutorMinutes: 0, dialogues: 3, audio: 0 },
