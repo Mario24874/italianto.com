@@ -204,6 +204,14 @@ export const translations = {
       cancelNote: '· Cancela al final del periodo',
       backHome: 'Volver al inicio',
       myAccount: 'Mi cuenta',
+      freePlan: {
+        sectionTitle: 'Tu plan gratuito incluye',
+        seePlans: 'Ver planes de pago →',
+        translator: { label: 'Traductor básico', desc: 'es ↔ it' },
+        conjugator: { label: 'Conjugador', desc: '20 verbos' },
+        pronunciation: { label: 'Pronunciación', desc: 'Práctica de fonética' },
+        dialogues: { label: 'Diálogos escritos', desc: '3 por mes' },
+      },
     },
     underConstruction: {
       badge: 'Próximamente',
@@ -589,6 +597,14 @@ export const translations = {
       cancelNote: '· Cancella alla fine del periodo',
       backHome: 'Torna alla home',
       myAccount: 'Il mio account',
+      freePlan: {
+        sectionTitle: 'Il tuo piano gratuito include',
+        seePlans: 'Vedi piani a pagamento →',
+        translator: { label: 'Traduttore base', desc: 'es ↔ it' },
+        conjugator: { label: 'Coniugatore', desc: '20 verbi' },
+        pronunciation: { label: 'Pronuncia', desc: 'Pratica fonetica' },
+        dialogues: { label: 'Dialoghi scritti', desc: '3 al mese' },
+      },
     },
     underConstruction: {
       badge: 'Prossimamente',
@@ -974,6 +990,14 @@ export const translations = {
       cancelNote: '· Cancels at period end',
       backHome: 'Back to home',
       myAccount: 'My account',
+      freePlan: {
+        sectionTitle: 'Your free plan includes',
+        seePlans: 'See paid plans →',
+        translator: { label: 'Basic translator', desc: 'es ↔ it' },
+        conjugator: { label: 'Conjugator', desc: '20 verbs' },
+        pronunciation: { label: 'Pronunciation', desc: 'Phonetics practice' },
+        dialogues: { label: 'Written dialogues', desc: '3 per month' },
+      },
     },
     underConstruction: {
       badge: 'Coming soon',

@@ -67,39 +67,12 @@ export function DashboardContent({
   const appUrl = process.env.NEXT_PUBLIC_APP_ITALIANTO_URL || 'https://italianto.com/app'
   const studioUrl = process.env.NEXT_PUBLIC_APP_STUDIO_URL || 'https://italianto.com/studio'
 
+  const fp = t.dashboard.freePlan
   const freePlanTools = [
-    {
-      label: 'Traductor básico',
-      description: 'es ↔ it',
-      href: `${appUrl}/traductor`,
-      icon: Languages,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-950/40 border-emerald-800/30',
-    },
-    {
-      label: 'Conjugador',
-      description: '20 verbos',
-      href: `${appUrl}/conjugador`,
-      icon: BookMarked,
-      color: 'text-sky-400',
-      bg: 'bg-sky-950/40 border-sky-800/30',
-    },
-    {
-      label: 'Pronunciación',
-      description: 'Práctica de fonética',
-      href: `${appUrl}/pronuncia`,
-      icon: Mic,
-      color: 'text-violet-400',
-      bg: 'bg-violet-950/40 border-violet-800/30',
-    },
-    {
-      label: 'Diálogos escritos',
-      description: '3 por mes',
-      href: studioUrl,
-      icon: MessageSquare,
-      color: 'text-rose-400',
-      bg: 'bg-rose-950/40 border-rose-800/30',
-    },
+    { label: fp.translator.label, description: fp.translator.desc, href: `${appUrl}/traductor`, icon: Languages, color: 'text-emerald-400', bg: 'bg-emerald-950/40 border-emerald-800/30' },
+    { label: fp.conjugator.label, description: fp.conjugator.desc, href: `${appUrl}/conjugador`, icon: BookMarked, color: 'text-sky-400', bg: 'bg-sky-950/40 border-sky-800/30' },
+    { label: fp.pronunciation.label, description: fp.pronunciation.desc, href: `${appUrl}/pronuncia`, icon: Mic, color: 'text-violet-400', bg: 'bg-violet-950/40 border-violet-800/30' },
+    { label: fp.dialogues.label, description: fp.dialogues.desc, href: studioUrl, icon: MessageSquare, color: 'text-rose-400', bg: 'bg-rose-950/40 border-rose-800/30' },
   ]
 
   return (
@@ -117,10 +90,10 @@ export function DashboardContent({
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-verde-400 uppercase tracking-wider">
-              Tu plan gratuito incluye
+              {t.dashboard.freePlan.sectionTitle}
             </h2>
             <Link href="/precios" className="text-xs text-verde-600 hover:text-verde-400 transition-colors">
-              Ver planes de pago →
+              {t.dashboard.freePlan.seePlans}
             </Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
