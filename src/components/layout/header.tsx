@@ -7,7 +7,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Menu, X, Sun, Moon, ChevronDown } from 'lucide-react'
 import { useLanguage, LANGUAGES, type Language } from '@/contexts/language-context'
@@ -82,7 +81,6 @@ export function Header() {
               <Image src="/logo_Italianto.png" alt="Italianto" fill className="object-cover" priority />
             </div>
             <span className="text-lg font-bold text-verde-100 tracking-tight">Italianto</span>
-            <Badge variant="brand" className="hidden sm:flex text-[10px] py-0.5">BETA</Badge>
           </Link>
 
           {/* Desktop Nav */}

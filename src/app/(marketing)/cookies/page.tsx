@@ -51,9 +51,9 @@ export default function CookiesPage() {
           <section>
             <h2 className="text-xl font-bold text-verde-200 mb-3">{c.contact.heading}</h2>
             <p>
-              {c.contact.body.split('italiantonline@gmail.com')[0]}
-              <a href="mailto:italiantonline@gmail.com" className="text-verde-400 hover:text-verde-300 underline">
-                italiantonline@gmail.com
+              {c.contact.body.split('info@italianto.com')[0]}
+              <a href="mailto:info@italianto.com" className="text-verde-400 hover:text-verde-300 underline">
+                info@italianto.com
               </a>.
             </p>
           </section>

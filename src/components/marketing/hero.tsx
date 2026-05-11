@@ -124,8 +124,7 @@ export function Hero() {
             <span className="text-verde-50">{t.hero.line1}</span>
             <br />
             <span className="gradient-text-aurora">{t.hero.line2}</span>
-            <br />
-            <span className="text-verde-50">{t.hero.line3}</span>
+            {t.hero.line3 && <><br /><span className="text-verde-50">{t.hero.line3}</span></>}
           </motion.h1>
 
           {/* Subtitle */}

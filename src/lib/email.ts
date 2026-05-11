@@ -7,7 +7,7 @@ const resend = process.env.RESEND_API_KEY
 // Must be a domain verified in Resend — NOT a Gmail address.
 // italianto.com domain is verified; fallback to the noreply alias.
 const FROM = 'Italianto <noreply@italianto.com>'
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'italiantonline@gmail.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'info@italianto.com'
 
 function noResend(fn: string) {
   console.warn(`[email] RESEND_API_KEY not set — skipping ${fn}`)

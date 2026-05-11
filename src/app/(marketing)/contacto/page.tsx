@@ -89,10 +89,10 @@ export default function ContactoPage() {
                 <div>
                   <div className="text-sm font-semibold text-verde-300 mb-0.5">Email</div>
                   <a
-                    href="mailto:italiantonline@gmail.com"
+                    href="mailto:info@italianto.com"
                     className="text-sm text-verde-500 hover:text-verde-300 transition-colors"
                   >
-                    italiantonline@gmail.com
+                    info@italianto.com
                   </a>
                 </div>
               </div>

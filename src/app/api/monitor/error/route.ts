@@ -25,10 +25,10 @@ export async function POST(req: NextRequest) {
             template_id: templateId,
             user_id: publicKey,
             template_params: {
-              to_email: 'italiantonline@gmail.com',
+              to_email: 'info@italianto.com',
               subject: `[CRÍTICO] Error en Italianto — ${path ?? 'unknown'}`,
               message: `Error: ${message}\n\nRuta: ${path}\n\nStack:\n${stack ?? 'N/A'}`,
-              reply_to: 'italiantonline@gmail.com',
+              reply_to: 'info@italianto.com',
               user_name: 'Sistema Italianto',
             },
           }),

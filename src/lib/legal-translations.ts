@@ -35,7 +35,7 @@ export const legalTranslations = {
         },
         {
           heading: '5. Tus derechos',
-          body: 'Tienes derecho a acceder, rectificar o eliminar tus datos en cualquier momento. Para ejercer estos derechos, escríbenos a italiantonline@gmail.com.',
+          body: 'Tienes derecho a acceder, rectificar o eliminar tus datos en cualquier momento. Para ejercer estos derechos, escríbenos a info@italianto.com.',
         },
         {
           heading: '6. Seguridad',
@@ -43,7 +43,7 @@ export const legalTranslations = {
         },
         {
           heading: '7. Contacto',
-          body: 'Si tienes preguntas sobre esta política, contáctanos en italiantonline@gmail.com.',
+          body: 'Si tienes preguntas sobre esta política, contáctanos en info@italianto.com.',
         },
       ],
     },
@@ -75,7 +75,7 @@ export const legalTranslations = {
         { heading: '6. Propiedad intelectual', body: 'Todo el contenido de Italianto — incluyendo textos, diseños, código, marca y logos — es propiedad de Italianto y está protegido por las leyes de propiedad intelectual aplicables.' },
         { heading: '7. Limitación de responsabilidad', body: 'Italianto se proporciona "tal como está". No garantizamos resultados específicos de aprendizaje. No somos responsables por daños indirectos, incidentales o consecuentes derivados del uso del servicio.' },
         { heading: '8. Modificaciones', body: 'Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios sustanciales serán notificados por email. El uso continuado del servicio tras los cambios implica la aceptación de los nuevos términos.' },
-        { heading: '9. Contacto', body: 'Para preguntas sobre estos términos, contáctanos en italiantonline@gmail.com.' },
+        { heading: '9. Contacto', body: 'Para preguntas sobre estos términos, contáctanos en info@italianto.com.' },
       ],
     },
     cookies: {
@@ -88,7 +88,7 @@ export const legalTranslations = {
       },
       no: { heading: 'Lo que NO hacemos', list: ['No usamos cookies de rastreo publicitario.', 'No compartimos datos de cookies con terceros con fines comerciales.', 'No usamos cookies de redes sociales para rastrearte fuera de la plataforma.'] },
       control: { heading: 'Cómo controlar las cookies', body: 'Puedes controlar y eliminar cookies desde la configuración de tu navegador. Ten en cuenta que deshabilitar las cookies esenciales puede afectar el funcionamiento de la plataforma (por ejemplo, no podrás mantener la sesión iniciada).' },
-      contact: { heading: 'Contacto', body: 'Para preguntas sobre nuestra política de cookies, contáctanos en italiantonline@gmail.com.' },
+      contact: { heading: 'Contacto', body: 'Para preguntas sobre nuestra política de cookies, contáctanos en info@italianto.com.' },
     },
   },
   it: {
@@ -117,9 +117,9 @@ export const legalTranslations = {
           body2: 'Ognuno di questi servizi ha la propria informativa sulla privacy. Non vendiamo né condividiamo le tue informazioni personali con terze parti a fini commerciali.',
         },
         { heading: '4. Cookie', body: 'Utilizziamo cookie essenziali per mantenere la tua sessione attiva e ricordare le tue preferenze di lingua e tema. Non utilizziamo cookie di tracciamento pubblicitario di terze parti.' },
-        { heading: '5. I tuoi diritti', body: 'Hai il diritto di accedere, rettificare o eliminare i tuoi dati in qualsiasi momento. Per esercitare questi diritti, scrivici a italiantonline@gmail.com.' },
+        { heading: '5. I tuoi diritti', body: 'Hai il diritto di accedere, rettificare o eliminare i tuoi dati in qualsiasi momento. Per esercitare questi diritti, scrivici a info@italianto.com.' },
         { heading: '6. Sicurezza', body: 'Adottiamo misure ragionevoli per proteggere le tue informazioni. Le password non vengono mai archiviate in testo normale e tutte le comunicazioni avvengono tramite connessioni crittografate (HTTPS).' },
-        { heading: '7. Contatti', body: "Per domande su questa informativa, contattaci all'indirizzo italiantonline@gmail.com." },
+        { heading: '7. Contatti', body: "Per domande su questa informativa, contattaci all'indirizzo info@italianto.com." },
       ],
     },
     terms: {
@@ -150,7 +150,7 @@ export const legalTranslations = {
         { heading: '6. Proprietà intellettuale', body: 'Tutti i contenuti di Italianto — inclusi testi, design, codice, marchio e loghi — sono di proprietà di Italianto e sono protetti dalle leggi applicabili sulla proprietà intellettuale.' },
         { heading: '7. Limitazione di responsabilità', body: 'Italianto è fornito "così com\'è". Non garantiamo risultati specifici di apprendimento. Non siamo responsabili per danni indiretti, incidentali o conseguenti derivanti dall\'utilizzo del servizio.' },
         { heading: '8. Modifiche', body: 'Ci riserviamo il diritto di modificare questi termini in qualsiasi momento. Le modifiche sostanziali saranno notificate via email. L\'uso continuato del servizio dopo le modifiche implica l\'accettazione dei nuovi termini.' },
-        { heading: '9. Contatti', body: 'Per domande su questi termini, contattaci a italiantonline@gmail.com.' },
+        { heading: '9. Contatti', body: 'Per domande su questi termini, contattaci a info@italianto.com.' },
       ],
     },
     cookies: {
@@ -163,7 +163,7 @@ export const legalTranslations = {
       },
       no: { heading: 'Cosa NON facciamo', list: ['Non utilizziamo cookie di tracciamento pubblicitario.', 'Non condividiamo dati dei cookie con terze parti a fini commerciali.', 'Non utilizziamo cookie di social network per tracciarti al di fuori della piattaforma.'] },
       control: { heading: 'Come controllare i cookie', body: 'Puoi controllare ed eliminare i cookie dalle impostazioni del tuo browser. Tieni presente che disabilitare i cookie essenziali può influire sul funzionamento della piattaforma (ad esempio, non potrai mantenere la sessione attiva).' },
-      contact: { heading: 'Contatti', body: 'Per domande sulla nostra informativa sui cookie, contattaci a italiantonline@gmail.com.' },
+      contact: { heading: 'Contatti', body: 'Per domande sulla nostra informativa sui cookie, contattaci a info@italianto.com.' },
     },
   },
   en: {
@@ -192,9 +192,9 @@ export const legalTranslations = {
           body2: 'Each of these services has its own privacy policy. We do not sell or share your personal information with third parties for commercial purposes.',
         },
         { heading: '4. Cookies', body: 'We use essential cookies to keep your session active and remember your language and theme preferences. We do not use third-party advertising tracking cookies.' },
-        { heading: '5. Your rights', body: 'You have the right to access, rectify or delete your data at any time. To exercise these rights, write to us at italiantonline@gmail.com.' },
+        { heading: '5. Your rights', body: 'You have the right to access, rectify or delete your data at any time. To exercise these rights, write to us at info@italianto.com.' },
         { heading: '6. Security', body: 'We take reasonable measures to protect your information. Passwords are never stored in plain text and all communication occurs through encrypted connections (HTTPS).' },
-        { heading: '7. Contact', body: 'If you have questions about this policy, contact us at italiantonline@gmail.com.' },
+        { heading: '7. Contact', body: 'If you have questions about this policy, contact us at info@italianto.com.' },
       ],
     },
     terms: {
@@ -225,7 +225,7 @@ export const legalTranslations = {
         { heading: '6. Intellectual property', body: 'All Italianto content — including texts, designs, code, brand and logos — is owned by Italianto and protected by applicable intellectual property laws.' },
         { heading: '7. Limitation of liability', body: 'Italianto is provided "as is". We do not guarantee specific learning outcomes. We are not liable for indirect, incidental or consequential damages arising from the use of the service.' },
         { heading: '8. Modifications', body: 'We reserve the right to modify these terms at any time. Substantial changes will be notified by email. Continued use of the service after changes implies acceptance of the new terms.' },
-        { heading: '9. Contact', body: 'For questions about these terms, contact us at italiantonline@gmail.com.' },
+        { heading: '9. Contact', body: 'For questions about these terms, contact us at info@italianto.com.' },
       ],
     },
     cookies: {
@@ -238,7 +238,7 @@ export const legalTranslations = {
       },
       no: { heading: 'What we do NOT do', list: ['We do not use advertising tracking cookies.', 'We do not share cookie data with third parties for commercial purposes.', 'We do not use social media cookies to track you outside the platform.'] },
       control: { heading: 'How to control cookies', body: 'You can control and delete cookies from your browser settings. Note that disabling essential cookies may affect platform functionality (for example, you will not be able to stay logged in).' },
-      contact: { heading: 'Contact', body: 'For questions about our cookie policy, contact us at italiantonline@gmail.com.' },
+      contact: { heading: 'Contact', body: 'For questions about our cookie policy, contact us at info@italianto.com.' },
     },
   },
 } satisfies Record<Language, typeof legalTranslations.es>
