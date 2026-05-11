@@ -8,7 +8,8 @@ import { useLanguage } from '@/contexts/language-context'
 import Image from 'next/image'
 import {
   BookOpen, Music, Gamepad2, Info, Video, Download,
-  ExternalLink, Zap, Crown, Star,
+  ExternalLink, Zap, Crown, Star, Languages, BookMarked,
+  Mic, MessageSquare, Bot,
 } from 'lucide-react'
 import type { PlanType } from '@/lib/plans'
 
@@ -63,6 +64,60 @@ export function DashboardContent({
 
   const PlanIcon = PLAN_ICONS[planType] ?? Zap
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_ITALIANTO_URL || 'https://italianto.com/app'
+  const studioUrl = process.env.NEXT_PUBLIC_APP_STUDIO_URL || 'https://italianto.com/studio'
+
+  const freePlanTools = [
+    {
+      label: 'Traductor básico',
+      description: 'es ↔ it',
+      href: `${appUrl}/traductor`,
+      icon: Languages,
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-950/40 border-emerald-800/30',
+    },
+    {
+      label: 'Conjugador',
+      description: '20 verbos',
+      href: `${appUrl}/conjugador`,
+      icon: BookMarked,
+      color: 'text-sky-400',
+      bg: 'bg-sky-950/40 border-sky-800/30',
+    },
+    {
+      label: 'Pronunciación',
+      description: 'Práctica de fonética',
+      href: `${appUrl}/pronuncia`,
+      icon: Mic,
+      color: 'text-violet-400',
+      bg: 'bg-violet-950/40 border-violet-800/30',
+    },
+    {
+      label: 'Diálogos escritos',
+      description: '3 por mes',
+      href: studioUrl,
+      icon: MessageSquare,
+      color: 'text-rose-400',
+      bg: 'bg-rose-950/40 border-rose-800/30',
+    },
+    {
+      label: 'ItalianBot',
+      description: 'Asistente de italiano',
+      href: `${appUrl}/tutor`,
+      icon: Bot,
+      color: 'text-amber-400',
+      bg: 'bg-amber-950/40 border-amber-800/30',
+    },
+    {
+      label: 'Videos básicos',
+      description: 'Contenido gratuito',
+      href: '/lezioni',
+      icon: Video,
+      color: 'text-pink-400',
+      bg: 'bg-pink-950/40 border-pink-800/30',
+    },
+  ]
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Welcome */}
@@ -72,6 +127,39 @@ export function DashboardContent({
         </h1>
         <p className="text-sm text-verde-500 mt-1">{t.dashboard.subtitle}</p>
       </div>
+
+      {/* Free plan tools — only for free users */}
+      {!isPaid && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-verde-400 uppercase tracking-wider">
+              Tu plan gratuito incluye
+            </h2>
+            <Link href="/precios" className="text-xs text-verde-600 hover:text-verde-400 transition-colors">
+              Ver planes de pago →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {freePlanTools.map(({ label, description, href, icon: Icon, color, bg }) => (
+              <a
+                key={label}
+                href={href}
+                target={href.startsWith('http') || href.includes('://') ? '_blank' : undefined}
+                rel={href.startsWith('http') || href.includes('://') ? 'noopener noreferrer' : undefined}
+                className="group flex flex-col gap-2 p-3.5 rounded-xl border border-verde-900/20 bg-verde-950/10 hover:bg-verde-950/30 hover:border-verde-800/40 transition-all"
+              >
+                <div className={`size-8 rounded-lg border ${bg} flex items-center justify-center`}>
+                  <Icon size={15} className={color} />
+                </div>
+                <div>
+                  <div className="font-semibold text-xs text-verde-200 group-hover:text-verde-100 transition-colors">{label}</div>
+                  <div className="text-xs text-verde-600 mt-0.5">{description}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick access to apps */}
       <div>

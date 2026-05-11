@@ -12,6 +12,8 @@ import { LessonExercises } from './_lesson-exercises'
 import { LessonContentSwitcher } from './_lesson-content-switcher'
 import { LessonAudio } from './_lesson-audio'
 
+const PLAN_HIERARCHY: PlanType[] = ['free', 'essenziale', 'avanzato', 'maestro']
+
 const WEEKLY_LIMITS: Record<PlanType, number> = {
   free: 0,
   essenziale: 1,
@@ -66,8 +68,14 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   if (!lessonResult.data) notFound()
   const lesson = lessonResult.data as LessonRow
   const userPlan = (subResult.data?.plan_type ?? 'free') as PlanType
+
+  // Plan access check — redirect to pricing if lesson requires a higher plan
+  const planOk = PLAN_HIERARCHY.indexOf(userPlan) >= PLAN_HIERARCHY.indexOf(lesson.plan_required as PlanType)
+  if (!planOk) redirect('/precios')
+
   const weekLimit = WEEKLY_LIMITS[userPlan]
   const weekStart = currentWeekStart()
+  const isFreeLesson = (lesson.plan_required as PlanType) === 'free'
 
   // Check sequential unlock: only within the same level
   const { data: allLessons } = await supabase
@@ -93,16 +101,6 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
     }
   }
 
-  // Check weekly access quota
-  const { data: weekAccesses } = await supabase
-    .from('lesson_weekly_access')
-    .select('lesson_id')
-    .eq('user_id', user.id)
-    .eq('week_start', weekStart)
-
-  const alreadyAccessed = weekAccesses?.some(a => a.lesson_id === lesson.id) ?? false
-  const weekAccessCount = weekAccesses?.length ?? 0
-
   let accessible = false
   let quotaExhausted = false
   let lockedByProgress = false
@@ -110,20 +108,35 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   if (!sequentiallyUnlocked) {
     accessible = false
     lockedByProgress = true
-  } else if (alreadyAccessed) {
-    accessible = true
-  } else if (weekLimit === 0) {
-    accessible = false
-  } else if (weekAccessCount < weekLimit) {
-    await supabase.from('lesson_weekly_access').insert({
-      user_id: user.id,
-      lesson_id: lesson.id,
-      week_start: weekStart,
-    })
+  } else if (isFreeLesson) {
+    // Free-tier lessons: always accessible, no weekly quota
     accessible = true
   } else {
-    accessible = false
-    quotaExhausted = true
+    // Check weekly access quota for paid-plan lessons
+    const { data: weekAccesses } = await supabase
+      .from('lesson_weekly_access')
+      .select('lesson_id')
+      .eq('user_id', user.id)
+      .eq('week_start', weekStart)
+
+    const alreadyAccessed = weekAccesses?.some(a => a.lesson_id === lesson.id) ?? false
+    const weekAccessCount = weekAccesses?.length ?? 0
+
+    if (alreadyAccessed) {
+      accessible = true
+    } else if (weekLimit === 0) {
+      redirect('/precios')
+    } else if (weekAccessCount < weekLimit) {
+      await supabase.from('lesson_weekly_access').insert({
+        user_id: user.id,
+        lesson_id: lesson.id,
+        week_start: weekStart,
+      })
+      accessible = true
+    } else {
+      accessible = false
+      quotaExhausted = true
+    }
   }
 
   const [{ data: progress }] = await Promise.all([
