@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Providers } from '@/components/providers'
 import { CookieCheck } from '@/components/cookie-check'
+import { Analytics } from '@/components/analytics'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -102,6 +103,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
       >
         <Providers>
+          <Analytics />
           <CookieCheck />
           {children}
           <Toaster
