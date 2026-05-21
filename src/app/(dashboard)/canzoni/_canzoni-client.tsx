@@ -1,26 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Music, Play, X, FileMusic, FileVideo, Search, ChevronLeft, ChevronRight, Repeat } from 'lucide-react'
-
-function EqualizerBars() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-pink-400">
-      <rect x="1" y="9" width="3" height="9" rx="1" fill="currentColor">
-        <animate attributeName="height" values="9;15;4;13;6;9" dur="1.1s" repeatCount="indefinite" />
-        <animate attributeName="y" values="9;3;14;5;12;9" dur="1.1s" repeatCount="indefinite" />
-      </rect>
-      <rect x="7" y="5" width="3" height="13" rx="1" fill="currentColor">
-        <animate attributeName="height" values="13;5;15;4;11;13" dur="0.85s" repeatCount="indefinite" />
-        <animate attributeName="y" values="5;13;3;14;7;5" dur="0.85s" repeatCount="indefinite" />
-      </rect>
-      <rect x="13" y="7" width="3" height="11" rx="1" fill="currentColor">
-        <animate attributeName="height" values="11;15;5;13;8;11" dur="1.35s" repeatCount="indefinite" />
-        <animate attributeName="y" values="7;3;13;5;10;7" dur="1.35s" repeatCount="indefinite" />
-      </rect>
-    </svg>
-  )
-}
+import { Music, Play, X, FileMusic, FileVideo, Search, ChevronLeft, ChevronRight, Repeat, Minus, Maximize2 } from 'lucide-react'
 import type { PlanType } from '@/lib/plans'
 import { useLanguage } from '@/contexts/language-context'
 import { cn } from '@/lib/utils'
@@ -47,23 +28,46 @@ function getYoutubeEmbedUrl(url: string, autoplay = false) {
   return `https://www.youtube.com/embed/${match[1]}?rel=0${autoplay ? '&autoplay=1' : ''}`
 }
 
+function EqualizerBars({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" className="text-pink-400">
+      <rect x="1" y="9" width="3" height="9" rx="1" fill="currentColor">
+        <animate attributeName="height" values="9;15;4;13;6;9" dur="1.1s" repeatCount="indefinite" />
+        <animate attributeName="y" values="9;3;14;5;12;9" dur="1.1s" repeatCount="indefinite" />
+      </rect>
+      <rect x="7" y="5" width="3" height="13" rx="1" fill="currentColor">
+        <animate attributeName="height" values="13;5;15;4;11;13" dur="0.85s" repeatCount="indefinite" />
+        <animate attributeName="y" values="5;13;3;14;7;5" dur="0.85s" repeatCount="indefinite" />
+      </rect>
+      <rect x="13" y="7" width="3" height="11" rx="1" fill="currentColor">
+        <animate attributeName="height" values="11;15;5;13;8;11" dur="1.35s" repeatCount="indefinite" />
+        <animate attributeName="y" values="7;3;13;5;10;7" dur="1.35s" repeatCount="indefinite" />
+      </rect>
+    </svg>
+  )
+}
+
 function SongModal({
   song,
   index,
   total,
   autoplay,
+  minimized,
   onPrev,
   onNext,
   onClose,
+  onMinimize,
   onToggleAutoplay,
 }: {
   song: SongRow
   index: number
   total: number
   autoplay: boolean
+  minimized: boolean
   onPrev: () => void
   onNext: () => void
   onClose: () => void
+  onMinimize: () => void
   onToggleAutoplay: () => void
 }) {
   const { t } = useLanguage()
@@ -76,7 +80,6 @@ function SongModal({
   const isYT = hasVideo && isYoutube(song.video_url!)
   const ytEmbed = isYT ? getYoutubeEmbedUrl(song.video_url!, autoplay) : null
 
-  // Auto-advance for native audio/video
   const handleEnded = useCallback(() => {
     if (autoplay && index < total - 1) onNext()
   }, [autoplay, index, total, onNext])
@@ -88,7 +91,6 @@ function SongModal({
     if (video) { video.addEventListener('ended', handleEnded); return () => video.removeEventListener('ended', handleEnded) }
   }, [handleEnded])
 
-  // Auto-play native media when song changes
   useEffect(() => {
     if (!autoplay) return
     audioRef.current?.play().catch(() => {})
@@ -96,9 +98,9 @@ function SongModal({
   }, [song.id, autoplay])
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-      onClick={onClose}
+    // Keep in DOM when minimized so audio/video keeps playing — just hide visually
+    <div className={minimized ? 'hidden' : 'fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4'}
+      onClick={minimized ? undefined : onMinimize}
     >
       <div
         className="w-full max-w-3xl bg-[#0a0f0a] border border-verde-800/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
@@ -107,53 +109,39 @@ function SongModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-verde-900/30 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            {/* Prev */}
-            <button
-              onClick={onPrev}
-              disabled={index === 0}
-              className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-            >
+            <button onClick={onPrev} disabled={index === 0}
+              className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
               <ChevronLeft size={16} />
             </button>
-
             <div className="min-w-0">
               <h2 className="text-base font-bold text-verde-100 leading-tight truncate">{song.title}</h2>
               <p className="text-xs text-verde-500 mt-0.5">{song.artist}</p>
             </div>
-
-            {/* Next */}
-            <button
-              onClick={onNext}
-              disabled={index === total - 1}
-              className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-            >
+            <button onClick={onNext} disabled={index === total - 1}
+              className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
               <ChevronRight size={16} />
             </button>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Counter */}
-            <span className="text-xs text-verde-700 tabular-nums">{index + 1} {ct.songOf} {total}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-xs text-verde-700 tabular-nums mr-1">{index + 1} {ct.songOf} {total}</span>
 
-            {/* Autoplay toggle */}
-            <button
-              onClick={onToggleAutoplay}
-              title={ct.autoplay}
-              className={cn(
-                'p-1.5 rounded-lg transition-colors',
-                autoplay
-                  ? 'text-pink-400 bg-pink-900/30 border border-pink-800/40'
-                  : 'text-verde-700 hover:text-verde-400 hover:bg-verde-900/30'
-              )}
-            >
+            <button onClick={onToggleAutoplay} title={ct.autoplay}
+              className={cn('p-1.5 rounded-lg transition-colors',
+                autoplay ? 'text-pink-400 bg-pink-900/30 border border-pink-800/40' : 'text-verde-700 hover:text-verde-400 hover:bg-verde-900/30')}>
               <Repeat size={14} />
             </button>
 
+            {/* Minimize */}
+            <button onClick={onMinimize}
+              className="p-1.5 text-verde-600 hover:text-verde-300 transition-colors rounded-lg hover:bg-verde-900/30"
+              title="Minimizar">
+              <Minus size={16} />
+            </button>
+
             {/* Close */}
-            <button
-              onClick={onClose}
-              className="p-1.5 text-verde-600 hover:text-verde-200 transition-colors rounded-lg hover:bg-verde-900/30"
-            >
+            <button onClick={onClose}
+              className="p-1.5 text-verde-600 hover:text-verde-200 transition-colors rounded-lg hover:bg-verde-900/30">
               <X size={18} />
             </button>
           </div>
@@ -165,47 +153,28 @@ function SongModal({
             <div className="shrink-0 bg-black/40 border-b border-verde-900/30">
               {hasVideo && isYT && ytEmbed ? (
                 <div className="aspect-video w-full">
-                  <iframe
-                    key={`${song.id}-${autoplay}`}
-                    src={ytEmbed}
-                    className="w-full h-full"
+                  <iframe key={`${song.id}-${autoplay}`} src={ytEmbed} className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+                    allowFullScreen />
                 </div>
               ) : hasVideo && !isYT ? (
-                <video
-                  ref={videoRef}
-                  key={song.id}
-                  src={song.video_url!}
-                  controls
-                  className="w-full max-h-64 bg-black"
-                />
+                <video ref={videoRef} key={song.id} src={song.video_url!} controls className="w-full max-h-64 bg-black" />
               ) : hasAudio ? (
                 <div className="px-5 py-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-pink-950/40 border border-pink-800/30 flex items-center justify-center shrink-0">
                     <FileMusic size={16} className="text-pink-400" />
                   </div>
-                  <audio
-                    ref={audioRef}
-                    key={song.id}
-                    src={song.audio_url!}
-                    controls
-                    className="flex-1 h-9"
-                  />
+                  <audio ref={audioRef} key={song.id} src={song.audio_url!} controls className="flex-1 h-9" />
                 </div>
               ) : null}
             </div>
           )}
 
-          {/* Lyrics */}
           <div className="flex-1 overflow-y-auto px-5 py-5">
             {song.lyrics?.trim() ? (
               <>
                 <h3 className="text-xs font-semibold text-verde-500 uppercase tracking-widest mb-3">Testo</h3>
-                <pre className="text-verde-200 text-sm leading-relaxed whitespace-pre-wrap font-sans">
-                  {song.lyrics}
-                </pre>
+                <pre className="text-verde-200 text-sm leading-relaxed whitespace-pre-wrap font-sans">{song.lyrics}</pre>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-10 text-verde-700">
@@ -215,6 +184,80 @@ function SongModal({
             )}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function MiniPlayer({
+  song,
+  index,
+  total,
+  autoplay,
+  onPrev,
+  onNext,
+  onExpand,
+  onClose,
+  onToggleAutoplay,
+}: {
+  song: SongRow
+  index: number
+  total: number
+  autoplay: boolean
+  onPrev: () => void
+  onNext: () => void
+  onExpand: () => void
+  onClose: () => void
+  onToggleAutoplay: () => void
+}) {
+  const { t } = useLanguage()
+  const ct = t.canzoni
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-3 px-4 py-3 bg-[#090e09]/95 border-t border-pink-900/40 backdrop-blur-md shadow-2xl">
+      {/* Equalizer + info */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-9 h-9 rounded-xl bg-pink-900/40 border border-pink-700/40 flex items-center justify-center shrink-0">
+          <EqualizerBars size={16} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-verde-100 truncate leading-tight">{song.title}</p>
+          <p className="text-xs text-verde-500 truncate">{song.artist}</p>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-xs text-verde-700 tabular-nums mr-1 hidden sm:block">{index + 1} {ct.songOf} {total}</span>
+
+        <button onClick={onPrev} disabled={index === 0}
+          className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronLeft size={16} />
+        </button>
+
+        <button onClick={onNext} disabled={index === total - 1}
+          className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronRight size={16} />
+        </button>
+
+        <button onClick={onToggleAutoplay} title={ct.autoplay}
+          className={cn('p-1.5 rounded-lg transition-colors',
+            autoplay ? 'text-pink-400 bg-pink-900/30 border border-pink-800/40' : 'text-verde-700 hover:text-verde-400 hover:bg-verde-900/30')}>
+          <Repeat size={14} />
+        </button>
+
+        {/* Expand */}
+        <button onClick={onExpand}
+          className="p-1.5 text-verde-500 hover:text-verde-200 transition-colors rounded-lg hover:bg-verde-900/30"
+          title="Expandir">
+          <Maximize2 size={14} />
+        </button>
+
+        {/* Close */}
+        <button onClick={onClose}
+          className="p-1.5 text-verde-600 hover:text-red-400 transition-colors rounded-lg hover:bg-verde-900/30">
+          <X size={16} />
+        </button>
       </div>
     </div>
   )
@@ -234,6 +277,7 @@ export function CanzoniClient({
   const [search, setSearch] = useState('')
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [autoplay, setAutoplay] = useState(false)
+  const [minimized, setMinimized] = useState(false)
 
   function hasAccess(required: string) {
     return planHierarchy.indexOf(userPlan) >= planHierarchy.indexOf(required as PlanType)
@@ -250,8 +294,8 @@ export function CanzoniClient({
 
   const selected = selectedIndex !== null ? filtered[selectedIndex] ?? null : null
 
-  function open(idx: number) { setSelectedIndex(idx) }
-  function close() { setSelectedIndex(null) }
+  function open(idx: number) { setSelectedIndex(idx); setMinimized(false) }
+  function close() { setSelectedIndex(null); setMinimized(false) }
   function prev() { if (selectedIndex !== null && selectedIndex > 0) setSelectedIndex(selectedIndex - 1) }
   function next() { if (selectedIndex !== null && selectedIndex < filtered.length - 1) setSelectedIndex(selectedIndex + 1) }
 
@@ -277,10 +321,8 @@ export function CanzoniClient({
           className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-verde-950/40 border border-verde-800/30 text-verde-200 text-sm placeholder:text-verde-700 focus:outline-none focus:border-verde-600 transition-colors"
         />
         {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-verde-600 hover:text-verde-300 transition-colors"
-          >
+          <button onClick={() => setSearch('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-verde-600 hover:text-verde-300 transition-colors">
             <X size={14} />
           </button>
         )}
@@ -292,13 +334,13 @@ export function CanzoniClient({
           <p className="text-verde-500 text-sm">{ct.noResults}</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        // Extra bottom padding when mini-player is visible
+        <div className={cn('space-y-2', selected && minimized && 'pb-20')}>
           {filtered.map((song, idx) => {
             const hasContent = song.audio_url || song.video_url || song.lyrics?.trim()
             const isPlaying = selectedIndex === idx
             return (
-              <div
-                key={song.id}
+              <div key={song.id}
                 className={cn(
                   'flex items-center gap-4 p-4 rounded-2xl border transition-all',
                   isPlaying
@@ -317,8 +359,7 @@ export function CanzoniClient({
                   <div className="text-xs text-verde-500 mt-0.5">{song.artist}</div>
                 </div>
                 {hasContent && (
-                  <button
-                    onClick={() => open(idx)}
+                  <button onClick={() => open(idx)}
                     className={cn(
                       'shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors',
                       isPlaying
@@ -336,14 +377,32 @@ export function CanzoniClient({
         </div>
       )}
 
+      {/* Modal — kept in DOM when minimized so audio keeps playing */}
       {selected && selectedIndex !== null && (
         <SongModal
           song={selected}
           index={selectedIndex}
           total={filtered.length}
           autoplay={autoplay}
+          minimized={minimized}
           onPrev={prev}
           onNext={next}
+          onClose={close}
+          onMinimize={() => setMinimized(true)}
+          onToggleAutoplay={() => setAutoplay(a => !a)}
+        />
+      )}
+
+      {/* Mini-player — shown when minimized */}
+      {selected && selectedIndex !== null && minimized && (
+        <MiniPlayer
+          song={selected}
+          index={selectedIndex}
+          total={filtered.length}
+          autoplay={autoplay}
+          onPrev={prev}
+          onNext={next}
+          onExpand={() => setMinimized(false)}
           onClose={close}
           onToggleAutoplay={() => setAutoplay(a => !a)}
         />
