@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, addWeeks, subWeeks, startOfWeek, addDays } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { es, it as itLocale, enUS } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/language-context'
 import { StudySession, TYPE_META, DAYS_IT, HOURS } from './types'
@@ -28,9 +28,12 @@ function getSessionHeight(durationMin: number) {
   return (durationMin / 30) * SLOT_HEIGHT
 }
 
+const DATE_LOCALES = { es, it: itLocale, en: enUS }
+
 export function WeeklyCalendar({ sessions, onSlotClick, onSessionClick }: WeeklyCalendarProps) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const sc = t.schedule
+  const dateLocale = DATE_LOCALES[lang] ?? es
   const [weekOffset, setWeekOffset] = useState(0)
   const [hoveredSlot, setHoveredSlot] = useState<{ day: number; slotIndex: number } | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -44,7 +47,7 @@ export function WeeklyCalendar({ sessions, onSlotClick, onSessionClick }: Weekly
   // Build week dates for header (display purposes only — schedule is recurring)
   const weekStart = startOfWeek(addWeeks(today, weekOffset), { weekStartsOn: 1 })
   const weekEnd = addDays(weekStart, 6)
-  const weekLabel = `${format(weekStart, 'd MMM', { locale: es })} – ${format(weekEnd, 'd MMM yyyy', { locale: es })}`
+  const weekLabel = `${format(weekStart, 'd MMM', { locale: dateLocale })} – ${format(weekEnd, 'd MMM yyyy', { locale: dateLocale })}`
 
   const isCurrentWeek = weekOffset === 0
 
