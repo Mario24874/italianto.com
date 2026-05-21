@@ -5,6 +5,8 @@ import { Plus, Pencil, Trash2, Gamepad2, Loader2, X, ToggleLeft, ToggleRight, Up
 import { toast } from 'sonner'
 import { uploadToStorage } from '@/lib/upload'
 import type { QuizQuestion, QuizContent } from '@/components/activities/quiz-player'
+import type { WordMatchPair, WordMatchContent } from '@/components/activities/word-match-player'
+import type { CrosswordWord, CrosswordContent } from '@/components/activities/crossword-player'
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const PLANS = ['free', 'essenziale', 'avanzato', 'maestro']
@@ -170,6 +172,234 @@ function QuizBuilder({ questions, onChange }: { questions: QuizQuestion[]; onCha
   )
 }
 
+// ─── WordMatch Builder ────────────────────────────────────────────────────────
+
+const emptyPair = (): WordMatchPair => ({ italian: '', translation: '' })
+
+function WordMatchBuilder({ pairs, timeLimit, onChange }: {
+  pairs: WordMatchPair[]
+  timeLimit: number
+  onChange: (pairs: WordMatchPair[], timeLimit: number) => void
+}) {
+  function add() { onChange([...pairs, emptyPair()], timeLimit) }
+  function remove(i: number) { onChange(pairs.filter((_, idx) => idx !== i), timeLimit) }
+  function update(i: number, field: keyof WordMatchPair, val: string) {
+    const ps = [...pairs]
+    ps[i] = { ...ps[i], [field]: val }
+    onChange(ps, timeLimit)
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-xs text-verde-500">Pares de palabras ({pairs.length})</label>
+        <button
+          type="button"
+          onClick={add}
+          className="flex items-center gap-1 text-xs px-3 py-1 rounded-lg bg-verde-900/50 border border-verde-700/40 text-verde-300 hover:bg-verde-900 transition-colors"
+        >
+          <Plus size={11} /> Añadir par
+        </button>
+      </div>
+
+      {pairs.length === 0 && (
+        <p className="text-xs text-verde-700 text-center py-4 rounded-xl border border-dashed border-verde-900/40">
+          Haz clic en "Añadir par" para empezar
+        </p>
+      )}
+
+      {pairs.map((p, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <input
+            type="text"
+            value={p.italian}
+            onChange={e => update(i, 'italian', e.target.value)}
+            placeholder="Italiano"
+            className="flex-1 px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none focus:border-verde-600"
+          />
+          <span className="text-verde-700 text-xs shrink-0">↔</span>
+          <input
+            type="text"
+            value={p.translation}
+            onChange={e => update(i, 'translation', e.target.value)}
+            placeholder="Traducción"
+            className="flex-1 px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none focus:border-verde-600"
+          />
+          <button
+            type="button"
+            onClick={() => remove(i)}
+            className="text-red-700 hover:text-red-400 transition-colors shrink-0"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      ))}
+
+      <div className="flex items-center gap-3 pt-1">
+        <label className="text-xs text-verde-500 shrink-0">Límite de tiempo (seg, 0 = sin límite)</label>
+        <input
+          type="number"
+          min={0}
+          max={600}
+          value={timeLimit}
+          onChange={e => onChange(pairs, parseInt(e.target.value) || 0)}
+          className="w-24 px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none focus:border-verde-600"
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─── Crossword Builder ────────────────────────────────────────────────────────
+
+const emptyCrosswordWord = (): CrosswordWord => ({ word: '', clue: '', direction: 'across', row: 0, col: 0 })
+
+function CrosswordBuilder({ content, onChange }: {
+  content: CrosswordContent
+  onChange: (c: CrosswordContent) => void
+}) {
+  const words = content.words ?? []
+  const size = content.size ?? { rows: 10, cols: 10 }
+  const [expanded, setExpanded] = useState<number | null>(null)
+
+  function updateSize(field: 'rows' | 'cols', val: number) {
+    onChange({ ...content, size: { ...size, [field]: Math.max(3, Math.min(20, val)) } })
+  }
+
+  function add() {
+    const ws = [...words, emptyCrosswordWord()]
+    onChange({ ...content, words: ws })
+    setExpanded(ws.length - 1)
+  }
+
+  function remove(i: number) {
+    onChange({ ...content, words: words.filter((_, idx) => idx !== i) })
+    setExpanded(null)
+  }
+
+  function update(i: number, field: keyof CrosswordWord, val: string | number) {
+    const ws = [...words]
+    ws[i] = { ...ws[i], [field]: val } as CrosswordWord
+    onChange({ ...content, words: ws })
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-verde-500 shrink-0">Filas</label>
+          <input
+            type="number" min={3} max={20} value={size.rows}
+            onChange={e => updateSize('rows', parseInt(e.target.value) || 10)}
+            className="w-16 px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none focus:border-verde-600"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-verde-500 shrink-0">Columnas</label>
+          <input
+            type="number" min={3} max={20} value={size.cols}
+            onChange={e => updateSize('cols', parseInt(e.target.value) || 10)}
+            className="w-16 px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none focus:border-verde-600"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={add}
+          className="flex items-center gap-1 text-xs px-3 py-1 rounded-lg bg-verde-900/50 border border-verde-700/40 text-verde-300 hover:bg-verde-900 transition-colors ml-auto"
+        >
+          <Plus size={11} /> Añadir palabra
+        </button>
+      </div>
+
+      {words.length === 0 && (
+        <p className="text-xs text-verde-700 text-center py-4 rounded-xl border border-dashed border-verde-900/40">
+          Haz clic en "Añadir palabra" para empezar
+        </p>
+      )}
+
+      {words.map((w, i) => (
+        <div key={i} className="rounded-xl border border-verde-800/30 bg-verde-950/20 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setExpanded(expanded === i ? null : i)}
+            className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-verde-950/40 transition-colors"
+          >
+            <span className="text-xs text-verde-400 font-medium truncate">
+              {i + 1}. {w.word || 'Palabra sin título'} — {w.direction === 'across' ? 'Horiz.' : 'Vert.'} ({w.row},{w.col})
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); remove(i) }}
+                className="text-red-700 hover:text-red-400 transition-colors p-0.5"
+              >
+                <Trash2 size={11} />
+              </button>
+              {expanded === i ? <ChevronUp size={13} className="text-verde-600" /> : <ChevronDown size={13} className="text-verde-600" />}
+            </div>
+          </button>
+
+          {expanded === i && (
+            <div className="px-3 pb-3 pt-2 border-t border-verde-900/30 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] text-verde-600 mb-1">Palabra</label>
+                  <input
+                    type="text"
+                    value={w.word}
+                    onChange={e => update(i, 'word', e.target.value.toUpperCase())}
+                    placeholder="CASA"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none focus:border-verde-600 uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-verde-600 mb-1">Dirección</label>
+                  <select
+                    value={w.direction}
+                    onChange={e => update(i, 'direction', e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none"
+                  >
+                    <option value="across">Horizontal</option>
+                    <option value="down">Vertical</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] text-verde-600 mb-1">Pista</label>
+                <input
+                  type="text"
+                  value={w.clue}
+                  onChange={e => update(i, 'clue', e.target.value)}
+                  placeholder="Lugar donde vive la familia"
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none focus:border-verde-600"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] text-verde-600 mb-1">Fila (0-based)</label>
+                  <input
+                    type="number" min={0} max={size.rows - 1} value={w.row}
+                    onChange={e => update(i, 'row', parseInt(e.target.value) || 0)}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none focus:border-verde-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-verde-600 mb-1">Columna (0-based)</label>
+                  <input
+                    type="number" min={0} max={size.cols - 1} value={w.col}
+                    onChange={e => update(i, 'col', parseInt(e.target.value) || 0)}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-verde-950/50 border border-verde-800/40 text-verde-200 text-xs focus:outline-none focus:border-verde-600"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ActivitiesManager() {
@@ -200,6 +430,18 @@ export function ActivitiesManager() {
       if (qs.length === 0) { toast.error('El quiz necesita al menos una pregunta'); return }
       const incomplete = qs.some(q => !q.text.trim() || q.options.some(o => !o.trim()))
       if (incomplete) { toast.error('Completa todas las preguntas y opciones'); return }
+    }
+    if (form.type === 'wordmatch') {
+      const ps = (form.content as WordMatchContent).pairs ?? []
+      if (ps.length === 0) { toast.error('El WordMatch necesita al menos un par'); return }
+      const incomplete = ps.some(p => !p.italian.trim() || !p.translation.trim())
+      if (incomplete) { toast.error('Completa todos los pares (italiano y traducción)'); return }
+    }
+    if (form.type === 'crossword') {
+      const ws = (form.content as CrosswordContent).words ?? []
+      if (ws.length === 0) { toast.error('El crucigrama necesita al menos una palabra'); return }
+      const incomplete = ws.some(w => !w.word.trim() || !w.clue.trim())
+      if (incomplete) { toast.error('Completa todas las palabras y pistas'); return }
     }
     setSaving(true)
     const payload = {
@@ -256,6 +498,15 @@ export function ActivitiesManager() {
   const quizQuestions = form?.type === 'quiz'
     ? ((form.content as QuizContent).questions ?? [])
     : []
+  const wordMatchPairs = form?.type === 'wordmatch'
+    ? ((form.content as WordMatchContent).pairs ?? [])
+    : []
+  const wordMatchTimeLimit = form?.type === 'wordmatch'
+    ? ((form.content as WordMatchContent).timeLimit ?? 0)
+    : 0
+  const crosswordContent = form?.type === 'crossword'
+    ? (form.content as CrosswordContent)
+    : { size: { rows: 10, cols: 10 }, words: [] }
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -344,8 +595,25 @@ export function ActivitiesManager() {
                 />
               )}
 
-              {/* File upload — only for game/puzzle/crossword/wordmatch */}
-              {form.type !== 'quiz' && (
+              {/* WordMatch builder */}
+              {form.type === 'wordmatch' && (
+                <WordMatchBuilder
+                  pairs={wordMatchPairs}
+                  timeLimit={wordMatchTimeLimit}
+                  onChange={(pairs, timeLimit) => setForm(f => f ? { ...f, content: { pairs, timeLimit } as WordMatchContent } : f)}
+                />
+              )}
+
+              {/* Crossword builder */}
+              {form.type === 'crossword' && (
+                <CrosswordBuilder
+                  content={crosswordContent}
+                  onChange={c => setForm(f => f ? { ...f, content: c as unknown as Record<string, unknown> } : f)}
+                />
+              )}
+
+              {/* File upload — only for game/puzzle */}
+              {(form.type === 'game' || form.type === 'puzzle') && (
                 <div>
                   <label className="block text-xs text-verde-500 mb-2">
                     {form.type === 'game' ? 'Archivo HTML5 del juego' : 'Archivo adjunto (PDF u otros)'}

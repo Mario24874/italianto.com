@@ -6,6 +6,8 @@ import { Gamepad2, Lock, Play, X, HelpCircle, Puzzle, Wrench } from 'lucide-reac
 import type { PlanType } from '@/lib/plans'
 import { useLanguage } from '@/contexts/language-context'
 import { QuizPlayer, type QuizContent } from '@/components/activities/quiz-player'
+import { WordMatchPlayer, type WordMatchContent } from '@/components/activities/word-match-player'
+import { CrosswordPlayer, type CrosswordContent } from '@/components/activities/crossword-player'
 
 const LEVEL_COLORS: Record<string, string> = {
   A1: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/40',
@@ -34,10 +36,19 @@ function TypeIcon({ type }: { type: string }) {
 }
 
 function canPlay(act: ActivityRow): boolean {
-  const hasQuiz = act.type === 'quiz' &&
-    Array.isArray((act.content as QuizContent)?.questions) &&
-    (act.content as QuizContent).questions.length > 0
-  return hasQuiz || !!act.file_url
+  if (act.type === 'quiz') {
+    const c = act.content as QuizContent
+    return Array.isArray(c?.questions) && c.questions.length > 0
+  }
+  if (act.type === 'wordmatch') {
+    const c = act.content as WordMatchContent
+    return Array.isArray(c?.pairs) && c.pairs.length > 0
+  }
+  if (act.type === 'crossword') {
+    const c = act.content as CrosswordContent
+    return Array.isArray(c?.words) && c.words.length > 0 && !!c.size
+  }
+  return !!act.file_url
 }
 
 function ActivityModal({ activity, onClose }: { activity: ActivityRow; onClose: () => void }) {
@@ -45,6 +56,10 @@ function ActivityModal({ activity, onClose }: { activity: ActivityRow; onClose: 
   const typeLabel = t.passatempi.types[activity.type as keyof typeof t.passatempi.types] ?? activity.type
   const quizContent = activity.type === 'quiz' ? (activity.content as QuizContent) : null
   const validQuiz = quizContent && Array.isArray(quizContent.questions) && quizContent.questions.length > 0
+  const wordMatchContent = activity.type === 'wordmatch' ? (activity.content as WordMatchContent) : null
+  const validWordMatch = wordMatchContent && Array.isArray(wordMatchContent.pairs) && wordMatchContent.pairs.length > 0
+  const crosswordContent = activity.type === 'crossword' ? (activity.content as CrosswordContent) : null
+  const validCrossword = crosswordContent && Array.isArray(crosswordContent.words) && crosswordContent.words.length > 0 && !!crosswordContent.size
 
   return (
     <div
@@ -76,6 +91,10 @@ function ActivityModal({ activity, onClose }: { activity: ActivityRow; onClose: 
         <div className="flex-1 overflow-y-auto">
           {validQuiz ? (
             <QuizPlayer content={quizContent} />
+          ) : validWordMatch ? (
+            <WordMatchPlayer content={wordMatchContent} />
+          ) : validCrossword ? (
+            <CrosswordPlayer content={crosswordContent} />
           ) : activity.file_url ? (
             <div className="w-full" style={{ height: '60vh' }}>
               <iframe
