@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.italianto.com https://*.clerk.accounts.dev https://js.stripe.com https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} https://api.anthropic.com https://generativelanguage.googleapis.com https://api.deepl.com https://api.stripe.com https://api.emailjs.com https://*.clerk.accounts.dev https://clerk.italianto.com`,
+      `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} https://api.anthropic.com https://generativelanguage.googleapis.com https://api.deepl.com https://api.stripe.com https://api.emailjs.com https://*.clerk.accounts.dev https://clerk.italianto.com https://app.mariomoreno.work`,
       "img-src 'self' data: blob: https://img.clerk.com https://*.supabase.co https://images.unsplash.com https://images.pexels.com https://*.cloudinary.com https://i.ytimg.com",
       "media-src 'self' https://*.supabase.co blob:",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com",
