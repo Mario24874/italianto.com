@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useLanguage } from '@/contexts/language-context'
 
-const API_URL = 'https://app.mariomoreno.work/api/analytics/review'
+const API_URL = '/api/analytics/review'
 
 type Step = 'idle' | 'open' | 'submitting' | 'done' | 'error'
 

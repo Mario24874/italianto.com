@@ -1,6 +1,7 @@
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { ReviewWidget } from '@/components/marketing/review-widget'
+import { VisitTracker } from '@/components/visit-tracker'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://italianto.com'
 
@@ -68,6 +69,7 @@ export default function MarketingLayout({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <VisitTracker />
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
