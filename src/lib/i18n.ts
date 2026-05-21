@@ -443,6 +443,10 @@ export const translations = {
       listen: 'Escuchar',
       lyrics: 'Ver letra',
       upgrade: 'Upgrade',
+      searchPlaceholder: 'Buscar por título o artista...',
+      noResults: 'No hay canciones que coincidan con tu búsqueda.',
+      songOf: 'de',
+      autoplay: 'Reproducción automática',
     },
     downloads: {
       pageSubtitle: 'Materiales descargables para estudiar italiano',
@@ -916,6 +920,10 @@ export const translations = {
       listen: 'Ascolta',
       lyrics: 'Vedi testo',
       upgrade: 'Upgrade',
+      searchPlaceholder: 'Cerca per titolo o artista...',
+      noResults: 'Nessuna canzone corrisponde alla tua ricerca.',
+      songOf: 'di',
+      autoplay: 'Riproduzione automatica',
     },
     downloads: {
       pageSubtitle: "Materiali scaricabili per studiare l'italiano",
@@ -1389,6 +1397,10 @@ export const translations = {
       listen: 'Listen',
       lyrics: 'View lyrics',
       upgrade: 'Upgrade',
+      searchPlaceholder: 'Search by title or artist...',
+      noResults: 'No songs match your search.',
+      songOf: 'of',
+      autoplay: 'Autoplay',
     },
     downloads: {
       pageSubtitle: 'Downloadable materials to study Italian',
