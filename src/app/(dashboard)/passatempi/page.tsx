@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import type { PlanType } from '@/lib/plans'
+import { translations, type Language } from '@/lib/i18n'
 import { Gamepad2 } from 'lucide-react'
 import { PassatempiClient, type ActivityRow } from './_passatempi-client'
 
@@ -13,6 +15,10 @@ const PLAN_HIERARCHY: PlanType[] = ['free', 'essenziale', 'avanzato', 'maestro']
 export default async function PassatempiPage() {
   const user = await currentUser()
   if (!user) redirect('/sign-in')
+
+  const cookieStore = await cookies()
+  const lang = (cookieStore.get('italianto-lang')?.value ?? 'es') as Language
+  const t = translations[lang] ?? translations.es
 
   const supabase = getSupabaseAdmin()
   const [activitiesResult, subResult] = await Promise.all([
@@ -37,9 +43,9 @@ export default async function PassatempiPage() {
       <div>
         <h1 className="text-3xl font-extrabold text-verde-50 flex items-center gap-3">
           <Gamepad2 size={28} className="text-amber-400" />
-          Passatempi
+          {t.nav.games}
         </h1>
-        <p className="text-verde-500 mt-1 text-sm">Juegos y actividades para practicar italiano</p>
+        <p className="text-verde-500 mt-1 text-sm">{t.passatempi.pageSubtitle}</p>
       </div>
 
       <PassatempiClient

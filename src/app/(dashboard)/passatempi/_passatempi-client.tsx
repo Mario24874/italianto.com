@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Gamepad2, Lock, Play, X, HelpCircle, Puzzle, Wrench } from 'lucide-react'
 import type { PlanType } from '@/lib/plans'
+import { useLanguage } from '@/contexts/language-context'
 import { QuizPlayer, type QuizContent } from '@/components/activities/quiz-player'
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -13,10 +14,6 @@ const LEVEL_COLORS: Record<string, string> = {
   B2: 'bg-orange-900/50 text-orange-300 border-orange-700/40',
   C1: 'bg-red-900/50 text-red-300 border-red-700/40',
   C2: 'bg-purple-900/50 text-purple-300 border-purple-700/40',
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  game: 'Juego', quiz: 'Quiz', puzzle: 'Puzzle', crossword: 'Crucigrama', wordmatch: 'Palabras',
 }
 
 export interface ActivityRow {
@@ -44,6 +41,8 @@ function canPlay(act: ActivityRow): boolean {
 }
 
 function ActivityModal({ activity, onClose }: { activity: ActivityRow; onClose: () => void }) {
+  const { t } = useLanguage()
+  const typeLabel = t.passatempi.types[activity.type as keyof typeof t.passatempi.types] ?? activity.type
   const quizContent = activity.type === 'quiz' ? (activity.content as QuizContent) : null
   const validQuiz = quizContent && Array.isArray(quizContent.questions) && quizContent.questions.length > 0
 
@@ -63,9 +62,7 @@ function ActivityModal({ activity, onClose }: { activity: ActivityRow; onClose: 
             </div>
             <div>
               <h2 className="text-base font-bold text-verde-100 leading-tight">{activity.title}</h2>
-              <p className="text-xs text-verde-500 mt-0.5">
-                {TYPE_LABELS[activity.type] ?? activity.type} · {activity.level}
-              </p>
+              <p className="text-xs text-verde-500 mt-0.5">{typeLabel} · {activity.level}</p>
             </div>
           </div>
           <button
@@ -91,7 +88,7 @@ function ActivityModal({ activity, onClose }: { activity: ActivityRow; onClose: 
           ) : (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-verde-700">
               <Wrench size={32} className="text-verde-800" />
-              <p className="text-sm">Esta actividad estará disponible próximamente</p>
+              <p className="text-sm">{t.passatempi.comingSoon}</p>
             </div>
           )}
         </div>
@@ -109,6 +106,8 @@ export function PassatempiClient({
   userPlan: PlanType
   planHierarchy: PlanType[]
 }) {
+  const { t } = useLanguage()
+  const pt = t.passatempi
   const [selected, setSelected] = useState<ActivityRow | null>(null)
 
   function hasAccess(required: string) {
@@ -120,13 +119,14 @@ export function PassatempiClient({
       {activities.length === 0 ? (
         <div className="text-center py-20">
           <Gamepad2 size={48} className="text-verde-800 mx-auto mb-4" />
-          <p className="text-verde-500">Le attività arriveranno presto. Torna più tardi!</p>
+          <p className="text-verde-500">{pt.emptyState}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {activities.map(act => {
             const accessible = hasAccess(act.plan_required)
             const playable = canPlay(act)
+            const typeLabel = pt.types[act.type as keyof typeof pt.types] ?? act.type
             return accessible ? (
               <div
                 key={act.id}
@@ -140,7 +140,7 @@ export function PassatempiClient({
                     <div className="font-semibold text-verde-200 truncate">{act.title}</div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] font-medium text-amber-400 bg-amber-950/30 border border-amber-800/30 px-2 py-0.5 rounded">
-                        {TYPE_LABELS[act.type] ?? act.type}
+                        {typeLabel}
                       </span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${LEVEL_COLORS[act.level]}`}>
                         {act.level}
@@ -153,7 +153,7 @@ export function PassatempiClient({
                       className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-amber-900/30 border border-amber-800/40 text-amber-300 hover:bg-amber-900/50 transition-colors"
                     >
                       <Play size={11} />
-                      Jugar
+                      {pt.playBtn}
                     </button>
                   )}
                 </div>
@@ -170,7 +170,7 @@ export function PassatempiClient({
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-verde-500 truncate">{act.title}</div>
                     <Link href="/impostazioni" className="text-[10px] text-verde-600 hover:text-verde-400 transition-colors">
-                      Upgrade para desbloquear
+                      {pt.upgrade}
                     </Link>
                   </div>
                 </div>

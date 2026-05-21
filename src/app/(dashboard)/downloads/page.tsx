@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import type { PlanType } from '@/lib/plans'
+import { translations, type Language } from '@/lib/i18n'
 import Link from 'next/link'
 import { Download, Lock, FileText, Music, Video, Archive, ImageIcon, File } from 'lucide-react'
 
@@ -45,6 +47,10 @@ export default async function DownloadsPage() {
   const user = await currentUser()
   if (!user) redirect('/sign-in')
 
+  const cookieStore = await cookies()
+  const lang = (cookieStore.get('italianto-lang')?.value ?? 'es') as Language
+  const t = translations[lang] ?? translations.es
+
   const supabase = getSupabaseAdmin()
   const [downloadsResult, subResult] = await Promise.all([
     supabase.from('downloads').select('id,title,description,file_url,file_type,size_bytes,level,plan_required,download_count').eq('status', 'published').order('order_index', { ascending: true }),
@@ -61,13 +67,13 @@ export default async function DownloadsPage() {
           <Download size={28} className="text-cyan-400" />
           Download
         </h1>
-        <p className="text-verde-500 mt-1 text-sm">Materiali scaricabili per studiare italiano</p>
+        <p className="text-verde-500 mt-1 text-sm">{t.downloads.pageSubtitle}</p>
       </div>
 
       {downloads.length === 0 ? (
         <div className="text-center py-20">
           <Download size={48} className="text-verde-800 mx-auto mb-4" />
-          <p className="text-verde-500">I materiali arriveranno presto. Torna più tardi!</p>
+          <p className="text-verde-500">{t.downloads.emptyState}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -89,7 +95,7 @@ export default async function DownloadsPage() {
                 <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border shrink-0 ${LEVEL_COLORS[dl.level]}`}>{dl.level}</span>
                 <a href={dl.file_url} target="_blank" rel="noopener noreferrer" download
                   className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-cyan-900/30 border border-cyan-800/40 text-cyan-300 hover:bg-cyan-900/50 transition-colors">
-                  <Download size={12} /> Descargar
+                  <Download size={12} /> {t.downloads.downloadBtn}
                 </a>
               </div>
             ) : (
@@ -103,7 +109,7 @@ export default async function DownloadsPage() {
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border shrink-0 ${LEVEL_COLORS[dl.level]}`}>{dl.level}</span>
                 <Link href="/impostazioni" onClick={e => e.stopPropagation()} className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-verde-800/40 text-verde-500 hover:text-verde-300 hover:border-verde-600 transition-colors">
-                  Upgrade
+                  {t.downloads.upgrade}
                 </Link>
               </div>
             )

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { CheckCircle2, XCircle, ChevronRight, RotateCcw, Trophy } from 'lucide-react'
+import { useLanguage } from '@/contexts/language-context'
 
 export type QuizQuestion = {
   text: string
@@ -16,6 +17,8 @@ export type QuizContent = {
 }
 
 export function QuizPlayer({ content }: { content: QuizContent }) {
+  const { t } = useLanguage()
+  const qt = t.quiz
   const { questions, passingScore = 60 } = content
   const total = questions.length
 
@@ -28,7 +31,7 @@ export function QuizPlayer({ content }: { content: QuizContent }) {
   if (total === 0) {
     return (
       <div className="flex items-center justify-center py-16 text-verde-700 text-sm">
-        Este quiz no tiene preguntas aún.
+        {qt.noQuestions}
       </div>
     )
   }
@@ -78,12 +81,10 @@ export function QuizPlayer({ content }: { content: QuizContent }) {
           <Trophy size={14} className={passed ? 'text-amber-400 mt-0.5' : 'text-red-600 mt-0.5'} />
         </div>
         <div>
-          <p className="text-lg font-bold text-verde-100">
-            {passed ? '¡Ottimo lavoro!' : 'Riprova!'}
-          </p>
-          <p className="text-sm text-verde-500 mt-1">{score} de {total} correctas</p>
+          <p className="text-lg font-bold text-verde-100">{passed ? qt.passed : qt.failed}</p>
+          <p className="text-sm text-verde-500 mt-1">{score} {qt.outOf} {total} {qt.correct}</p>
           {!passed && (
-            <p className="text-xs text-verde-600 mt-1">Necesitas {passingScore}% para aprobar</p>
+            <p className="text-xs text-verde-600 mt-1">{qt.passNeeded} {passingScore}{qt.toPass}</p>
           )}
         </div>
         <button
@@ -91,7 +92,7 @@ export function QuizPlayer({ content }: { content: QuizContent }) {
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors"
         >
           <RotateCcw size={14} />
-          Intentar de nuevo
+          {qt.retry}
         </button>
       </div>
     )
@@ -161,7 +162,7 @@ export function QuizPlayer({ content }: { content: QuizContent }) {
               onClick={next}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold transition-colors"
             >
-              {current + 1 >= total ? 'Ver resultados' : 'Siguiente'}
+              {current + 1 >= total ? qt.results : qt.next}
               <ChevronRight size={15} />
             </button>
           </div>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Music, Lock, Play, X, FileMusic, FileVideo } from 'lucide-react'
 import type { PlanType } from '@/lib/plans'
+import { useLanguage } from '@/contexts/language-context'
 
 const LEVEL_COLORS: Record<string, string> = {
   A1: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/40',
@@ -126,6 +127,8 @@ export function CanzoniClient({
   userPlan: PlanType
   planHierarchy: PlanType[]
 }) {
+  const { t } = useLanguage()
+  const ct = t.canzoni
   const [selected, setSelected] = useState<SongRow | null>(null)
 
   function hasAccess(required: string) {
@@ -137,7 +140,7 @@ export function CanzoniClient({
       {songs.length === 0 ? (
         <div className="text-center py-20">
           <Music size={48} className="text-verde-800 mx-auto mb-4" />
-          <p className="text-verde-500">Le canzoni arriveranno presto. Torna più tardi!</p>
+          <p className="text-verde-500">{ct.emptyState}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -167,7 +170,7 @@ export function CanzoniClient({
                     className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-pink-900/30 border border-pink-800/40 text-pink-300 hover:bg-pink-900/50 transition-colors"
                   >
                     {song.video_url ? <FileVideo size={12} /> : song.audio_url ? <Play size={12} /> : <FileMusic size={12} />}
-                    {song.video_url ? 'Ver' : song.audio_url ? 'Escuchar' : 'Ver letra'}
+                    {song.video_url ? ct.watch : song.audio_url ? ct.listen : ct.lyrics}
                   </button>
                 )}
               </div>
@@ -191,7 +194,7 @@ export function CanzoniClient({
                   onClick={e => e.stopPropagation()}
                   className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-verde-800/40 text-verde-500 hover:text-verde-300 hover:border-verde-600 transition-colors"
                 >
-                  Upgrade
+                  {ct.upgrade}
                 </Link>
               </div>
             )

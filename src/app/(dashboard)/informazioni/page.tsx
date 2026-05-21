@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import type { PlanType } from '@/lib/plans'
+import { translations, type Language } from '@/lib/i18n'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Info, Lock } from 'lucide-react'
@@ -30,6 +32,10 @@ export default async function InformazioniPage() {
   const user = await currentUser()
   if (!user) redirect('/sign-in')
 
+  const cookieStore = await cookies()
+  const lang = (cookieStore.get('italianto-lang')?.value ?? 'es') as Language
+  const t = translations[lang] ?? translations.es
+
   const supabase = getSupabaseAdmin()
   const [articlesResult, subResult] = await Promise.all([
     supabase.from('info_articles').select('id,slug,title,excerpt,image_url,category,level,plan_required').eq('status', 'published').order('order_index', { ascending: true }),
@@ -52,13 +58,13 @@ export default async function InformazioniPage() {
           <Info size={28} className="text-blue-400" />
           Info Interessanti
         </h1>
-        <p className="text-verde-500 mt-1 text-sm">Curiosidades, cultura y datos sobre Italia e il italiano</p>
+        <p className="text-verde-500 mt-1 text-sm">{t.informazioni.pageSubtitle}</p>
       </div>
 
       {articles.length === 0 ? (
         <div className="text-center py-20">
           <Info size={48} className="text-verde-800 mx-auto mb-4" />
-          <p className="text-verde-500">Gli articoli arriveranno presto. Torna più tardi!</p>
+          <p className="text-verde-500">{t.informazioni.emptyState}</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -91,7 +97,7 @@ export default async function InformazioniPage() {
                         <Lock size={14} className="text-verde-700 shrink-0" />
                         <div className="font-semibold text-verde-500 truncate">{art.title}</div>
                       </div>
-                      <Link href="/impostazioni" className="text-xs text-verde-600 hover:text-verde-400 transition-colors">Upgrade para leer</Link>
+                      <Link href="/impostazioni" className="text-xs text-verde-600 hover:text-verde-400 transition-colors">{t.informazioni.upgrade}</Link>
                     </div>
                   )
                 })}
