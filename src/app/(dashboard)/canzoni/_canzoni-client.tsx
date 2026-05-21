@@ -214,7 +214,7 @@ function MiniPlayer({
   const ct = t.canzoni
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-3 px-4 py-3 bg-[#090e09]/95 border-t border-pink-900/40 backdrop-blur-md shadow-2xl">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-3 bg-[#090e09]/95 border border-pink-900/40 backdrop-blur-md shadow-2xl rounded-2xl w-[min(480px,calc(100vw-96px))]">
       {/* Equalizer + info */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className="w-9 h-9 rounded-xl bg-pink-900/40 border border-pink-700/40 flex items-center justify-center shrink-0">
@@ -335,7 +335,7 @@ export function CanzoniClient({
         </div>
       ) : (
         // Extra bottom padding when mini-player is visible
-        <div className={cn('space-y-2', selected && minimized && 'pb-20')}>
+        <div className={cn('space-y-2', selected && minimized && 'pb-24')}>
           {filtered.map((song, idx) => {
             const hasContent = song.audio_url || song.video_url || song.lyrics?.trim()
             const isPlaying = selectedIndex === idx
