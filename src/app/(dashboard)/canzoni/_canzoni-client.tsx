@@ -2,6 +2,25 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Music, Play, X, FileMusic, FileVideo, Search, ChevronLeft, ChevronRight, Repeat } from 'lucide-react'
+
+function EqualizerBars() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-pink-400">
+      <rect x="1" y="9" width="3" height="9" rx="1" fill="currentColor">
+        <animate attributeName="height" values="9;15;4;13;6;9" dur="1.1s" repeatCount="indefinite" />
+        <animate attributeName="y" values="9;3;14;5;12;9" dur="1.1s" repeatCount="indefinite" />
+      </rect>
+      <rect x="7" y="5" width="3" height="13" rx="1" fill="currentColor">
+        <animate attributeName="height" values="13;5;15;4;11;13" dur="0.85s" repeatCount="indefinite" />
+        <animate attributeName="y" values="5;13;3;14;7;5" dur="0.85s" repeatCount="indefinite" />
+      </rect>
+      <rect x="13" y="7" width="3" height="11" rx="1" fill="currentColor">
+        <animate attributeName="height" values="11;15;5;13;8;11" dur="1.35s" repeatCount="indefinite" />
+        <animate attributeName="y" values="7;3;13;5;10;7" dur="1.35s" repeatCount="indefinite" />
+      </rect>
+    </svg>
+  )
+}
 import type { PlanType } from '@/lib/plans'
 import { useLanguage } from '@/contexts/language-context'
 import { cn } from '@/lib/utils'
@@ -291,7 +310,7 @@ export function CanzoniClient({
                   'w-10 h-10 rounded-xl border flex items-center justify-center shrink-0',
                   isPlaying ? 'bg-pink-900/40 border-pink-700/40' : 'bg-pink-950/40 border-pink-800/30'
                 )}>
-                  <Music size={18} className="text-pink-400" />
+                  {isPlaying ? <EqualizerBars /> : <Music size={18} className="text-pink-400" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-verde-200 truncate">{song.title}</div>
