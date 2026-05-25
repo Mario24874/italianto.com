@@ -465,6 +465,8 @@ export const translations = {
       pageSubtitle: 'Curiosidades, cultura y datos sobre Italia e il italiano',
       emptyState: 'Los artículos llegarán pronto. ¡Vuelve más tarde!',
       upgrade: 'Upgrade para leer',
+      back: 'Info Interessanti',
+      notFound: 'Artículo no encontrado',
     },
     wordmatch: {
       noContent: 'Este ejercicio no tiene pares aún.',
@@ -942,6 +944,8 @@ export const translations = {
       pageSubtitle: 'Curiosità, cultura e dati su Italia e italiano',
       emptyState: 'Gli articoli arriveranno presto. Torna più tardi!',
       upgrade: 'Upgrade per leggere',
+      back: 'Info Interessanti',
+      notFound: 'Articolo non trovato',
     },
     wordmatch: {
       noContent: 'Questo esercizio non ha ancora coppie.',
@@ -1419,6 +1423,8 @@ export const translations = {
       pageSubtitle: 'Curiosities, culture and facts about Italy and Italian',
       emptyState: 'Articles are coming soon. Check back later!',
       upgrade: 'Upgrade to read',
+      back: 'Info Interessanti',
+      notFound: 'Article not found',
     },
     wordmatch: {
       noContent: 'This exercise has no pairs yet.',

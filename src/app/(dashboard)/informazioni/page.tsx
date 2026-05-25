@@ -80,7 +80,7 @@ export default async function InformazioniPage() {
                 {arts.map(art => {
                   const accessible = hasAccess(userPlan, art.plan_required as PlanType)
                   return accessible ? (
-                    <div key={art.id} className="rounded-2xl border border-verde-900/30 bg-verde-950/20 hover:bg-verde-950/40 hover:border-verde-800/50 transition-all overflow-hidden">
+                    <Link key={art.id} href={`/informazioni/${art.slug}`} className="rounded-2xl border border-verde-900/30 bg-verde-950/20 hover:bg-verde-950/40 hover:border-verde-800/50 transition-all overflow-hidden block">
                       {art.image_url && (
                         <div className="relative h-32 w-full">
                           <Image src={art.image_url} alt={art.title} fill className="object-cover" />
@@ -90,7 +90,7 @@ export default async function InformazioniPage() {
                         <div className="font-semibold text-verde-200 mb-1">{art.title}</div>
                         {art.excerpt && <p className="text-xs text-verde-500 line-clamp-2">{art.excerpt}</p>}
                       </div>
-                    </div>
+                    </Link>
                   ) : (
                     <div key={art.id} className="rounded-2xl border border-verde-900/20 bg-verde-950/10 opacity-60 p-4">
                       <div className="flex items-center gap-2 mb-1">
