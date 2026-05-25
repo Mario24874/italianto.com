@@ -412,7 +412,7 @@ export function TutorLive({
                 speechConfig: {
                   voiceConfig: { prebuiltVoiceConfig: { voiceName: geminiVoice } },
                 },
-                temperature: 0.75,
+                thinkingConfig: { thinkingLevel: 'minimal' },
               },
               systemInstruction: { parts: [{ text: systemPrompt }] },
               inputAudioTranscription: {},
