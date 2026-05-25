@@ -397,7 +397,7 @@ export function TutorLive({
       const { token, systemPrompt, wsBase, model } = await tokenRes.json() as { token: string; systemPrompt: string; wsBase: string; model: string }
 
       // 3. Open WebSocket to Gemini Live
-      const ws = new WebSocket(`${wsBase}?access_token=${token}`)
+      const ws = new WebSocket(`${wsBase}?key=${token}`)
       wsRef.current = ws
 
       ws.onopen = async () => {
