@@ -5,9 +5,6 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 export const dynamic = 'force-dynamic'
 
 const LIVE_MODEL = process.env.GEMINI_LIVE_MODEL ?? 'gemini-3.1-flash-live-preview'
-// BidiGenerateContent (without Constrained) authenticates with ?key=API_KEY directly.
-// BidiGenerateContentConstrained requires an auth_tokens/... token from CreateAuthToken,
-// which is not available with a standard AI Studio API key.
 const WS_BASE = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
 
 export interface StudentPrefs {
@@ -49,8 +46,8 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = buildSystemPrompt(tutorName, prefs, config)
 
-  // Return API key as token — the browser uses it as ?key=TOKEN with BidiGenerateContent.
-  // Safe: this route already verified Clerk auth + active paid subscription above.
+  // Generate ephemeral auth token for BidiGenerateContentConstrained.
+  // Body fields from official google-gemini/gemini-live-api-examples server.py.
   const token = apiKey
 
   try {
