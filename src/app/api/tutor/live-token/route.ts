@@ -46,9 +46,38 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = buildSystemPrompt(tutorName, prefs, config)
 
-  // Use API key directly as access_token — BidiGenerateContentConstrained accepts it.
-  // Only safe because this route already verified auth + paid subscription above.
-  const token = apiKey
+  // Generate auth token via CreateAuthToken — BidiGenerateContentConstrained requires
+  // a token of the form "auth_tokens/..." obtained from this endpoint.
+  const expireTime = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+  let token: string
+  try {
+    const tokenRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1alpha/authTokens?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expireTime }),
+      }
+    )
+    const td = await tokenRes.json()
+    if (!tokenRes.ok) {
+      console.error('[live-token] CreateAuthToken error', tokenRes.status, JSON.stringify(td))
+      return NextResponse.json(
+        { error: `Error al crear sesión (${tokenRes.status}): ${JSON.stringify(td)}` },
+        { status: 502 }
+      )
+    }
+    // Response contains { name: "auth_tokens/...", token: "..." } — use whichever is present
+    token = (td.token ?? td.name) as string
+    if (!token) {
+      console.error('[live-token] empty token', JSON.stringify(td))
+      return NextResponse.json({ error: 'Token vacío: ' + JSON.stringify(td) }, { status: 502 })
+    }
+    console.log('[live-token] token ok, prefix:', String(token).slice(0, 20))
+  } catch (e) {
+    console.error('[live-token] fetch error', e)
+    return NextResponse.json({ error: 'Error de red al contactar Gemini' }, { status: 500 })
+  }
 
   try {
     await supabase.rpc('increment_quota', {
