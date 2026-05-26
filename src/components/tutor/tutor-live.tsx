@@ -20,6 +20,8 @@ const GEMINI_VOICE: Record<string, string> = {
   francesca: 'Kore',
 }
 const DEFAULT_GEMINI_VOICE = 'Puck'
+// Valid Gemini Live voice names — DB column still stores old ElevenLabs IDs on some rows.
+const VALID_GEMINI_VOICES = new Set(['Puck','Charon','Aoede','Kore','Fenrir','Leda','Orus','Zephyr'])
 
 // Avatar images — must exist in /public/
 const AVATAR_IMAGES: Record<string, string> = {
@@ -169,7 +171,10 @@ export function TutorLive({
   // ── Derived ────────────────────────────────────────────────────────────────
   const effectiveName   = prefs.customName || tutorName
   const avatarSrc       = AVATAR_IMAGES[prefs.avatarId] ?? (_avatarUrl ?? '/default-avatar.png')
-  const geminiVoice     = _geminiVoice ?? GEMINI_VOICE[prefs.avatarId] ?? GEMINI_VOICE[tutorSlug] ?? DEFAULT_GEMINI_VOICE
+  // Only use DB voice if it's a valid Gemini name — DB column may still hold old ElevenLabs IDs.
+  const geminiVoice     = (_geminiVoice && VALID_GEMINI_VOICES.has(_geminiVoice))
+    ? _geminiVoice
+    : GEMINI_VOICE[prefs.avatarId] ?? GEMINI_VOICE[tutorSlug] ?? DEFAULT_GEMINI_VOICE
   const plan            = PLANS.find(p => p.id === planType)
   const minuteLimit     = plan?.limits.tutorMinutes ?? null
   const minutesLeft     = minuteLimit !== null ? Math.max(0, minuteLimit - Math.floor(localMinutes)) : null
