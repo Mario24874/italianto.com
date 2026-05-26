@@ -396,23 +396,24 @@ export function TutorLive({
       }
       const { token, systemPrompt, wsBase, model } = await tokenRes.json() as { token: string; systemPrompt: string; wsBase: string; model: string }
 
-      // 3. Open WebSocket to Gemini Live
-      const ws = new WebSocket(`${wsBase}?key=${token}`)
+      // 3. Open WebSocket to Gemini Live (ephemeral token, BidiGenerateContentConstrained)
+      const ws = new WebSocket(`${wsBase}?access_token=${token}`)
       wsRef.current = ws
 
       ws.onopen = async () => {
         try {
           // 4. Send setup — VAD silence adapted to student level (A1 needs more pause time)
           const silenceMs = prefs.livello === 'B2' ? 600 : prefs.livello === 'B1' ? 700 : prefs.livello === 'A2' ? 900 : 1000
+          // Setup message mirrors the official google-gemini/gemini-live-api-examples structure exactly.
           ws.send(JSON.stringify({
             setup: {
               model: `models/${model}`,
               generationConfig: {
                 responseModalities: ['AUDIO'],
+                temperature: 1.0,
                 speechConfig: {
                   voiceConfig: { prebuiltVoiceConfig: { voiceName: geminiVoice } },
                 },
-                thinkingConfig: { thinkingLevel: 'minimal' },
               },
               systemInstruction: { parts: [{ text: systemPrompt }] },
               inputAudioTranscription: {},
@@ -421,8 +422,11 @@ export function TutorLive({
                 automaticActivityDetection: {
                   disabled: false,
                   silenceDurationMs: silenceMs,
-                  prefixPaddingMs: 200,
+                  prefixPaddingMs: 500,
+                  endOfSpeechSensitivity: 'END_SENSITIVITY_UNSPECIFIED',
+                  startOfSpeechSensitivity: 'START_SENSITIVITY_UNSPECIFIED',
                 },
+                activityHandling: 'ACTIVITY_HANDLING_UNSPECIFIED',
                 turnCoverage: 'TURN_INCLUDES_ONLY_ACTIVITY',
               },
             },

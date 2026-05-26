@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { GoogleGenAI } from '@google/genai'
 
 export const dynamic = 'force-dynamic'
 
 const LIVE_MODEL = process.env.GEMINI_LIVE_MODEL ?? 'gemini-3.1-flash-live-preview'
-const WS_BASE = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
+// BidiGenerateContentConstrained requires an ephemeral access_token (not a raw API key).
+const WS_BASE = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained'
 
 export interface StudentPrefs {
   registro?: 'informale' | 'formale'
@@ -46,9 +48,22 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = buildSystemPrompt(tutorName, prefs, config)
 
-  // Generate ephemeral auth token for BidiGenerateContentConstrained.
-  // Body fields from official google-gemini/gemini-live-api-examples server.py.
-  const token = apiKey
+  // Generate ephemeral token via @google/genai SDK (v1alpha, Gemini Developer API only).
+  // The token.name is the value passed as ?access_token= in BidiGenerateContentConstrained.
+  const genai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: 'v1alpha' } })
+  const expireTime = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+
+  let token: string
+  try {
+    const authToken = await genai.authTokens.create({
+      config: { uses: 1, expireTime },
+    })
+    if (!authToken.name) throw new Error('Empty token name from Gemini auth')
+    token = authToken.name
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: `Error generando token Gemini: ${msg}` }, { status: 500 })
+  }
 
   try {
     await supabase.rpc('increment_quota', {
