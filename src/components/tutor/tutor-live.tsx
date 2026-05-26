@@ -395,17 +395,18 @@ export function TutorLive({
         throw new Error((err as Record<string, string>).error ?? `Token error ${tokenRes.status}`)
       }
       const { token, systemPrompt, wsBase, model } = await tokenRes.json() as { token: string; systemPrompt: string; wsBase: string; model: string }
+      console.log('[Tutor] token prefix:', token?.slice(0, 40), '| wsBase:', wsBase, '| model:', model)
 
       // 3. Open WebSocket to Gemini Live (ephemeral token, BidiGenerateContentConstrained)
       const ws = new WebSocket(`${wsBase}?access_token=${token}`)
       wsRef.current = ws
 
       ws.onopen = async () => {
+        console.log('[Tutor] WS opened — sending setup')
         try {
           // 4. Send setup — VAD silence adapted to student level (A1 needs more pause time)
           const silenceMs = prefs.livello === 'B2' ? 600 : prefs.livello === 'B1' ? 700 : prefs.livello === 'A2' ? 900 : 1000
-          // Setup message mirrors the official google-gemini/gemini-live-api-examples structure exactly.
-          ws.send(JSON.stringify({
+          const setupMsg = {
             setup: {
               model: `models/${model}`,
               generationConfig: {
@@ -430,7 +431,9 @@ export function TutorLive({
                 turnCoverage: 'TURN_INCLUDES_ONLY_ACTIVITY',
               },
             },
-          }))
+          }
+          console.log('[Tutor] setup:', JSON.stringify(setupMsg).slice(0, 200))
+          ws.send(JSON.stringify(setupMsg))
 
           // 5. Start audio I/O
           await startAudioPlayback()
@@ -445,10 +448,9 @@ export function TutorLive({
       }
 
       ws.onmessage = handleWsMessage
-      ws.onerror = () => setError('Error de conexión WebSocket.')
+      ws.onerror = (e) => { console.error('[Tutor] WS error:', e); setError('Error de conexión WebSocket.') }
       ws.onclose = e => {
-        setCallStatus('idle')
-        setCallStatus(prev => prev === 'idle' ? 'idle' : 'idle')
+        console.warn('[Tutor] WS closed — code:', e.code, 'reason:', e.reason, 'wasClean:', e.wasClean)
         if (inCallRef.current) {
           setError(`Sesión cerrada (${e.code}${e.reason ? ': ' + e.reason : ''})`)
         }
