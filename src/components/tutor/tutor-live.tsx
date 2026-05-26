@@ -32,6 +32,13 @@ const AVATAR_IMAGES: Record<string, string> = {
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+interface TutorStats {
+  streak: number
+  totalSessions: number
+  totalMinutes: number
+  weekDays: Array<{ date: string; sessions: number; durationSecs: number }>
+}
+
 type CallStatus = 'idle' | 'connecting' | 'listening' | 'speaking'
 type AvatarId = 'marco' | 'giovanni' | 'giulia' | 'francesca'
 
@@ -70,6 +77,40 @@ export interface TutorLiveProps {
   geminiVoice?: string | null
   minutesUsed: number
   planType: PlanType
+}
+
+// ── Weekly progress chart ─────────────────────────────────────────────────────
+const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+
+function WeeklyChart({ weekDays }: { weekDays: TutorStats['weekDays'] }) {
+  const maxSecs = Math.max(...weekDays.map(d => d.durationSecs), 1)
+  const todayStr = new Date().toISOString().slice(0, 10)
+  return (
+    <div className="flex items-end gap-1 h-9">
+      {weekDays.map(day => {
+        const pct = day.durationSecs > 0 ? Math.max(15, (day.durationSecs / maxSecs) * 100) : 0
+        const isToday = day.date === todayStr
+        const dayName = DAY_NAMES[new Date(day.date + 'T12:00:00').getDay()]
+        return (
+          <div key={day.date} className="flex flex-col items-center gap-0.5 flex-1">
+            <div className="flex items-end w-full" style={{ height: 28 }}>
+              <div
+                className={cn('w-full rounded-t-sm transition-all',
+                  day.durationSecs > 0
+                    ? isToday ? 'bg-verde-400' : 'bg-verde-700/60'
+                    : 'bg-verde-900/30'
+                )}
+                style={{ height: pct > 0 ? `${pct}%` : 3 }}
+              />
+            </div>
+            <span className={cn('text-[8px] leading-none', isToday ? 'text-verde-300 font-bold' : 'text-verde-700')}>
+              {dayName}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 // ── Equalizer bars ────────────────────────────────────────────────────────────
@@ -152,6 +193,8 @@ export function TutorLive({
   const [callDuration, setCallDuration] = useState(0)
   const [cameraOn, setCameraOn]     = useState(false)
   const [captureFlash, setCaptureFlash] = useState(false)
+  const [stats, setStats]           = useState<TutorStats | null>(null)
+  const [lastSession, setLastSession] = useState<{ duration: number; turns: number } | null>(null)
 
   // ── Refs ───────────────────────────────────────────────────────────────────
   const wsRef              = useRef<WebSocket | null>(null)
@@ -167,6 +210,10 @@ export function TutorLive({
   const scrollRef          = useRef<HTMLDivElement>(null)
   const inCallRef          = useRef(false)
   const callTimerRef       = useRef<ReturnType<typeof setInterval> | null>(null)
+  const callStartRef       = useRef<number>(0)
+  const messagesRef        = useRef<Message[]>([])
+  const prefsRef           = useRef<StudentPrefs>(DEFAULT_PREFS)
+  const sessionSavedRef    = useRef(false)
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const effectiveName   = prefs.customName || tutorName
@@ -179,10 +226,23 @@ export function TutorLive({
   const minuteLimit     = plan?.limits.tutorMinutes ?? null
   const minutesLeft     = minuteLimit !== null ? Math.max(0, minuteLimit - Math.floor(localMinutes)) : null
 
-  const inCall    = callStatus !== 'idle'
+  const inCall      = callStatus !== 'idle'
   const isSpeaking  = callStatus === 'speaking'
   const isListening = callStatus === 'listening'
   const isConnecting = callStatus === 'connecting'
+
+  // Keep refs in sync so doEndCall always reads current values
+  useEffect(() => { prefsRef.current = prefs }, [prefs])
+  useEffect(() => { messagesRef.current = messages }, [messages])
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  const fetchStats = useCallback(() => {
+    fetch('/api/tutor/stats')
+      .then(r => r.json())
+      .then((data: TutorStats) => setStats(data))
+      .catch(() => {})
+  }, [])
+  useEffect(() => { fetchStats() }, [fetchStats])
 
   // ── Load saved prefs ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -218,8 +278,9 @@ export function TutorLive({
       data = JSON.parse(raw)
     } catch { return }
 
-    // Setup complete
     if (data?.setupComplete) {
+      callStartRef.current = Date.now()
+      sessionSavedRef.current = false
       setCallStatus('listening')
       return
     }
@@ -468,7 +529,14 @@ export function TutorLive({
   // ── End call ───────────────────────────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const doEndCall = useCallback(() => {
+    const duration = callStartRef.current > 0
+      ? Math.round((Date.now() - callStartRef.current) / 1000)
+      : 0
+    const turns = messagesRef.current.filter(m => m.role === 'assistant' && !m.partial).length
+    const currentPrefs = prefsRef.current
+
     inCallRef.current = false
+    callStartRef.current = 0
     setCallStatus('idle')
 
     wsRef.current?.close(); wsRef.current = null
@@ -486,7 +554,25 @@ export function TutorLive({
     stopVideoFrames()
 
     if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null }
-  }, [stopVideoFrames])
+
+    if (duration >= 30 && !sessionSavedRef.current) {
+      sessionSavedRef.current = true
+      const sessionMinutes = Math.round(duration / 60)
+      setLastSession({ duration, turns })
+      setLocalMinutes(m => m + sessionMinutes)
+      fetch('/api/tutor/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          duration_secs: duration,
+          turns_count: turns,
+          nivel: currentPrefs.livello,
+          tutor_slug: tutorSlug,
+          source: 'web',
+        }),
+      }).then(() => fetchStats()).catch(() => {})
+    }
+  }, [stopVideoFrames, tutorSlug, fetchStats])
 
   useEffect(() => () => { doEndCall() }, [doEndCall])
 
@@ -695,6 +781,37 @@ export function TutorLive({
         </div>
       </div>
       <canvas ref={canvasRef} className="hidden" />
+
+      {/* Progress widget — visible only in idle state */}
+      {!inCall && stats && (
+        <div className="mx-4 mb-2 bg-verde-950/50 border border-verde-900/30 rounded-2xl p-3 space-y-2 shrink-0">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-verde-500 uppercase tracking-wide">Il tuo progresso</span>
+            {stats.streak > 0 && (
+              <span className="text-[10px] font-bold text-amber-400">
+                🔥 {stats.streak} {stats.streak === 1 ? 'giorno' : 'giorni'}
+              </span>
+            )}
+          </div>
+          <WeeklyChart weekDays={stats.weekDays} />
+          <div className="flex gap-5 pt-0.5">
+            <div>
+              <p className="text-sm font-bold text-verde-300 leading-none">{stats.totalMinutes}</p>
+              <p className="text-[9px] text-verde-700 mt-0.5">min totali</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-verde-300 leading-none">{stats.totalSessions}</p>
+              <p className="text-[9px] text-verde-700 mt-0.5">sessioni</p>
+            </div>
+            {lastSession && (
+              <div className="ml-auto text-right">
+                <p className="text-[10px] text-verde-400 font-medium">Ultima: {formatDuration(lastSession.duration)}</p>
+                <p className="text-[9px] text-verde-700">{lastSession.turns} scambi</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Transcript */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 space-y-2 py-2 min-h-0">
