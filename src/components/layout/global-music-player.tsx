@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useCallback } from 'react'
-import { X, ChevronLeft, ChevronRight, Repeat, Minus, Maximize2, Music, FileMusic, FileVideo, Play } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Repeat, Minus, Maximize2, FileMusic, FileVideo } from 'lucide-react'
 import { useMusicPlayer } from '@/contexts/music-player-context'
 import { useLanguage } from '@/contexts/language-context'
 import { cn } from '@/lib/utils'
@@ -45,31 +45,70 @@ export function GlobalMusicPlayer() {
   const ct = t.canzoni
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  const total = playlist.length
+  // Stable refs — always reflect latest values without recreating callbacks
+  const autoplayRef = useRef(autoplay)
+  const currentIndexRef = useRef(currentIndex)
+  const playlistRef = useRef(playlist)
+  autoplayRef.current = autoplay
+  currentIndexRef.current = currentIndex
+  playlistRef.current = playlist
 
+  const total = playlist.length
   const hasVideo = !!currentSong?.video_url
   const hasAudio = !!currentSong?.audio_url
   const isYT = hasVideo && isYoutube(currentSong!.video_url!)
   const ytEmbed = isYT ? getYoutubeEmbedUrl(currentSong!.video_url!, autoplay) : null
 
-  const handleEnded = useCallback(() => {
-    if (autoplay && currentIndex < total - 1) next()
-  }, [autoplay, currentIndex, total, next])
+  // --- Audio: advance playlist imperatively inside the ended event.
+  // Calling .play() synchronously within the ended event is always allowed
+  // by browsers (it's a media-context continuation, not a cold autoplay request).
+  const handleAudioEnded = useCallback(() => {
+    if (!autoplayRef.current) return
+    const nextIdx = currentIndexRef.current + 1
+    const pl = playlistRef.current
+    if (nextIdx >= pl.length) return
+    const nextSong = pl[nextIdx]
+    if (!nextSong.audio_url || nextSong.video_url) return
 
-  useEffect(() => {
-    const vid = videoRef.current
-    if (!vid) return
-    vid.addEventListener('ended', handleEnded)
-    return () => vid.removeEventListener('ended', handleEnded)
-  }, [handleEnded])
+    const audio = audioRef.current
+    if (audio) {
+      audio.src = nextSong.audio_url
+      audio.play().catch(() => {})
+    }
+    next() // sync React state so UI shows the new song
+  }, [next, audioRef])
 
-  // Auto-play native audio when song changes and autoplay is on
+  // Callback ref — fires whenever the <audio> element mounts/unmounts.
+  // Using this instead of useEffect([audioRef]) because audioRef.current
+  // may be null when the effect first runs (before the audio element mounts).
+  const audioCallbackRef = useCallback((node: HTMLAudioElement | null) => {
+    // Detach from previous element
+    const prev = audioRef.current
+    if (prev) prev.removeEventListener('ended', handleAudioEnded)
+    // Attach to new element and forward to context ref
+    ;(audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = node
+    if (node) node.addEventListener('ended', handleAudioEnded)
+  }, [handleAudioEnded, audioRef])
+
+  // When autoplay is enabled and a new song loads (e.g. first song of Play All,
+  // or user manually enables autoplay while a song is paused), start playing.
   useEffect(() => {
     if (!autoplay || !currentSong?.audio_url || currentSong.video_url) return
     audioRef.current?.play().catch(() => {})
   }, [currentSong?.id, autoplay, currentSong?.audio_url, currentSong?.video_url, audioRef])
 
-  // Auto-play native video (non-YouTube) when song changes and autoplay is on
+  // --- Non-YouTube video
+  const handleVideoEnded = useCallback(() => {
+    if (autoplayRef.current && currentIndexRef.current < playlistRef.current.length - 1) next()
+  }, [next])
+
+  useEffect(() => {
+    const vid = videoRef.current
+    if (!vid) return
+    vid.addEventListener('ended', handleVideoEnded)
+    return () => vid.removeEventListener('ended', handleVideoEnded)
+  }, [handleVideoEnded])
+
   useEffect(() => {
     if (!autoplay || !currentSong?.video_url || isYT) return
     videoRef.current?.play().catch(() => {})
@@ -153,13 +192,13 @@ export function GlobalMusicPlayer() {
                     <div className="w-9 h-9 rounded-lg bg-pink-950/40 border border-pink-800/30 flex items-center justify-center shrink-0">
                       <FileMusic size={16} className="text-pink-400" />
                     </div>
+                    {/* No key — same DOM element persists, preserving browser autoplay permission.
+                        Uses callback ref to attach the ended listener immediately on mount. */}
                     <audio
-                      ref={audioRef}
-                      key={currentSong.id}
+                      ref={audioCallbackRef}
                       src={currentSong.audio_url!}
                       controls
                       className="flex-1 h-9"
-                      onEnded={() => { if (autoplay) next() }}
                     />
                   </div>
                 ) : null}
@@ -183,7 +222,7 @@ export function GlobalMusicPlayer() {
         </div>
       </div>
 
-      {/* ── Mini-player — shown when not in full modal ── */}
+      {/* ── Mini-player ── */}
       {showMini && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-3 bg-[#090e09]/95 border border-pink-900/40 backdrop-blur-md shadow-2xl rounded-2xl w-[min(480px,calc(100vw-96px))]">
           <div className="flex items-center gap-3 flex-1 min-w-0">
