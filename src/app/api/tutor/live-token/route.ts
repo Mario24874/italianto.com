@@ -9,6 +9,12 @@ const LIVE_MODEL = process.env.GEMINI_LIVE_MODEL ?? 'gemini-3.1-flash-live-previ
 // BidiGenerateContentConstrained requires an ephemeral access_token (not a raw API key).
 const WS_BASE = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained'
 
+interface LessonSummary {
+  title: string
+  grammar_notes: string
+  vocabulary: Array<Record<string, string> | string>
+}
+
 export interface StudentPrefs {
   registro?: 'informale' | 'formale'
   tono?: 'amichevole' | 'professionale' | 'incoraggiante'
@@ -40,13 +46,27 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() } catch { body = {} }
   const { prefs, tutorName = 'Marco' } = body
 
-  const { data: config } = await supabase
-    .from('tutor_config')
-    .select('knowledge_base, system_prompt_template')
-    .eq('id', 'default')
-    .maybeSingle()
+  const level = prefs?.livello ?? 'A1'
 
-  const systemPrompt = buildSystemPrompt(tutorName, prefs, config)
+  const [configResult, lessonsResult] = await Promise.all([
+    supabase
+      .from('tutor_config')
+      .select('knowledge_base, system_prompt_template')
+      .eq('id', 'default')
+      .maybeSingle(),
+    supabase
+      .from('lessons')
+      .select('title, grammar_notes, vocabulary')
+      .eq('level', level)
+      .eq('status', 'published')
+      .order('order_index', { ascending: true })
+      .limit(10),
+  ])
+
+  const config = configResult.data
+  const lessons = (lessonsResult.data ?? []) as LessonSummary[]
+
+  const systemPrompt = buildSystemPrompt(tutorName, prefs, config, lessons)
 
   // Generate ephemeral token via @google/genai SDK (v1alpha, Gemini Developer API only).
   // The token.name is the value passed as ?access_token= in BidiGenerateContentConstrained.
@@ -106,15 +126,31 @@ const MODISMI_MAP = {
   napoli:  'Sprinkle in natural Neapolitan expressions: "uè!", "mannaggia!", "jamme!", "mo\' vediamo", "guagliò!"',
 }
 
+// ── Format lesson context for the system prompt ───────────────────────────────
+function formatLessonsContext(lessons: LessonSummary[]): string {
+  if (!lessons.length) return ''
+  const lines = lessons.map((l, i) => {
+    const vocabWords = (Array.isArray(l.vocabulary) ? l.vocabulary : [])
+      .slice(0, 8)
+      .map(v => (typeof v === 'string' ? v : (v.word ?? v.italian ?? Object.values(v)[0] ?? '')))
+      .filter(Boolean)
+      .join(', ')
+    return `${i + 1}. "${l.title}"${l.grammar_notes ? ` — Grammar: ${l.grammar_notes.slice(0, 120)}` : ''}${vocabWords ? ` — Vocab: ${vocabWords}` : ''}`
+  })
+  return `\n\n## COURSE LESSONS AT THIS LEVEL (${lessons.length} published)\nThese are the actual lessons the student may have studied. Reference them when relevant — explain, quiz, or review any lesson the student asks about.\n${lines.join('\n')}`
+}
+
 // ── Main prompt builder ────────────────────────────────────────────────────────
 function buildSystemPrompt(
   tutorName: string,
   prefs: StudentPrefs | undefined,
-  config: { knowledge_base?: string; system_prompt_template?: string } | null
+  config: { knowledge_base?: string; system_prompt_template?: string } | null,
+  lessons: LessonSummary[] = []
 ): string {
   const tmpl = config?.system_prompt_template?.trim()
   const kb   = config?.knowledge_base?.trim() ?? ''
   const level = prefs?.livello ?? 'A1'
+  const lessonsCtx = formatLessonsContext(lessons)
 
   if (tmpl) {
     return tmpl
@@ -129,10 +165,11 @@ function buildSystemPrompt(
       .replace(/\{\{focus\}\}/gi,              FOCUS_MAP[prefs?.focus ?? 'conversazione'])
       .replace(/\{\{modismi\}\}/gi,            MODISMI_MAP[prefs?.modismi ?? 'neutro'])
       .replace(/\{\{knowledge_base\}\}/gi,     kb ? `\n\nPLATFORM CONTEXT:\n${kb}` : '')
+      .replace(/\{\{lessons_context\}\}/gi,    lessonsCtx)
   }
 
   // ── Default pedagogical prompt (research-informed, May 2026) ─────────────────
-  return `You are ${tutorName}, a native Italian language tutor for Spanish-speaking learners on the Italianto platform. Your role is to conduct a natural, encouraging spoken Italian conversation that builds the learner's fluency, pronunciation, and grammar.
+  return `You are ${tutorName}, a native Italian language tutor for Spanish-speaking learners on the Italianto platform. Your role is to conduct a natural, encouraging spoken Italian conversation that builds the learner's fluency, pronunciation, and grammar.${lessonsCtx}
 
 ## CORE IDENTITY
 - You are Italian, warm, and patient. You genuinely love teaching your language.
@@ -163,18 +200,12 @@ If you have drifted above level, immediately simplify your next response without
 
 ## HISPANIC LEARNER ADVANTAGE
 - Exploit cognates freely and enthusiastically: "Perfetto — 'perfetto' in italiano è uguale allo spagnolo!"
-- Alert false friends PROACTIVELY when they appear in context:
-  * "imbarazzata" ≠ embarazada (= "avere un bambino") — imbarazzata = avergonzada
-  * "costipato" ≠ constipado (= resfriado) — costipato = estreñido
-  * "largo" ≠ largo (= long/lungo) — largo in Italian = ancho/wide
-  * "burro" ≠ burro (= asno) — burro in Italian = mantequilla/butter
-  * "pretendere" ≠ pretender (= cortejar) — pretendere = esigere/to demand
-- Use ONE Spanish word only when a concept is genuinely untranslatable for a beginner, immediately followed by the Italian equivalent.
+- Alert false friends PROACTIVELY when they appear in context.
 
 ## SESSION STRUCTURE
 - Opening (turns 1-2): Warm check-in. "Ciao! Come stai oggi? Cosa hai fatto?" — assess level from first response.
 - Main practice (turns 3-12): Topic-based conversation matching the focus preference.
-- Encouragement: Every 4-5 exchanges, one brief genuine acknowledgment of progress. Natural, not formulaic.
+- Encouragement: Every 4-5 exchanges, one brief genuine acknowledgment of progress.
 - Closing: Warm farewell + 1 vocabulary/grammar tip to remember: "Oggi hai imparato: [word/rule]. Bravissimo/a!"
 
 ## SESSION PREFERENCES
@@ -183,5 +214,5 @@ If you have drifted above level, immediately simplify your next response without
 - Focus: ${FOCUS_MAP[prefs?.focus ?? 'conversazione']}
 - Regional expressions: ${MODISMI_MAP[prefs?.modismi ?? 'neutro']}${kb ? `\n\n## PLATFORM CONTEXT\n${kb}` : ''}
 
-RISPONDI SEMPRE E SOLO IN ITALIANO. NON USARE MAI L'INGLESE O LO SPAGNOLO SE NON STRETTAMENTE NECESSARIO PER SPIEGARE UN FALSO AMICO O UN ERRORE DI COMPRENSIONE CRITICO A LIVELLO A1.`
+RISPONDI SEMPRE E SOLO IN ITALIANO.`
 }

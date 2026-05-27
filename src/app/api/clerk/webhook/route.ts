@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Webhook } from 'svix'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { addContactToAudience, removeContactFromAudience } from '@/lib/email'
 import type { WebhookEvent } from '@clerk/nextjs/server'
 
 export async function POST(req: NextRequest) {
@@ -59,6 +60,12 @@ export async function POST(req: NextRequest) {
         dialogues_used: 0,
         audio_used: 0,
       })
+
+      if (email) {
+        await addContactToAudience(email, first_name ?? '').catch(err =>
+          console.warn('[clerk-webhook] addContactToAudience failed:', err)
+        )
+      }
       break
     }
 
@@ -81,7 +88,13 @@ export async function POST(req: NextRequest) {
     case 'user.deleted': {
       const { id } = evt.data
       if (id) {
+        const { data: user } = await supabase.from('users').select('email').eq('id', id).maybeSingle()
         await supabase.from('users').delete().eq('id', id)
+        if (user?.email) {
+          await removeContactFromAudience(user.email).catch(err =>
+            console.warn('[clerk-webhook] removeContactFromAudience failed:', err)
+          )
+        }
       }
       break
     }

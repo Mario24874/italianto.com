@@ -8,9 +8,51 @@ const resend = process.env.RESEND_API_KEY
 // italianto.com domain is verified; fallback to the noreply alias.
 const FROM = 'Italianto <noreply@italianto.com>'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'info@italianto.com'
+const AUDIENCE_ID = process.env.RESEND_AUDIENCE_ID ?? ''
 
 function noResend(fn: string) {
   console.warn(`[email] RESEND_API_KEY not set — skipping ${fn}`)
+}
+
+export async function addContactToAudience(email: string, firstName: string): Promise<void> {
+  if (!resend || !AUDIENCE_ID) return
+  await resend.contacts.create({ audienceId: AUDIENCE_ID, email, firstName, unsubscribed: false })
+}
+
+export async function removeContactFromAudience(email: string): Promise<void> {
+  if (!resend || !AUDIENCE_ID) return
+  await resend.contacts.remove({ audienceId: AUDIENCE_ID, email })
+}
+
+export async function getAudienceContactCount(): Promise<number> {
+  if (!resend || !AUDIENCE_ID) return 0
+  const result = await resend.contacts.list({ audienceId: AUDIENCE_ID })
+  if (result.error || !result.data) return 0
+  return result.data.data.filter(c => !c.unsubscribed).length
+}
+
+export async function sendNewsletter(opts: {
+  subject: string
+  html: string
+  previewText?: string
+  name?: string
+}): Promise<{ broadcastId: string }> {
+  if (!resend) throw new Error('RESEND_API_KEY not configured')
+  if (!AUDIENCE_ID) throw new Error('RESEND_AUDIENCE_ID not configured')
+
+  const payload = {
+    audienceId: AUDIENCE_ID,
+    from: FROM,
+    subject: opts.subject,
+    html: opts.html,
+    name: opts.name ?? opts.subject,
+    send: true as const,
+    ...(opts.previewText ? { previewText: opts.previewText } : {}),
+  }
+
+  const result = await resend.broadcasts.create(payload)
+  if (result.error) throw new Error(JSON.stringify(result.error))
+  return { broadcastId: result.data!.id }
 }
 
 /**
