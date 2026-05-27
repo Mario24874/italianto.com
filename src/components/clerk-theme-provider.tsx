@@ -1,19 +1,17 @@
 'use client'
 
 import { ClerkProvider } from '@clerk/nextjs'
+import { esES, itIT, enUS } from '@clerk/localizations'
+import { useLanguage } from '@/contexts/language-context'
 
-/**
- * Wraps ClerkProvider with a stable appearance that does NOT depend on
- * resolvedTheme. Previously, tying appearance to useTheme() caused
- * ClerkProvider to receive new props on every theme change, which
- * interfered with Clerk initialization on slow mobile connections.
- *
- * Theme-specific styling is handled via CSS variables / Tailwind classes
- * on individual Clerk components (<SignIn>, <UserButton>, etc.) instead.
- */
+const clerkLocalizations = { es: esES, it: itIT, en: enUS }
+
 export function ClerkThemeProvider({ children }: { children: React.ReactNode }) {
+  const { lang } = useLanguage()
+
   return (
     <ClerkProvider
+      localization={clerkLocalizations[lang]}
       appearance={{
         variables: {
           colorPrimary: '#2e7d32',
