@@ -63,7 +63,7 @@ export function CanzoniClient({
 }) {
   const { t } = useLanguage()
   const ct = t.canzoni
-  const { currentSong, playSong, isMinimized, modalOpen } = useMusicPlayer()
+  const { currentSong, playSong, isMinimized, modalOpen, autoplay, toggleAutoplay } = useMusicPlayer()
 
   const [search, setSearch] = useState('')
   const [activeGenre, setActiveGenre] = useState<string | null>(null)
@@ -112,6 +112,7 @@ export function CanzoniClient({
 
   function playAll() {
     if (filtered.length === 0) return
+    if (!autoplay) toggleAutoplay()
     playSong(filtered[0], filtered, 0)
   }
 

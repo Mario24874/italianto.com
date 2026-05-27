@@ -63,6 +63,13 @@ export function GlobalMusicPlayer() {
     return () => vid.removeEventListener('ended', handleEnded)
   }, [handleEnded])
 
+  // Auto-play native audio when song changes and autoplay is on
+  useEffect(() => {
+    if (!autoplay || !currentSong?.audio_url || currentSong.video_url) return
+    audioRef.current?.play().catch(() => {})
+  }, [currentSong?.id, autoplay, currentSong?.audio_url, currentSong?.video_url, audioRef])
+
+  // Auto-play native video (non-YouTube) when song changes and autoplay is on
   useEffect(() => {
     if (!autoplay || !currentSong?.video_url || isYT) return
     videoRef.current?.play().catch(() => {})
@@ -146,7 +153,14 @@ export function GlobalMusicPlayer() {
                     <div className="w-9 h-9 rounded-lg bg-pink-950/40 border border-pink-800/30 flex items-center justify-center shrink-0">
                       <FileMusic size={16} className="text-pink-400" />
                     </div>
-                    <audio ref={audioRef} key={currentSong.id} src={currentSong.audio_url!} controls className="flex-1 h-9" />
+                    <audio
+                      ref={audioRef}
+                      key={currentSong.id}
+                      src={currentSong.audio_url!}
+                      controls
+                      className="flex-1 h-9"
+                      onEnded={() => { if (autoplay) next() }}
+                    />
                   </div>
                 ) : null}
               </div>

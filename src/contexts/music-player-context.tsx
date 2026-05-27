@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useRef, useCallback, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useRef, useCallback, type ReactNode } from 'react'
 
 export interface SongRow {
   id: string
@@ -59,7 +59,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const playlistRef = useRef<SongRow[]>([])
 
-  useEffect(() => { playlistRef.current = playlist }, [playlist])
+  playlistRef.current = playlist
 
   const playSong = useCallback((song: SongRow, pl: SongRow[], idx: number) => {
     setCurrentSong(song)
@@ -112,12 +112,6 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
   const toggleAutoplay = useCallback(() => setAutoplay(a => !a), [])
 
-  // Autoplay native audio when song changes
-  useEffect(() => {
-    if (!autoplay || !currentSong?.audio_url || currentSong.video_url) return
-    audioRef.current?.play().catch(() => {})
-  }, [currentSong?.id, autoplay, currentSong?.audio_url, currentSong?.video_url])
-
   return (
     <MusicPlayerContext.Provider value={{
       currentSong, playlist, currentIndex, autoplay,
@@ -126,15 +120,6 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       next, prev, toggleAutoplay, audioRef,
     }}>
       {children}
-      {/* Native audio — lives outside modal so it persists across navigation */}
-      {currentSong?.audio_url && !currentSong.video_url && (
-        <audio
-          ref={audioRef}
-          key={currentSong.id}
-          src={currentSong.audio_url}
-          onEnded={() => { if (autoplay) next() }}
-        />
-      )}
     </MusicPlayerContext.Provider>
   )
 }
