@@ -6,6 +6,7 @@ import { DashboardSidebar } from '@/components/layout/dashboard-sidebar'
 import { useLanguage, LANGUAGES } from '@/contexts/language-context'
 import { Menu, Sun, Moon, Globe } from 'lucide-react'
 import { FeedbackWidget } from '@/components/dashboard/feedback-widget'
+import { GlobalMusicPlayer } from '@/components/layout/global-music-player'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -79,6 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
         <FeedbackWidget />
+        <GlobalMusicPlayer />
       </div>
     </div>
   )

@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import type { PlanType } from '@/lib/plans'
 import { Music } from 'lucide-react'
 import { CanzoniClient } from './_canzoni-client'
-import type { SongRow } from './_canzoni-client'
+import type { SongRow } from '@/contexts/music-player-context'
 
 export const metadata: Metadata = { title: 'Canzoni — Italianto' }
 
@@ -17,7 +17,7 @@ export default async function CanzoniPage() {
 
   const supabase = getSupabaseAdmin()
   const [songsResult, subResult] = await Promise.all([
-    supabase.from('songs').select('id,slug,title,artist,lyrics,level,plan_required,audio_url,video_url').eq('status', 'published').order('order_index', { ascending: true }),
+    supabase.from('songs').select('id,slug,title,artist,lyrics,level,plan_required,audio_url,video_url,genre').eq('status', 'published').order('order_index', { ascending: true }),
     supabase.from('subscriptions').select('plan_type').eq('user_id', user.id).eq('status', 'active').maybeSingle(),
   ])
 

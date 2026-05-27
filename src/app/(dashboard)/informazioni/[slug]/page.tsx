@@ -7,6 +7,7 @@ import type { PlanType } from '@/lib/plans'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ChevronLeft } from 'lucide-react'
+import { ArticleNarrator } from '@/components/informazioni/article-narrator'
 
 const PLAN_HIERARCHY: PlanType[] = ['free', 'essenziale', 'avanzato', 'maestro']
 
@@ -122,6 +123,13 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
         <p className="text-verde-400 text-base leading-relaxed border-l-2 border-verde-700/50 pl-4">
           {article.excerpt}
         </p>
+      )}
+
+      {/* Narrator */}
+      {article.content_html && (
+        <ArticleNarrator
+          text={article.content_html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
+        />
       )}
 
       {/* Content */}

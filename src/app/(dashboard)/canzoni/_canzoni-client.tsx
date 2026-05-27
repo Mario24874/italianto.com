@@ -1,31 +1,36 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { Music, Play, X, FileMusic, FileVideo, Search, ChevronLeft, ChevronRight, Repeat, Minus, Maximize2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Music, Play, X, FileMusic, FileVideo, Search, ListMusic, Plus, Trash2 } from 'lucide-react'
 import type { PlanType } from '@/lib/plans'
 import { useLanguage } from '@/contexts/language-context'
+import { useMusicPlayer } from '@/contexts/music-player-context'
+import type { SongRow } from '@/contexts/music-player-context'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
-export interface SongRow {
-  id: string
-  slug: string
-  title: string
-  artist: string
-  lyrics: string | null
-  level: string
-  plan_required: string
-  audio_url: string | null
-  video_url: string | null
+export type { SongRow }
+
+const GENRE_COLORS: Record<string, string> = {
+  pop:        'bg-pink-900/40 text-pink-300 border-pink-700/30',
+  classica:   'bg-purple-900/40 text-purple-300 border-purple-700/30',
+  rock:       'bg-orange-900/40 text-orange-300 border-orange-700/30',
+  romantica:  'bg-red-900/40 text-red-300 border-red-700/30',
+  balada:     'bg-blue-900/40 text-blue-300 border-blue-700/30',
+  jazz:       'bg-yellow-900/40 text-yellow-300 border-yellow-700/30',
+  folk:       'bg-green-900/40 text-green-300 border-green-700/30',
+  opera:      'bg-indigo-900/40 text-indigo-300 border-indigo-700/30',
+  napolitana: 'bg-cyan-900/40 text-cyan-300 border-cyan-700/30',
 }
 
-function isYoutube(url: string) {
-  return /youtube\.com|youtu\.be/.test(url)
+const PLAYLIST_KEY = 'italianto-song-list'
+
+function loadStoredList(): string[] {
+  try { return JSON.parse(localStorage.getItem(PLAYLIST_KEY) ?? '[]') } catch { return [] }
 }
 
-function getYoutubeEmbedUrl(url: string, autoplay = false) {
-  const match = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/)
-  if (!match) return null
-  return `https://www.youtube.com/embed/${match[1]}?rel=0${autoplay ? '&autoplay=1' : ''}`
+function saveStoredList(ids: string[]) {
+  try { localStorage.setItem(PLAYLIST_KEY, JSON.stringify(ids)) } catch {}
 }
 
 function EqualizerBars({ size = 18 }: { size?: number }) {
@@ -47,222 +52,6 @@ function EqualizerBars({ size = 18 }: { size?: number }) {
   )
 }
 
-function SongModal({
-  song,
-  index,
-  total,
-  autoplay,
-  minimized,
-  onPrev,
-  onNext,
-  onClose,
-  onMinimize,
-  onToggleAutoplay,
-}: {
-  song: SongRow
-  index: number
-  total: number
-  autoplay: boolean
-  minimized: boolean
-  onPrev: () => void
-  onNext: () => void
-  onClose: () => void
-  onMinimize: () => void
-  onToggleAutoplay: () => void
-}) {
-  const { t } = useLanguage()
-  const ct = t.canzoni
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-
-  const hasVideo = !!song.video_url
-  const hasAudio = !!song.audio_url
-  const isYT = hasVideo && isYoutube(song.video_url!)
-  const ytEmbed = isYT ? getYoutubeEmbedUrl(song.video_url!, autoplay) : null
-
-  const handleEnded = useCallback(() => {
-    if (autoplay && index < total - 1) onNext()
-  }, [autoplay, index, total, onNext])
-
-  useEffect(() => {
-    const audio = audioRef.current
-    const video = videoRef.current
-    if (audio) { audio.addEventListener('ended', handleEnded); return () => audio.removeEventListener('ended', handleEnded) }
-    if (video) { video.addEventListener('ended', handleEnded); return () => video.removeEventListener('ended', handleEnded) }
-  }, [handleEnded])
-
-  useEffect(() => {
-    if (!autoplay) return
-    audioRef.current?.play().catch(() => {})
-    videoRef.current?.play().catch(() => {})
-  }, [song.id, autoplay])
-
-  return (
-    // Keep in DOM when minimized so audio/video keeps playing — just hide visually
-    <div className={minimized ? 'hidden' : 'fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4'}
-      onClick={minimized ? undefined : onMinimize}
-    >
-      <div
-        className="w-full max-w-3xl bg-[#0a0f0a] border border-verde-800/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-verde-900/30 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <button onClick={onPrev} disabled={index === 0}
-              className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
-              <ChevronLeft size={16} />
-            </button>
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-verde-100 leading-tight truncate">{song.title}</h2>
-              <p className="text-xs text-verde-500 mt-0.5">{song.artist}</p>
-            </div>
-            <button onClick={onNext} disabled={index === total - 1}
-              className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0">
-              <ChevronRight size={16} />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-xs text-verde-700 tabular-nums mr-1">{index + 1} {ct.songOf} {total}</span>
-
-            <button onClick={onToggleAutoplay} title={ct.autoplay}
-              className={cn('p-1.5 rounded-lg transition-colors',
-                autoplay ? 'text-pink-400 bg-pink-900/30 border border-pink-800/40' : 'text-verde-700 hover:text-verde-400 hover:bg-verde-900/30')}>
-              <Repeat size={14} />
-            </button>
-
-            {/* Minimize */}
-            <button onClick={onMinimize}
-              className="p-1.5 text-verde-600 hover:text-verde-300 transition-colors rounded-lg hover:bg-verde-900/30"
-              title="Minimizar">
-              <Minus size={16} />
-            </button>
-
-            {/* Close */}
-            <button onClick={onClose}
-              className="p-1.5 text-verde-600 hover:text-verde-200 transition-colors rounded-lg hover:bg-verde-900/30">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Media + Lyrics */}
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {(hasVideo || hasAudio) && (
-            <div className="shrink-0 bg-black/40 border-b border-verde-900/30">
-              {hasVideo && isYT && ytEmbed ? (
-                <div className="aspect-video w-full">
-                  <iframe key={`${song.id}-${autoplay}`} src={ytEmbed} className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen />
-                </div>
-              ) : hasVideo && !isYT ? (
-                <video ref={videoRef} key={song.id} src={song.video_url!} controls className="w-full max-h-64 bg-black" />
-              ) : hasAudio ? (
-                <div className="px-5 py-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-pink-950/40 border border-pink-800/30 flex items-center justify-center shrink-0">
-                    <FileMusic size={16} className="text-pink-400" />
-                  </div>
-                  <audio ref={audioRef} key={song.id} src={song.audio_url!} controls className="flex-1 h-9" />
-                </div>
-              ) : null}
-            </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto px-5 py-5">
-            {song.lyrics?.trim() ? (
-              <>
-                <h3 className="text-xs font-semibold text-verde-500 uppercase tracking-widest mb-3">Testo</h3>
-                <pre className="text-verde-200 text-sm leading-relaxed whitespace-pre-wrap font-sans">{song.lyrics}</pre>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-verde-700">
-                <FileMusic size={28} className="mb-2" />
-                <p className="text-sm">Testo non disponibile</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function MiniPlayer({
-  song,
-  index,
-  total,
-  autoplay,
-  onPrev,
-  onNext,
-  onExpand,
-  onClose,
-  onToggleAutoplay,
-}: {
-  song: SongRow
-  index: number
-  total: number
-  autoplay: boolean
-  onPrev: () => void
-  onNext: () => void
-  onExpand: () => void
-  onClose: () => void
-  onToggleAutoplay: () => void
-}) {
-  const { t } = useLanguage()
-  const ct = t.canzoni
-
-  return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-3 bg-[#090e09]/95 border border-pink-900/40 backdrop-blur-md shadow-2xl rounded-2xl w-[min(480px,calc(100vw-96px))]">
-      {/* Equalizer + info */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="w-9 h-9 rounded-xl bg-pink-900/40 border border-pink-700/40 flex items-center justify-center shrink-0">
-          <EqualizerBars size={16} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-verde-100 truncate leading-tight">{song.title}</p>
-          <p className="text-xs text-verde-500 truncate">{song.artist}</p>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-1 shrink-0">
-        <span className="text-xs text-verde-700 tabular-nums mr-1 hidden sm:block">{index + 1} {ct.songOf} {total}</span>
-
-        <button onClick={onPrev} disabled={index === 0}
-          className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-          <ChevronLeft size={16} />
-        </button>
-
-        <button onClick={onNext} disabled={index === total - 1}
-          className="p-1.5 rounded-lg text-verde-600 hover:text-verde-300 hover:bg-verde-900/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-          <ChevronRight size={16} />
-        </button>
-
-        <button onClick={onToggleAutoplay} title={ct.autoplay}
-          className={cn('p-1.5 rounded-lg transition-colors',
-            autoplay ? 'text-pink-400 bg-pink-900/30 border border-pink-800/40' : 'text-verde-700 hover:text-verde-400 hover:bg-verde-900/30')}>
-          <Repeat size={14} />
-        </button>
-
-        {/* Expand */}
-        <button onClick={onExpand}
-          className="p-1.5 text-verde-500 hover:text-verde-200 transition-colors rounded-lg hover:bg-verde-900/30"
-          title="Expandir">
-          <Maximize2 size={14} />
-        </button>
-
-        {/* Close */}
-        <button onClick={onClose}
-          className="p-1.5 text-verde-600 hover:text-red-400 transition-colors rounded-lg hover:bg-verde-900/30">
-          <X size={16} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export function CanzoniClient({
   songs,
   userPlan,
@@ -274,10 +63,14 @@ export function CanzoniClient({
 }) {
   const { t } = useLanguage()
   const ct = t.canzoni
+  const { currentSong, playSong, isMinimized, modalOpen } = useMusicPlayer()
+
   const [search, setSearch] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
-  const [autoplay, setAutoplay] = useState(false)
-  const [minimized, setMinimized] = useState(false)
+  const [activeGenre, setActiveGenre] = useState<string | null>(null)
+  const [view, setView] = useState<'all' | 'list'>('all')
+  const [myList, setMyList] = useState<string[]>([])
+
+  useEffect(() => { setMyList(loadStoredList()) }, [])
 
   function hasAccess(required: string) {
     return planHierarchy.indexOf(userPlan) >= planHierarchy.indexOf(required as PlanType)
@@ -285,19 +78,45 @@ export function CanzoniClient({
 
   const accessible = songs.filter(s => hasAccess(s.plan_required))
 
-  const filtered = search.trim()
-    ? accessible.filter(s =>
-        s.title.toLowerCase().includes(search.toLowerCase()) ||
-        s.artist.toLowerCase().includes(search.toLowerCase())
-      )
+  // Unique genres that exist in accessible songs
+  const availableGenres = Array.from(
+    new Set(accessible.map(s => s.genre).filter((g): g is string => !!g))
+  ).sort()
+
+  const baseList = view === 'list'
+    ? accessible.filter(s => myList.includes(s.id))
     : accessible
 
-  const selected = selectedIndex !== null ? filtered[selectedIndex] ?? null : null
+  const filtered = baseList.filter(s => {
+    const matchSearch = !search.trim() ||
+      s.title.toLowerCase().includes(search.toLowerCase()) ||
+      s.artist.toLowerCase().includes(search.toLowerCase())
+    const matchGenre = !activeGenre || s.genre === activeGenre
+    return matchSearch && matchGenre
+  })
 
-  function open(idx: number) { setSelectedIndex(idx); setMinimized(false) }
-  function close() { setSelectedIndex(null); setMinimized(false) }
-  function prev() { if (selectedIndex !== null && selectedIndex > 0) setSelectedIndex(selectedIndex - 1) }
-  function next() { if (selectedIndex !== null && selectedIndex < filtered.length - 1) setSelectedIndex(selectedIndex + 1) }
+  function open(idx: number) {
+    playSong(filtered[idx], filtered, idx)
+  }
+
+  function toggleList(song: SongRow) {
+    setMyList(prev => {
+      const next = prev.includes(song.id)
+        ? prev.filter(id => id !== song.id)
+        : [...prev, song.id]
+      saveStoredList(next)
+      toast(prev.includes(song.id) ? ct.listRemoved : ct.listAdded, { duration: 1500 })
+      return next
+    })
+  }
+
+  function playAll() {
+    if (filtered.length === 0) return
+    playSong(filtered[0], filtered, 0)
+  }
+
+  const isActive = (song: SongRow) =>
+    currentSong?.id === song.id && (modalOpen || isMinimized)
 
   if (songs.length === 0) {
     return (
@@ -310,13 +129,44 @@ export function CanzoniClient({
 
   return (
     <>
+      {/* Tabs */}
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          onClick={() => setView('all')}
+          className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+            view === 'all' ? 'bg-pink-900/40 text-pink-200 border border-pink-700/40' : 'text-verde-500 hover:text-verde-300 hover:bg-verde-950/40')}
+        >
+          <Music size={14} /> {ct.allSongs}
+        </button>
+        <button
+          onClick={() => setView('list')}
+          className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+            view === 'list' ? 'bg-pink-900/40 text-pink-200 border border-pink-700/40' : 'text-verde-500 hover:text-verde-300 hover:bg-verde-950/40')}
+        >
+          <ListMusic size={14} />
+          {ct.myList}
+          {myList.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-pink-700/40 text-pink-200">{myList.length}</span>
+          )}
+        </button>
+
+        {view === 'list' && filtered.length > 0 && (
+          <button
+            onClick={playAll}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-verde-700 hover:bg-verde-600 text-white transition-colors"
+          >
+            <Play size={13} /> {ct.playAll}
+          </button>
+        )}
+      </div>
+
       {/* Search bar */}
-      <div className="relative mb-4">
+      <div className="relative mb-3">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-verde-600 pointer-events-none" />
         <input
           type="text"
           value={search}
-          onChange={e => { setSearch(e.target.value); setSelectedIndex(null) }}
+          onChange={e => setSearch(e.target.value)}
           placeholder={ct.searchPlaceholder}
           className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-verde-950/40 border border-verde-800/30 text-verde-200 text-sm placeholder:text-verde-700 focus:outline-none focus:border-verde-600 transition-colors"
         />
@@ -328,84 +178,113 @@ export function CanzoniClient({
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {/* Genre filter pills — only shown when genres exist */}
+      {availableGenres.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
+          <button
+            onClick={() => setActiveGenre(null)}
+            className={cn('shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-colors',
+              !activeGenre
+                ? 'bg-pink-900/40 text-pink-200 border-pink-700/40'
+                : 'text-verde-600 border-verde-900/40 hover:border-verde-700 hover:text-verde-300')}
+          >
+            {ct.allGenres}
+          </button>
+          {availableGenres.map(genre => (
+            <button
+              key={genre}
+              onClick={() => setActiveGenre(g => g === genre ? null : genre)}
+              className={cn(
+                'shrink-0 px-3 py-1 rounded-full text-xs font-medium border capitalize transition-colors',
+                activeGenre === genre
+                  ? (GENRE_COLORS[genre] ?? 'bg-pink-900/40 text-pink-200 border-pink-700/40')
+                  : 'text-verde-600 border-verde-900/40 hover:border-verde-700 hover:text-verde-300'
+              )}
+            >
+              {genre}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Song list */}
+      {view === 'list' && myList.length === 0 ? (
+        <div className="text-center py-16">
+          <ListMusic size={32} className="text-verde-800 mx-auto mb-3" />
+          <p className="text-verde-500 text-sm">{ct.emptyList}</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <Search size={32} className="text-verde-800 mx-auto mb-3" />
           <p className="text-verde-500 text-sm">{ct.noResults}</p>
         </div>
       ) : (
-        // Extra bottom padding when mini-player is visible
-        <div className={cn('space-y-2', selected && minimized && 'pb-24')}>
+        <div className={cn('space-y-2', (modalOpen || isMinimized) && 'pb-24')}>
           {filtered.map((song, idx) => {
             const hasContent = song.audio_url || song.video_url || song.lyrics?.trim()
-            const isPlaying = selectedIndex === idx
+            const playing = isActive(song)
+            const inList = myList.includes(song.id)
             return (
               <div key={song.id}
                 className={cn(
                   'flex items-center gap-4 p-4 rounded-2xl border transition-all',
-                  isPlaying
+                  playing
                     ? 'border-pink-700/50 bg-pink-950/20'
                     : 'border-verde-900/30 bg-verde-950/20 hover:bg-verde-950/40 hover:border-verde-800/50'
                 )}
               >
                 <div className={cn(
                   'w-10 h-10 rounded-xl border flex items-center justify-center shrink-0',
-                  isPlaying ? 'bg-pink-900/40 border-pink-700/40' : 'bg-pink-950/40 border-pink-800/30'
+                  playing ? 'bg-pink-900/40 border-pink-700/40' : 'bg-pink-950/40 border-pink-800/30'
                 )}>
-                  {isPlaying ? <EqualizerBars /> : <Music size={18} className="text-pink-400" />}
+                  {playing ? <EqualizerBars /> : <Music size={18} className="text-pink-400" />}
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-verde-200 truncate">{song.title}</div>
-                  <div className="text-xs text-verde-500 mt-0.5">{song.artist}</div>
-                </div>
-                {hasContent && (
-                  <button onClick={() => open(idx)}
-                    className={cn(
-                      'shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors',
-                      isPlaying
-                        ? 'bg-pink-800/40 border-pink-700/50 text-pink-200'
-                        : 'bg-pink-900/30 border-pink-800/40 text-pink-300 hover:bg-pink-900/50'
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-verde-500 truncate">{song.artist}</span>
+                    {song.genre && (
+                      <span className={cn('shrink-0 px-1.5 py-0.5 rounded-full text-xs border capitalize',
+                        GENRE_COLORS[song.genre] ?? 'bg-verde-900/40 text-verde-400 border-verde-700/30')}>
+                        {song.genre}
+                      </span>
                     )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Add/Remove from list */}
+                  <button
+                    onClick={() => toggleList(song)}
+                    title={inList ? ct.removeFromList : ct.addToList}
+                    className={cn('p-1.5 rounded-lg transition-colors',
+                      inList
+                        ? 'text-pink-400 bg-pink-900/30 border border-pink-800/40 hover:text-red-400'
+                        : 'text-verde-700 hover:text-pink-400 hover:bg-pink-950/30 border border-transparent')}
                   >
-                    {song.video_url ? <FileVideo size={12} /> : song.audio_url ? <Play size={12} /> : <FileMusic size={12} />}
-                    {song.video_url ? ct.watch : song.audio_url ? ct.listen : ct.lyrics}
+                    {inList ? <Trash2 size={13} /> : <Plus size={13} />}
                   </button>
-                )}
+
+                  {/* Play button */}
+                  {hasContent && (
+                    <button onClick={() => open(idx)}
+                      className={cn(
+                        'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors',
+                        playing
+                          ? 'bg-pink-800/40 border-pink-700/50 text-pink-200'
+                          : 'bg-pink-900/30 border-pink-800/40 text-pink-300 hover:bg-pink-900/50'
+                      )}
+                    >
+                      {song.video_url ? <FileVideo size={12} /> : song.audio_url ? <Play size={12} /> : <FileMusic size={12} />}
+                      {song.video_url ? ct.watch : song.audio_url ? ct.listen : ct.lyrics}
+                    </button>
+                  )}
+                </div>
               </div>
             )
           })}
         </div>
-      )}
-
-      {/* Modal — kept in DOM when minimized so audio keeps playing */}
-      {selected && selectedIndex !== null && (
-        <SongModal
-          song={selected}
-          index={selectedIndex}
-          total={filtered.length}
-          autoplay={autoplay}
-          minimized={minimized}
-          onPrev={prev}
-          onNext={next}
-          onClose={close}
-          onMinimize={() => setMinimized(true)}
-          onToggleAutoplay={() => setAutoplay(a => !a)}
-        />
-      )}
-
-      {/* Mini-player — shown when minimized */}
-      {selected && selectedIndex !== null && minimized && (
-        <MiniPlayer
-          song={selected}
-          index={selectedIndex}
-          total={filtered.length}
-          autoplay={autoplay}
-          onPrev={prev}
-          onNext={next}
-          onExpand={() => setMinimized(false)}
-          onClose={close}
-          onToggleAutoplay={() => setAutoplay(a => !a)}
-        />
       )}
     </>
   )

@@ -7,6 +7,7 @@ import { uploadToStorage } from '@/lib/upload'
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const PLANS = ['free', 'essenziale', 'avanzato', 'maestro']
+const GENRES = ['pop', 'classica', 'rock', 'romantica', 'balada', 'jazz', 'folk', 'opera', 'napolitana']
 const LEVEL_COLORS: Record<string, string> = {
   A1: 'bg-emerald-900/50 text-emerald-300', A2: 'bg-green-900/50 text-green-300',
   B1: 'bg-yellow-900/50 text-yellow-300', B2: 'bg-orange-900/50 text-orange-300',
@@ -17,10 +18,10 @@ function slugify(t: string) {
   return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-')
 }
 
-interface Song { id: string; slug: string; title: string; artist: string; lyrics: string; audio_url: string | null; video_url: string | null; level: string; plan_required: string; status: string; order_index: number }
+interface Song { id: string; slug: string; title: string; artist: string; lyrics: string; audio_url: string | null; video_url: string | null; level: string; plan_required: string; status: string; order_index: number; genre: string | null }
 type FormData = Omit<Song, 'id'> & { id?: string }
 
-const empty = (): FormData => ({ slug: '', title: '', artist: '', lyrics: '', audio_url: '', video_url: '', level: 'A1', plan_required: 'free', status: 'draft', order_index: 0 })
+const empty = (): FormData => ({ slug: '', title: '', artist: '', lyrics: '', audio_url: '', video_url: '', level: 'A1', plan_required: 'free', status: 'draft', order_index: 0, genre: null })
 
 export function SongsManager() {
   const [songs, setSongs] = useState<Song[]>([])
@@ -155,6 +156,14 @@ export function SongsManager() {
                       {PLANS.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-verde-500 mb-1">Género</label>
+                  <select value={form.genre ?? ''} onChange={e => setForm(f => f ? { ...f, genre: e.target.value || null } : f)}
+                    className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-verde-200 text-sm focus:outline-none capitalize">
+                    <option value="">Sin género</option>
+                    {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
                 </div>
               </div>
 
