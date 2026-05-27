@@ -6,14 +6,29 @@ import { useMusicPlayer } from '@/contexts/music-player-context'
 import { useLanguage } from '@/contexts/language-context'
 import { cn } from '@/lib/utils'
 
+// ── YouTube IFrame API types ──────────────────────────────────────────────────
+declare global {
+  interface Window {
+    YT?: {
+      Player: new (el: HTMLElement, opts: object) => YTPlayerInstance
+      PlayerState: { ENDED: 0; PLAYING: 1; PAUSED: 2; BUFFERING: 3; CUED: 5 }
+    }
+    onYouTubeIframeAPIReady?: () => void
+  }
+}
+interface YTPlayerInstance {
+  loadVideoById(id: string): void
+  pauseVideo(): void
+  destroy(): void
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function isYoutube(url: string) {
   return /youtube\.com|youtu\.be/.test(url)
 }
 
-function getYoutubeEmbedUrl(url: string, autoplay = false) {
-  const match = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/)
-  if (!match) return null
-  return `https://www.youtube.com/embed/${match[1]}?rel=0${autoplay ? '&autoplay=1' : ''}`
+function getVideoId(url: string): string | null {
+  return url.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] ?? null
 }
 
 function EqualizerBars({ size = 18 }: { size?: number }) {
@@ -45,62 +60,108 @@ export function GlobalMusicPlayer() {
   const ct = t.canzoni
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  // Stable refs — always reflect latest values without recreating callbacks
+  // Stable refs so callbacks never go stale
   const autoplayRef = useRef(autoplay)
-  const currentIndexRef = useRef(currentIndex)
-  const playlistRef = useRef(playlist)
+  const nextRef = useRef(next)
   autoplayRef.current = autoplay
-  currentIndexRef.current = currentIndex
-  playlistRef.current = playlist
+  nextRef.current = next
 
   const total = playlist.length
   const hasVideo = !!currentSong?.video_url
   const hasAudio = !!currentSong?.audio_url
   const isYT = hasVideo && isYoutube(currentSong!.video_url!)
-  const ytEmbed = isYT ? getYoutubeEmbedUrl(currentSong!.video_url!, autoplay) : null
+  const ytVideoId = isYT ? getVideoId(currentSong!.video_url!) : null
 
-  // --- Audio: advance playlist imperatively inside the ended event.
-  // Calling .play() synchronously within the ended event is always allowed
-  // by browsers (it's a media-context continuation, not a cold autoplay request).
-  const handleAudioEnded = useCallback(() => {
-    if (!autoplayRef.current) return
-    const nextIdx = currentIndexRef.current + 1
-    const pl = playlistRef.current
-    if (nextIdx >= pl.length) return
-    const nextSong = pl[nextIdx]
-    if (!nextSong.audio_url || nextSong.video_url) return
+  // ── YouTube IFrame Player API ───────────────────────────────────────────────
+  const ytPlayerRef = useRef<YTPlayerInstance | null>(null)
+  const ytContainerRef = useRef<HTMLDivElement>(null)
 
-    const audio = audioRef.current
-    if (audio) {
-      audio.src = nextSong.audio_url
-      audio.play().catch(() => {})
+  // Load the YT API script once
+  useEffect(() => {
+    if (window.YT?.Player) return
+    if (document.getElementById('yt-iframe-api')) return
+    const script = document.createElement('script')
+    script.id = 'yt-iframe-api'
+    script.src = 'https://www.youtube.com/iframe_api'
+    document.head.appendChild(script)
+  }, [])
+
+  // Create or update the YT player when the YouTube song changes
+  useEffect(() => {
+    if (!ytVideoId) {
+      // Switched away from YouTube — destroy existing player
+      try { ytPlayerRef.current?.destroy() } catch {}
+      ytPlayerRef.current = null
+      return
     }
-    next() // sync React state so UI shows the new song
-  }, [next, audioRef])
 
-  // Callback ref — fires whenever the <audio> element mounts/unmounts.
-  // Using this instead of useEffect([audioRef]) because audioRef.current
-  // may be null when the effect first runs (before the audio element mounts).
-  const audioCallbackRef = useCallback((node: HTMLAudioElement | null) => {
-    // Detach from previous element
-    const prev = audioRef.current
-    if (prev) prev.removeEventListener('ended', handleAudioEnded)
-    // Attach to new element and forward to context ref
-    ;(audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = node
-    if (node) node.addEventListener('ended', handleAudioEnded)
-  }, [handleAudioEnded, audioRef])
+    const setup = () => {
+      if (ytPlayerRef.current) {
+        // Player already exists — just load the new video (keeps playing)
+        ytPlayerRef.current.loadVideoById(ytVideoId)
+        return
+      }
+      if (!ytContainerRef.current) return
 
-  // When autoplay is enabled and a new song loads (e.g. first song of Play All,
-  // or user manually enables autoplay while a song is paused), start playing.
+      // Create a fresh inner div; YT API replaces it with an <iframe>
+      ytContainerRef.current.innerHTML = ''
+      const mountPoint = document.createElement('div')
+      ytContainerRef.current.appendChild(mountPoint)
+
+      ytPlayerRef.current = new window.YT!.Player(mountPoint, {
+        videoId: ytVideoId,
+        width: '100%',
+        height: '100%',
+        playerVars: { autoplay: 1, rel: 0, modestbranding: 1 },
+        events: {
+          onStateChange: (e: { data: number }) => {
+            // State 0 = ENDED — advance playlist if autoplay is on
+            if (e.data === 0 && autoplayRef.current) {
+              nextRef.current()
+            }
+          },
+        },
+      })
+    }
+
+    if (window.YT?.Player) {
+      setup()
+    } else {
+      // API script loading — queue behind any existing callback
+      const prev = window.onYouTubeIframeAPIReady
+      window.onYouTubeIframeAPIReady = () => {
+        prev?.()
+        setup()
+      }
+    }
+  }, [ytVideoId])
+
+  // Destroy YT player when the component unmounts (user leaves dashboard)
+  useEffect(() => {
+    return () => {
+      try { ytPlayerRef.current?.destroy() } catch {}
+      ytPlayerRef.current = null
+    }
+  }, [])
+
+  // ── Native audio autoplay ───────────────────────────────────────────────────
   useEffect(() => {
     if (!autoplay || !currentSong?.audio_url || currentSong.video_url) return
-    audioRef.current?.play().catch(() => {})
+    const audio = audioRef.current
+    if (!audio) return
+    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      audio.play().catch(() => {})
+      return
+    }
+    const tryPlay = () => audio.play().catch(() => {})
+    audio.addEventListener('canplay', tryPlay, { once: true })
+    return () => audio.removeEventListener('canplay', tryPlay)
   }, [currentSong?.id, autoplay, currentSong?.audio_url, currentSong?.video_url, audioRef])
 
-  // --- Non-YouTube video
+  // ── Non-YouTube native video ────────────────────────────────────────────────
   const handleVideoEnded = useCallback(() => {
-    if (autoplayRef.current && currentIndexRef.current < playlistRef.current.length - 1) next()
-  }, [next])
+    if (autoplayRef.current && currentIndex < total - 1) nextRef.current()
+  }, [currentIndex, total])
 
   useEffect(() => {
     const vid = videoRef.current
@@ -121,7 +182,7 @@ export function GlobalMusicPlayer() {
 
   return (
     <>
-      {/* ── Full modal — kept in DOM always so YouTube keeps playing ── */}
+      {/* ── Full modal — kept in DOM (hidden) so playback survives minimize ── */}
       <div
         className={cn(
           'fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4',
@@ -175,30 +236,23 @@ export function GlobalMusicPlayer() {
           <div className="flex flex-col flex-1 overflow-hidden">
             {(hasVideo || hasAudio) && (
               <div className="shrink-0 bg-black/40 border-b border-verde-900/30">
-                {hasVideo && isYT && ytEmbed ? (
-                  <div className="aspect-video w-full">
-                    <iframe
-                      key={`${currentSong.id}-${autoplay}`}
-                      src={ytEmbed}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                ) : hasVideo && !isYT ? (
+                {isYT ? (
+                  /* YouTube IFrame Player — managed by the YT API, not React */
+                  <div className="aspect-video w-full" ref={ytContainerRef} />
+                ) : hasVideo ? (
                   <video ref={videoRef} key={currentSong.id} src={currentSong.video_url!} controls className="w-full max-h-64 bg-black" />
                 ) : hasAudio ? (
                   <div className="px-5 py-4 flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-pink-950/40 border border-pink-800/30 flex items-center justify-center shrink-0">
                       <FileMusic size={16} className="text-pink-400" />
                     </div>
-                    {/* No key — same DOM element persists, preserving browser autoplay permission.
-                        Uses callback ref to attach the ended listener immediately on mount. */}
                     <audio
-                      ref={audioCallbackRef}
+                      key={currentSong.id}
+                      ref={audioRef}
                       src={currentSong.audio_url!}
                       controls
                       className="flex-1 h-9"
+                      onEnded={() => { if (autoplay) next() }}
                     />
                   </div>
                 ) : null}
