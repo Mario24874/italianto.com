@@ -1,6 +1,7 @@
 import { SignUp, ClerkLoading, ClerkLoaded } from '@clerk/nextjs'
 import type { Metadata } from 'next'
 import Image from 'next/image'
+import { SignUpPromo } from '@/components/sign-up-promo'
 
 export const metadata: Metadata = {
   title: 'Crear cuenta — Italianto',
@@ -19,28 +20,7 @@ export default function SignUpPage() {
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-r from-bg-dark/20 to-bg-dark/70" />
-        <div className="absolute top-1/2 -translate-y-1/2 left-12 max-w-sm space-y-4">
-          <div className="text-3xl font-extrabold text-verde-50 leading-tight">
-            Únete a miles de
-            <br />
-            <span className="gradient-text">estudiantes de italiano</span>
-          </div>
-          <div className="space-y-2.5">
-            {[
-              'Traductor inteligente',
-              'Tutor AI conversacional',
-              'Diálogos generados con IA',
-              'Apps para todos los dispositivos',
-            ].map(feat => (
-              <div key={feat} className="flex items-center gap-2.5 text-sm text-verde-300">
-                <div className="size-4 rounded-full bg-brand/30 border border-verde-700 flex items-center justify-center">
-                  <div className="size-1.5 rounded-full bg-verde-400" />
-                </div>
-                {feat}
-              </div>
-            ))}
-          </div>
-        </div>
+        <SignUpPromo />
       </div>
 
       {/* Right: Auth */}

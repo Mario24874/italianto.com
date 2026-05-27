@@ -488,6 +488,16 @@ export const translations = {
       outOf: 'de',
       correct: 'correctas',
     },
+    signUpPromo: {
+      line1: 'Únete a miles de',
+      line2: 'estudiantes de italiano',
+      features: [
+        'Traductor inteligente',
+        'Tutor AI conversacional',
+        'Diálogos generados con IA',
+        'Apps para todos los dispositivos',
+      ],
+    },
   },
   it: {
     nav: {
@@ -967,6 +977,16 @@ export const translations = {
       outOf: 'di',
       correct: 'corrette',
     },
+    signUpPromo: {
+      line1: 'Unisciti a migliaia di',
+      line2: 'studenti di italiano',
+      features: [
+        'Traduttore intelligente',
+        'Tutor AI conversazionale',
+        'Dialoghi generati con IA',
+        'App per tutti i dispositivi',
+      ],
+    },
   },
   en: {
     nav: {
@@ -1445,6 +1465,16 @@ export const translations = {
       complete: 'Crossword complete!',
       outOf: 'of',
       correct: 'correct',
+    },
+    signUpPromo: {
+      line1: 'Join thousands of',
+      line2: 'Italian students',
+      features: [
+        'Smart translator',
+        'AI conversational tutor',
+        'AI-generated dialogues',
+        'Apps for every device',
+      ],
     },
   },
 }
