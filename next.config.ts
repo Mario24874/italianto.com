@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
     const supabaseHost = 'zhpnoohdefnigumjgxbc.supabase.co'
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.italianto.com https://*.clerk.accounts.dev https://js.stripe.com https://challenges.cloudflare.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.italianto.com https://*.clerk.accounts.dev https://js.stripe.com https://challenges.cloudflare.com https://www.youtube.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} https://api.anthropic.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://api.deepl.com https://api.stripe.com https://api.emailjs.com https://*.clerk.accounts.dev https://clerk.italianto.com`,
