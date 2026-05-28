@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Mail, Users, Send, Eye, EyeOff, AlertCircle, CheckCircle2, Clock, RefreshCw } from 'lucide-react'
+import { Mail, Users, Send, Eye, EyeOff, AlertCircle, CheckCircle2, Clock, RefreshCw, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const PLACEHOLDER_HTML = `<h2>Novedad en Italianto</h2>
@@ -28,6 +28,7 @@ export function ComunicacionesClient() {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
   const [historyLoading, setHistoryLoading] = useState(true)
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [syncing, setSyncing] = useState(false)
 
   async function loadData() {
     setHistoryLoading(true)
@@ -44,6 +45,25 @@ export function ComunicacionesClient() {
   }
 
   useEffect(() => { loadData() }, [])
+
+  async function syncUsers() {
+    setSyncing(true)
+    setResult(null)
+    try {
+      const res = await fetch('/api/admin/newsletter/sync-users', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        setResult({ ok: true, msg: `Sincronización completa: ${data.synced} usuarios agregados a Resend.${data.errors?.length ? ` Errores: ${data.errors.join(', ')}` : ''}` })
+        loadData()
+      } else {
+        setResult({ ok: false, msg: data.error ?? 'Error en sincronización' })
+      }
+    } catch (e) {
+      setResult({ ok: false, msg: String(e) })
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   async function send() {
     if (!subject.trim() || !html.trim()) return
@@ -88,13 +108,28 @@ export function ComunicacionesClient() {
             <Mail size={20} className="text-verde-400" />
             Comunicaciones
           </h1>
-          <p className="text-sm text-verde-500 mt-0.5">Envía newsletters a todos los suscriptores</p>
+          <p className="text-sm text-verde-500 mt-0.5">Envía newsletters a todos los usuarios registrados</p>
         </div>
-        <div className="flex items-center gap-2 bg-verde-950/40 border border-verde-900/40 rounded-xl px-4 py-2">
-          <Users size={14} className="text-verde-500" />
-          <span className="text-sm text-verde-300">
-            {subscriberCount === null ? '...' : subscriberCount} suscriptores activos
-          </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={syncUsers}
+            disabled={syncing}
+            title="Sincronizar todos los usuarios de la plataforma con Resend"
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all border',
+              'bg-verde-950/40 border-verde-800/40 text-verde-400 hover:text-verde-200 hover:border-verde-600',
+              'disabled:opacity-40 disabled:cursor-not-allowed'
+            )}
+          >
+            <UserPlus size={13} className={syncing ? 'animate-pulse' : ''} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar usuarios'}
+          </button>
+          <div className="flex items-center gap-2 bg-verde-950/40 border border-verde-900/40 rounded-xl px-4 py-2">
+            <Users size={14} className="text-verde-500" />
+            <span className="text-sm text-verde-300">
+              {subscriberCount === null ? '...' : subscriberCount} en Resend
+            </span>
+          </div>
         </div>
       </div>
 
@@ -173,7 +208,7 @@ export function ComunicacionesClient() {
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-verde-600">
-          Se enviará a todos los suscriptores activos del segment de Resend.
+          Se enviará a todos los usuarios sincronizados en Resend. Usa "Sincronizar usuarios" para incluir a los ya registrados.
         </p>
         <button
           onClick={send}
