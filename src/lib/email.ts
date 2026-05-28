@@ -45,19 +45,20 @@ export async function sendNewsletter(opts: {
   if (!resend) throw new Error('RESEND_API_KEY not configured')
   if (!SEGMENT_ID) throw new Error('RESEND_SEGMENT_ID not configured')
 
-  const payload = {
+  const createResult = await resend.broadcasts.create({
     segmentId: SEGMENT_ID,
     from: FROM,
     subject: opts.subject,
     html: opts.html,
     name: opts.name ?? opts.subject,
-    send: true as const,
     ...(opts.previewText ? { previewText: opts.previewText } : {}),
-  }
+  })
+  if (createResult.error) throw new Error(JSON.stringify(createResult.error))
+  const broadcastId = createResult.data!.id
 
-  const result = await resend.broadcasts.create(payload)
-  if (result.error) throw new Error(JSON.stringify(result.error))
-  return { broadcastId: result.data!.id }
+  const sendResult = await resend.broadcasts.send(broadcastId)
+  if (sendResult.error) throw new Error(JSON.stringify(sendResult.error))
+  return { broadcastId }
 }
 
 export async function listBroadcasts() {
@@ -77,12 +78,12 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
 
 export async function sendContentNotification(opts: {
   title: string
-  type: string
-  level: string
-  contentType: 'attività' | 'lezione' | 'canzone'
+  type?: string
+  level?: string
+  contentType: string
   url: string
 }): Promise<void> {
-  const typeLabel = ACTIVITY_TYPE_LABELS[opts.type] ?? opts.type
+  const typeLabel = opts.type ? (ACTIVITY_TYPE_LABELS[opts.type] ?? opts.type) : opts.contentType
   const subject = `Nuovo contenuto su Italianto: ${opts.title}`
   const html = `<!DOCTYPE html>
 <html>
@@ -99,7 +100,7 @@ export async function sendContentNotification(opts: {
       </p>
       <div style="background:#0a1a0a;border-radius:12px;padding:16px;margin-bottom:20px">
         <div style="color:#e8f5e9;font-weight:700;font-size:16px;margin-bottom:4px">${opts.title}</div>
-        <div style="color:#66bb6a;font-size:12px">${typeLabel} · Livello ${opts.level}</div>
+        <div style="color:#66bb6a;font-size:12px">${typeLabel}${opts.level ? ` · Livello ${opts.level}` : ''}</div>
       </div>
       <a href="${opts.url}" style="display:block;background:#2e7d32;color:#fff;text-decoration:none;border-radius:12px;padding:14px;text-align:center;font-weight:700;font-size:15px">
         Vai alla piattaforma →

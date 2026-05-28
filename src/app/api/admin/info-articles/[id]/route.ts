@@ -1,14 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { sendContentNotification } from '@/lib/email'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await requireAdmin()
   const { id } = await params
   const supabase = getSupabaseAdmin()
   const body = await req.json()
+
+  const { data: before } = await supabase.from('info_articles').select('status').eq('id', id).maybeSingle()
+  const wasPublished = before?.status === 'published'
+
   const { data, error } = await supabase.from('info_articles').update({ ...body, updated_at: new Date().toISOString() }).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  if (!wasPublished && data?.status === 'published') {
+    sendContentNotification({
+      title: data.title ?? 'Nuovo articolo',
+      level: data.level,
+      contentType: 'articolo',
+      url: 'https://italianto.com/informazioni',
+    }).catch(err => console.error('[info-articles] Auto-notification failed:', err))
+  }
+
   return NextResponse.json({ data })
 }
 

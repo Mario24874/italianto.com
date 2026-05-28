@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { sendContentNotification } from '@/lib/email'
 import type { LessonRow } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -72,6 +73,16 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error) throw error
+
+    if (data?.status === 'published') {
+      sendContentNotification({
+        title: data.title ?? 'Nuova lezione',
+        level: data.level,
+        contentType: 'lezione',
+        url: 'https://italianto.com/lezioni',
+      }).catch(err => console.error('[lessons] Auto-notification failed:', err))
+    }
+
     return NextResponse.json({ lesson: data as LessonRow }, { status: 201 })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
