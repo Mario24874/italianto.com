@@ -60,6 +60,61 @@ export async function sendNewsletter(opts: {
   return { broadcastId: result.data!.id }
 }
 
+export async function listBroadcasts() {
+  if (!resend) return []
+  const result = await resend.broadcasts.list()
+  if (result.error || !result.data) return []
+  return result.data.data
+}
+
+const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  crucigrama: 'Cruciverba',
+  wordsearch: 'Trova le parole',
+  matching: 'Abbinamento',
+  fillblank: 'Completa la frase',
+  flashcards: 'Flashcard',
+}
+
+export async function sendContentNotification(opts: {
+  title: string
+  type: string
+  level: string
+  contentType: 'attività' | 'lezione' | 'canzone'
+  url: string
+}): Promise<void> {
+  const typeLabel = ACTIVITY_TYPE_LABELS[opts.type] ?? opts.type
+  const subject = `Nuovo contenuto su Italianto: ${opts.title}`
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="background:#0a0f0a;color:#e8f5e9;font-family:system-ui,sans-serif;margin:0;padding:0">
+  <div style="max-width:520px;margin:0 auto;padding:32px 16px">
+    <div style="text-align:center;margin-bottom:24px">
+      <img src="https://italianto.com/logo_Italianto.png" alt="Italianto" width="48" height="48" style="border-radius:12px;margin-bottom:8px">
+      <h1 style="color:#81c784;font-size:18px;margin:0">Italianto</h1>
+    </div>
+    <div style="background:#132213;border:1px solid #1e3a1e;border-radius:16px;padding:24px">
+      <p style="color:#a5d6a7;font-size:14px;margin:0 0 16px">
+        Ciao! Abbiamo aggiunto nuovi contenuti per te sulla piattaforma.
+      </p>
+      <div style="background:#0a1a0a;border-radius:12px;padding:16px;margin-bottom:20px">
+        <div style="color:#e8f5e9;font-weight:700;font-size:16px;margin-bottom:4px">${opts.title}</div>
+        <div style="color:#66bb6a;font-size:12px">${typeLabel} · Livello ${opts.level}</div>
+      </div>
+      <a href="${opts.url}" style="display:block;background:#2e7d32;color:#fff;text-decoration:none;border-radius:12px;padding:14px;text-align:center;font-weight:700;font-size:15px">
+        Vai alla piattaforma →
+      </a>
+    </div>
+    <p style="color:#2e7d32;text-align:center;font-size:11px;margin-top:20px">
+      © ${new Date().getFullYear()} Italianto
+    </p>
+  </div>
+</body>
+</html>`
+
+  await sendNewsletter({ subject, html, name: `Contenuto: ${opts.title}` })
+}
+
 /**
  * Notify admin when a user creates a study schedule session.
  */

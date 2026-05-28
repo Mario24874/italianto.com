@@ -1,14 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Mail, Users, Send, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Mail, Users, Send, Eye, EyeOff, AlertCircle, CheckCircle2, Clock, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const PLACEHOLDER_HTML = `<h2>Novedad en Italianto</h2>
-<p>Hola {{firstName}},</p>
+<p>Ciao {{firstName}},</p>
 <p>Tenemos novedades para ti en la plataforma...</p>
 <p>¡Seguimos aprendiendo italiano juntos!</p>
 <p>— El equipo de Italianto</p>`
+
+interface Broadcast {
+  id: string
+  name: string
+  status: 'draft' | 'sent' | 'queued'
+  created_at: string
+  sent_at: string | null
+}
 
 export function ComunicacionesClient() {
   const [subject, setSubject] = useState('')
@@ -17,14 +25,25 @@ export function ComunicacionesClient() {
   const [preview, setPreview] = useState(false)
   const [loading, setLoading] = useState(false)
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null)
+  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
+  const [historyLoading, setHistoryLoading] = useState(true)
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
-  useEffect(() => {
-    fetch('/api/admin/newsletter')
-      .then(r => r.json())
-      .then(d => setSubscriberCount(d.subscriberCount ?? 0))
-      .catch(() => setSubscriberCount(0))
-  }, [])
+  async function loadData() {
+    setHistoryLoading(true)
+    try {
+      const res = await fetch('/api/admin/newsletter')
+      const d = await res.json()
+      setSubscriberCount(d.subscriberCount ?? 0)
+      setBroadcasts(d.broadcasts ?? [])
+    } catch {
+      setSubscriberCount(0)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => { loadData() }, [])
 
   async function send() {
     if (!subject.trim() || !html.trim()) return
@@ -39,6 +58,10 @@ export function ComunicacionesClient() {
       const data = await res.json()
       if (res.ok) {
         setResult({ ok: true, msg: `Envío iniciado. Broadcast ID: ${data.broadcastId}` })
+        setSubject('')
+        setPreviewText('')
+        setHtml(PLACEHOLDER_HTML)
+        loadData()
       } else {
         setResult({ ok: false, msg: data.error ?? 'Error desconocido' })
       }
@@ -48,6 +71,13 @@ export function ComunicacionesClient() {
       setLoading(false)
     }
   }
+
+  const statusLabel = (s: string) =>
+    s === 'sent' ? 'Enviado' : s === 'queued' ? 'En cola' : 'Borrador'
+  const statusColor = (s: string) =>
+    s === 'sent' ? 'text-green-400 bg-green-950/40 border-green-800/40'
+    : s === 'queued' ? 'text-yellow-400 bg-yellow-950/40 border-yellow-800/40'
+    : 'text-verde-500 bg-verde-950/40 border-verde-800/40'
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -70,7 +100,6 @@ export function ComunicacionesClient() {
 
       {/* Form */}
       <div className="bg-verde-950/20 border border-verde-900/30 rounded-2xl p-6 space-y-4">
-        {/* Subject */}
         <div>
           <label className="block text-xs font-semibold text-verde-500 uppercase tracking-wider mb-1.5">
             Asunto del email
@@ -79,15 +108,14 @@ export function ComunicacionesClient() {
             type="text"
             value={subject}
             onChange={e => setSubject(e.target.value)}
-            placeholder="ej. Nuevas lecciones de nivel B1 disponibles"
+            placeholder="ej. Nuevas actividades de nivel A2 disponibles"
             className="w-full px-4 py-2.5 rounded-xl bg-verde-950/40 border border-verde-800/30 text-verde-200 text-sm placeholder:text-verde-700 focus:outline-none focus:border-verde-600 transition-colors"
           />
         </div>
 
-        {/* Preview text */}
         <div>
           <label className="block text-xs font-semibold text-verde-500 uppercase tracking-wider mb-1.5">
-            Texto de previsualización <span className="text-verde-700 font-normal">(opcional — se muestra en bandeja de entrada)</span>
+            Texto de previsualización <span className="text-verde-700 font-normal">(opcional)</span>
           </label>
           <input
             type="text"
@@ -98,7 +126,6 @@ export function ComunicacionesClient() {
           />
         </div>
 
-        {/* HTML editor / preview toggle */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-xs font-semibold text-verde-500 uppercase tracking-wider">
@@ -114,25 +141,24 @@ export function ComunicacionesClient() {
           </div>
           {preview ? (
             <div
-              className="w-full min-h-[280px] p-5 rounded-xl bg-white text-gray-900 text-sm border border-verde-800/30 overflow-auto"
+              className="w-full min-h-[240px] p-5 rounded-xl bg-white text-gray-900 text-sm border border-verde-800/30 overflow-auto"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (
             <textarea
               value={html}
               onChange={e => setHtml(e.target.value)}
-              rows={14}
-              className="w-full px-4 py-3 rounded-xl bg-verde-950/40 border border-verde-800/30 text-verde-200 text-sm placeholder:text-verde-700 font-mono focus:outline-none focus:border-verde-600 transition-colors resize-y"
+              rows={12}
+              className="w-full px-4 py-3 rounded-xl bg-verde-950/40 border border-verde-800/30 text-verde-200 text-sm font-mono focus:outline-none focus:border-verde-600 transition-colors resize-y"
             />
           )}
           <p className="text-xs text-verde-700 mt-1.5">
-            Puedes usar <code className="text-verde-500">{'{{firstName}}'}</code> para personalizar con el nombre del suscriptor.
-            Resend añade automáticamente el enlace de baja (unsubscribe).
+            Usa <code className="text-verde-500">{'{{firstName}}'}</code> para el nombre.
+            Resend añade el enlace de baja automáticamente.
           </p>
         </div>
       </div>
 
-      {/* Result banner */}
       {result && (
         <div className={cn(
           'flex items-start gap-3 p-4 rounded-xl border text-sm',
@@ -145,10 +171,9 @@ export function ComunicacionesClient() {
         </div>
       )}
 
-      {/* Send button */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-verde-600">
-          Se enviará a todos los suscriptores activos en la audiencia de Resend.
+          Se enviará a todos los suscriptores activos del segment de Resend.
         </p>
         <button
           onClick={send}
@@ -162,6 +187,49 @@ export function ComunicacionesClient() {
           <Send size={14} />
           {loading ? 'Enviando...' : 'Enviar newsletter'}
         </button>
+      </div>
+
+      {/* Historial de envíos */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-verde-300 flex items-center gap-2">
+            <Clock size={14} className="text-verde-500" />
+            Historial de envíos
+          </h2>
+          <button
+            onClick={loadData}
+            className="flex items-center gap-1.5 text-xs text-verde-600 hover:text-verde-300 transition-colors"
+          >
+            <RefreshCw size={12} className={historyLoading ? 'animate-spin' : ''} />
+            Actualizar
+          </button>
+        </div>
+
+        {historyLoading ? (
+          <div className="text-center py-8 text-verde-700 text-sm">Cargando historial...</div>
+        ) : broadcasts.length === 0 ? (
+          <div className="text-center py-8 text-verde-700 text-sm border border-verde-900/30 rounded-xl">
+            No hay envíos registrados aún
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {broadcasts.map(b => (
+              <div key={b.id} className="flex items-center justify-between px-4 py-3 bg-verde-950/20 border border-verde-900/30 rounded-xl">
+                <div className="min-w-0">
+                  <p className="text-sm text-verde-200 font-medium truncate">{b.name || b.id}</p>
+                  <p className="text-xs text-verde-600 mt-0.5">
+                    {b.sent_at
+                      ? `Enviado: ${new Date(b.sent_at).toLocaleString('es-ES')}`
+                      : `Creado: ${new Date(b.created_at).toLocaleString('es-ES')}`}
+                  </p>
+                </div>
+                <span className={cn('shrink-0 ml-3 px-2.5 py-1 rounded-full text-xs font-medium border', statusColor(b.status))}>
+                  {statusLabel(b.status)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

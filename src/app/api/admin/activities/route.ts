@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { sendContentNotification } from '@/lib/email'
 
 export async function GET() {
   await requireAdmin()
@@ -16,5 +17,16 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { data, error } = await supabase.from('activities').insert(body).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  if (data?.status === 'published') {
+    sendContentNotification({
+      title: data.title ?? 'Nuova attività',
+      type: data.type ?? '',
+      level: data.level ?? 'A1',
+      contentType: 'attività',
+      url: 'https://italianto.com/passatempi',
+    }).catch(err => console.error('[activities] Auto-notification failed:', err))
+  }
+
   return NextResponse.json({ data })
 }
