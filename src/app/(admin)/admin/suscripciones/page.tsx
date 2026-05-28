@@ -7,6 +7,7 @@ import { StatsCard } from '@/components/admin/stats-card'
 import { formatCurrency, formatDate, calcMRR } from '@/lib/utils'
 import { CreditCard, TrendingUp, DollarSign, UserCheck, ExternalLink } from 'lucide-react'
 import type { SubscriptionRow, UserRow } from '@/types'
+import { SendEmailDialog } from '@/components/admin/send-email-dialog'
 
 export const metadata: Metadata = { title: 'Suscripciones — Admin' }
 export const dynamic = 'force-dynamic'
@@ -160,15 +161,20 @@ export default async function AdminSuscripcionesPage() {
                         : '—'}
                     </td>
                     <td className="px-4 py-3.5">
-                      <a
-                        href={`https://dashboard.stripe.com/subscriptions/${sub.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Ver en Stripe"
-                        className="inline-flex items-center justify-center size-7 rounded-lg text-verde-500 hover:text-verde-300 hover:bg-verde-950/50 transition-colors"
-                      >
-                        <ExternalLink size={13} />
-                      </a>
+                      <div className="flex items-center gap-1">
+                        {sub.users?.email && (
+                          <SendEmailDialog userEmail={sub.users.email} userName={sub.users?.full_name ?? null} />
+                        )}
+                        <a
+                          href={`https://dashboard.stripe.com/subscriptions/${sub.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Ver en Stripe"
+                          className="inline-flex items-center justify-center size-7 rounded-lg text-verde-500 hover:text-verde-300 hover:bg-verde-950/50 transition-colors"
+                        >
+                          <ExternalLink size={13} />
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 )

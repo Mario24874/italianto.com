@@ -4,9 +4,10 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatDate, formatRelativeTime, getInitials } from '@/lib/utils'
-import { Users, Search, Filter, Download, Mail } from 'lucide-react'
+import { Users, Search, Filter, Download } from 'lucide-react'
 import type { UserRow, SubscriptionRow } from '@/types'
 import { EditUserDialog } from './_edit-user-dialog'
+import { SendEmailDialog } from '@/components/admin/send-email-dialog'
 
 export const metadata: Metadata = { title: 'Usuarios — Admin' }
 export const dynamic = 'force-dynamic'
@@ -148,9 +149,7 @@ export default async function AdminUsuariosPage() {
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon-sm" title="Enviar email">
-                          <Mail size={13} />
-                        </Button>
+                        <SendEmailDialog userEmail={user.email} userName={user.full_name} />
                         <EditUserDialog userId={user.id} currentName={user.full_name} />
                       </div>
                     </td>
