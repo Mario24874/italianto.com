@@ -358,62 +358,66 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
           )}
         </div>
 
-        {/* Right: animated mascot + speech bubble */}
-        <div className="hidden sm:flex flex-1 justify-center items-end min-w-0 pb-1">
-          {/* Keyframes defined inline so they're guaranteed available */}
+        {/* Right: circular video frame + speech bubble */}
+        <div className="hidden sm:flex flex-1 justify-center items-center min-w-0">
           <style>{`
             @keyframes itl-float {
               0%,100% { transform: translateY(0px); }
-              50%      { transform: translateY(-10px); }
+              50%      { transform: translateY(-8px); }
             }
             @keyframes itl-speak {
               0%,100% { transform: translateY(0) rotate(0deg); }
-              20%     { transform: translateY(-7px) rotate(-6deg); }
-              40%     { transform: translateY(-7px) rotate(6deg); }
-              60%     { transform: translateY(-4px) rotate(-3deg); }
-              80%     { transform: translateY(-4px) rotate(3deg); }
+              20%     { transform: translateY(-6px) rotate(-4deg); }
+              40%     { transform: translateY(-6px) rotate(4deg); }
+              60%     { transform: translateY(-3px) rotate(-2deg); }
+              80%     { transform: translateY(-3px) rotate(2deg); }
             }
             @keyframes itl-bubble {
               from { opacity:0; transform: translateY(8px) scale(0.92); }
               to   { opacity:1; transform: translateY(0) scale(1); }
             }
+            @keyframes itl-ring-pulse {
+              0%,100% { box-shadow: 0 0 0 0 rgba(74,222,93,0.0), 0 0 16px 4px rgba(74,222,93,0.25); }
+              50%     { box-shadow: 0 0 0 5px rgba(74,222,93,0.08), 0 0 24px 8px rgba(74,222,93,0.35); }
+            }
           `}</style>
 
-          <div className="relative flex flex-col items-center">
-            {/* Speech bubble — new key per message so animation always replays */}
+          <div className="relative flex flex-col items-center gap-3">
+            {/* Speech bubble — key per message so animation always replays */}
             {bubbleMsg && (
               <div
                 key={bubbleMsg}
-                className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-max max-w-[170px] z-10"
+                className="bg-[#132213] border border-verde-700/50 rounded-2xl px-3 py-2 shadow-xl max-w-[170px]"
                 style={{ animation: 'itl-bubble 0.3s ease-out forwards' }}
               >
-                <div className="bg-[#132213] border border-verde-700/50 rounded-2xl px-3 py-2 shadow-xl">
-                  <p className="text-xs text-verde-100 leading-snug text-center whitespace-normal">
-                    {bubbleMsg}
-                  </p>
-                </div>
-                <div className="flex justify-center -mt-px">
+                <p className="text-xs text-verde-100 leading-snug text-center whitespace-normal">
+                  {bubbleMsg}
+                </p>
+                {/* Arrow pointing down */}
+                <div className="flex justify-center mt-1">
                   <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[7px] border-l-transparent border-r-transparent border-t-verde-700/50" />
                 </div>
               </div>
             )}
-            {/* Wrapper div drives the animation — keeps Next.js Image clean */}
+
+            {/* Circular porthole frame — crops white background naturally */}
             <div
+              className="rounded-full overflow-hidden border-2 border-verde-600/70 shrink-0"
               style={{
-                maxHeight: `${size.rows * cellSize + 40}px`,
+                width: 148,
+                height: 148,
                 animation: mascotBounce
                   ? 'itl-speak 0.9s ease-in-out forwards'
-                  : 'itl-float 5s ease-in-out infinite',
+                  : 'itl-float 5s ease-in-out infinite, itl-ring-pulse 3s ease-in-out infinite',
               }}
             >
-              <Image
-                src="/mascot-nobg.png"
-                alt="Italianto mascota"
-                width={180}
-                height={180}
-                className="object-contain drop-shadow-lg select-none pointer-events-none"
-                style={{ maxHeight: `${size.rows * cellSize + 40}px` }}
-                priority
+              <video
+                src="/mascot-animated.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
               />
             </div>
           </div>
