@@ -5,6 +5,22 @@ import Image from 'next/image'
 import { useLanguage } from '@/contexts/language-context'
 import { cn } from '@/lib/utils'
 
+const BUBBLE_MESSAGES = [
+  "Dai, puoi farcela! 💪",
+  "Ti sta prendendo un po' di tempo? Respira! 😊",
+  "Consulta il traduttore se hai dubbi! 📖",
+  "Ottimo lavoro fin qui! Continua così! ⭐",
+  "Quasi ci siamo! Non mollare! 🎯",
+  "Ogni parola è un passo avanti nell'italiano! 🇮🇹",
+  "Stai andando benissimo, bravo/a! 🚀",
+  "Prenditi il tuo tempo, nessuna fretta! ⏳",
+  "Hai già indovinato molte parole! 🌟",
+  "Pensa in italiano e la risposta arriverà! 💡",
+  "Sei un campione dell'italiano! 🏆",
+  "Una parola alla volta, ce la fai! ✨",
+  "Non arrenderti, sei sulla strada giusta! 🌈",
+]
+
 export type CrosswordWord = {
   word: string
   clue: string
@@ -66,6 +82,8 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
   const [direction, setDirection] = useState<'across' | 'down'>('across')
   const [checked, setChecked] = useState(false)
   const [complete, setComplete] = useState(false)
+  const [bubbleMsg, setBubbleMsg] = useState<string | null>(null)
+  const [mascotBounce, setMascotBounce] = useState(false)
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([])
 
   const init = useCallback(() => {
@@ -80,6 +98,42 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
   }, [content])
 
   useEffect(() => { init() }, [init])
+
+  // Mascot speech bubble — random motivational messages in Italian
+  useEffect(() => {
+    if (!words.length || complete) return
+    const shuffled = [...BUBBLE_MESSAGES].sort(() => Math.random() - 0.5)
+    let idx = 0
+    let hideId: ReturnType<typeof setTimeout> | null = null
+    let bounceId: ReturnType<typeof setTimeout> | null = null
+    let intervalId: ReturnType<typeof setInterval> | null = null
+
+    function showMessage() {
+      const msg = shuffled[idx % shuffled.length]
+      idx++
+      setBubbleMsg(msg)
+      setMascotBounce(true)
+      if (bounceId) clearTimeout(bounceId)
+      if (hideId) clearTimeout(hideId)
+      bounceId = setTimeout(() => setMascotBounce(false), 1000)
+      hideId = setTimeout(() => setBubbleMsg(null), 6000)
+    }
+
+    // First message after 30s, then repeat every 75–120s
+    const firstId = setTimeout(() => {
+      showMessage()
+      intervalId = setInterval(showMessage, 75000 + Math.random() * 45000)
+    }, 30000)
+
+    return () => {
+      clearTimeout(firstId)
+      if (intervalId) clearInterval(intervalId)
+      if (hideId) clearTimeout(hideId)
+      if (bounceId) clearTimeout(bounceId)
+      setBubbleMsg(null)
+      setMascotBounce(false)
+    }
+  }, [words.length, complete])
 
   if (!words.length) {
     return (
@@ -304,17 +358,36 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
           )}
         </div>
 
-        {/* Right: mascot (visible only when there's horizontal space) */}
+        {/* Right: animated mascot + speech bubble */}
         <div className="hidden sm:flex flex-1 justify-center items-end min-w-0 pb-1">
-          <Image
-            src="/mascot-nobg.png"
-            alt="Italianto mascota"
-            width={180}
-            height={180}
-            className="object-contain drop-shadow-lg select-none pointer-events-none"
-            style={{ maxHeight: `${size.rows * cellSize + 40}px` }}
-            priority
-          />
+          <div className="relative flex flex-col items-center">
+            {/* Speech bubble */}
+            {bubbleMsg && (
+              <div className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-max max-w-[180px] animate-in fade-in zoom-in-95 duration-200">
+                <div className="bg-[#132213] border border-verde-700/50 rounded-2xl px-3 py-2 shadow-lg">
+                  <p className="text-xs text-verde-100 leading-snug text-center whitespace-normal">
+                    {bubbleMsg}
+                  </p>
+                </div>
+                {/* Arrow pointing down */}
+                <div className="flex justify-center">
+                  <div className="w-0 h-0 border-l-[7px] border-r-[7px] border-t-[7px] border-l-transparent border-r-transparent border-t-verde-700/50" />
+                </div>
+              </div>
+            )}
+            <Image
+              src="/mascot-nobg.png"
+              alt="Italianto mascota"
+              width={180}
+              height={180}
+              className={cn(
+                'object-contain drop-shadow-lg select-none pointer-events-none transition-transform duration-300',
+                mascotBounce && 'animate-bounce'
+              )}
+              style={{ maxHeight: `${size.rows * cellSize + 40}px` }}
+              priority
+            />
+          </div>
         </div>
       </div>
 
