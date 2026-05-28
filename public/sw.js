@@ -22,6 +22,8 @@ self.addEventListener('fetch', e => {
   // (avoids "redirect mode is not follow" errors on page loads)
   if (e.request.mode === 'navigate') return
   const url = new URL(e.request.url)
+  // Only handle http(s) — chrome-extension:// and other schemes cause Cache API errors
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return
   // Never intercept: API calls, Clerk, Stripe, Supabase, ElevenLabs, Gemini
   if (
     url.pathname.startsWith('/api/') ||
@@ -36,7 +38,7 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        if (res && res.status === 200 && res.type === 'basic') {
+        if (res && res.status === 200 && res.type === 'basic' && url.protocol === 'https:') {
           const clone = res.clone()
           caches.open(CACHE).then(c => c.put(e.request, clone))
         }

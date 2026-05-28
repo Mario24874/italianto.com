@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef, useEffect, useCallback } from 'react'
-import { X, ChevronLeft, ChevronRight, Repeat, Minus, Maximize2, FileMusic, FileVideo } from 'lucide-react'
+import { useRef, useEffect, useCallback, useState } from 'react'
+import { X, ChevronLeft, ChevronRight, Repeat, Minus, Maximize2, FileMusic, FileVideo, ExternalLink } from 'lucide-react'
 import { useMusicPlayer } from '@/contexts/music-player-context'
 import { useLanguage } from '@/contexts/language-context'
 import { cn } from '@/lib/utils'
@@ -75,23 +75,39 @@ export function GlobalMusicPlayer() {
   // ── YouTube IFrame Player API ───────────────────────────────────────────────
   const ytPlayerRef = useRef<YTPlayerInstance | null>(null)
   const ytContainerRef = useRef<HTMLDivElement>(null)
+  const [ytApiError, setYtApiError] = useState(false)
+  const ytErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load the YT API script once
+  // Load the YT API script once; detect failure via onerror + timeout
   useEffect(() => {
     if (window.YT?.Player) return
-    if (document.getElementById('yt-iframe-api')) return
+    if (document.getElementById('yt-iframe-api')) {
+      // Script was already injected — set timeout in case it's stalled
+      ytErrorTimeoutRef.current = setTimeout(() => {
+        if (!window.YT?.Player) setYtApiError(true)
+      }, 10000)
+      return () => { if (ytErrorTimeoutRef.current) clearTimeout(ytErrorTimeoutRef.current) }
+    }
     const script = document.createElement('script')
     script.id = 'yt-iframe-api'
     script.src = 'https://www.youtube.com/iframe_api'
+    script.onerror = () => setYtApiError(true)
     document.head.appendChild(script)
+    // Timeout fallback in case onerror doesn't fire (some ad blockers silently drop)
+    ytErrorTimeoutRef.current = setTimeout(() => {
+      if (!window.YT?.Player) setYtApiError(true)
+    }, 10000)
+    return () => { if (ytErrorTimeoutRef.current) clearTimeout(ytErrorTimeoutRef.current) }
   }, [])
 
   // Create or update the YT player when the YouTube song changes
   useEffect(() => {
-    if (!ytVideoId) {
-      // Switched away from YouTube — destroy existing player
-      try { ytPlayerRef.current?.destroy() } catch {}
-      ytPlayerRef.current = null
+    if (!ytVideoId || ytApiError) {
+      if (!ytVideoId) {
+        // Switched away from YouTube — destroy existing player
+        try { ytPlayerRef.current?.destroy() } catch {}
+        ytPlayerRef.current = null
+      }
       return
     }
 
@@ -131,10 +147,11 @@ export function GlobalMusicPlayer() {
       const prev = window.onYouTubeIframeAPIReady
       window.onYouTubeIframeAPIReady = () => {
         prev?.()
+        if (ytErrorTimeoutRef.current) clearTimeout(ytErrorTimeoutRef.current)
         setup()
       }
     }
-  }, [ytVideoId])
+  }, [ytVideoId, ytApiError])
 
   // Destroy YT player when the component unmounts (user leaves dashboard)
   useEffect(() => {
@@ -237,8 +254,23 @@ export function GlobalMusicPlayer() {
             {(hasVideo || hasAudio) && (
               <div className="shrink-0 bg-black/40 border-b border-verde-900/30">
                 {isYT ? (
-                  /* YouTube IFrame Player — managed by the YT API, not React */
-                  <div className="aspect-video w-full" ref={ytContainerRef} />
+                  ytApiError ? (
+                    /* YouTube API failed to load — show fallback */
+                    <div className="aspect-video w-full flex flex-col items-center justify-center gap-3 bg-black/30 px-6 text-center">
+                      <p className="text-sm text-verde-500">No se pudo cargar el reproductor de YouTube.</p>
+                      <a
+                        href={currentSong!.video_url!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-900/30 border border-red-800/40 text-red-300 hover:bg-red-900/50 transition-colors"
+                      >
+                        <ExternalLink size={12} /> Abrir en YouTube
+                      </a>
+                    </div>
+                  ) : (
+                    /* YouTube IFrame Player — managed by the YT API, not React */
+                    <div className="aspect-video w-full" ref={ytContainerRef} />
+                  )
                 ) : hasVideo ? (
                   <video ref={videoRef} key={currentSong.id} src={currentSong.video_url!} controls className="w-full max-h-64 bg-black" />
                 ) : hasAudio ? (
