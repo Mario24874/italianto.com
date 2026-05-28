@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react'
 import { Mail, Users, Send, Eye, EyeOff, AlertCircle, CheckCircle2, Clock, RefreshCw, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const PLACEHOLDER_HTML = `<h2>Novedad en Italianto</h2>
+const PLACEHOLDER_HTML = `<h2>Novità su Italianto</h2>
 <p>Ciao {{firstName}},</p>
-<p>Tenemos novedades para ti en la plataforma...</p>
-<p>¡Seguimos aprendiendo italiano juntos!</p>
-<p>— El equipo de Italianto</p>`
+<p>Abbiamo delle novità per te sulla piattaforma...</p>
+<p>Continuiamo ad imparare l'italiano insieme!</p>
+<p>— Il team di Italianto</p>`
 
 interface Broadcast {
   id: string
