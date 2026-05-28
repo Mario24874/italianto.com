@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { useLanguage } from '@/contexts/language-context'
 import { cn } from '@/lib/utils'
 
@@ -225,79 +226,97 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
         </div>
       )}
 
-      {/* Grid */}
-      <div className="overflow-x-auto">
-        <div
-          className="inline-grid gap-px bg-verde-800/20 border border-verde-800/30 rounded-lg overflow-hidden"
-          style={{ gridTemplateColumns: `repeat(${size.cols}, ${cellSize}px)` }}
-        >
-          {grid.map((row, ri) =>
-            row.map((cell, ci) => {
-              const isSelected = selected?.row === ri && selected?.col === ci
-              const isHighlighted = isCellInActiveWord(ri, ci)
-              const isCorrectCell = isCellCorrect(ri, ci)
+      {/* Grid + mascot row */}
+      <div className="flex items-end gap-3">
+        {/* Left: grid + buttons */}
+        <div className="space-y-3 shrink-0">
+          <div className="overflow-x-auto">
+            <div
+              className="inline-grid gap-px bg-verde-800/20 border border-verde-800/30 rounded-lg overflow-hidden"
+              style={{ gridTemplateColumns: `repeat(${size.cols}, ${cellSize}px)` }}
+            >
+              {grid.map((row, ri) =>
+                row.map((cell, ci) => {
+                  const isSelected = selected?.row === ri && selected?.col === ci
+                  const isHighlighted = isCellInActiveWord(ri, ci)
+                  const isCorrectCell = isCellCorrect(ri, ci)
 
-              return (
-                <div
-                  key={`${ri}-${ci}`}
-                  style={{ width: cellSize, height: cellSize }}
-                  className={cn(
-                    'relative flex items-center justify-center',
-                    cell.isBlack ? 'bg-verde-900/60' : 'cursor-pointer',
-                    !cell.isBlack && isSelected && 'bg-amber-800/60',
-                    !cell.isBlack && isHighlighted && !isSelected && 'bg-amber-900/30',
-                    !cell.isBlack && !isHighlighted && !isSelected && 'bg-[#0d150d]',
-                    !cell.isBlack && checked && !isCorrectCell && 'bg-red-900/40',
-                  )}
-                  onClick={() => handleCellClick(ri, ci)}
-                >
-                  {!cell.isBlack && (
-                    <>
-                      {cell.number && (
-                        <span className="absolute top-0.5 left-0.5 text-[7px] leading-none text-verde-500 font-bold z-10">
-                          {cell.number}
-                        </span>
+                  return (
+                    <div
+                      key={`${ri}-${ci}`}
+                      style={{ width: cellSize, height: cellSize }}
+                      className={cn(
+                        'relative flex items-center justify-center',
+                        cell.isBlack ? 'bg-verde-900/60' : 'cursor-pointer',
+                        !cell.isBlack && isSelected && 'bg-amber-800/60',
+                        !cell.isBlack && isHighlighted && !isSelected && 'bg-amber-900/30',
+                        !cell.isBlack && !isHighlighted && !isSelected && 'bg-[#0d150d]',
+                        !cell.isBlack && checked && !isCorrectCell && 'bg-red-900/40',
                       )}
-                      <input
-                        ref={el => { if (!inputRefs.current[ri]) inputRefs.current[ri] = []; inputRefs.current[ri][ci] = el }}
-                        value={input[ri]?.[ci] ?? ''}
-                        onChange={e => handleInput(e, ri, ci)}
-                        onKeyDown={e => handleKeyDown(e, ri, ci)}
-                        onFocus={() => setSelected({ row: ri, col: ci })}
-                        maxLength={1}
-                        className="w-full h-full text-center bg-transparent text-sm font-bold text-verde-100 outline-none caret-transparent uppercase"
-                        style={{ fontSize: Math.max(10, cellSize * 0.4) }}
-                      />
-                    </>
-                  )}
-                </div>
-              )
-            })
+                      onClick={() => handleCellClick(ri, ci)}
+                    >
+                      {!cell.isBlack && (
+                        <>
+                          {cell.number && (
+                            <span className="absolute top-0.5 left-0.5 text-[7px] leading-none text-verde-500 font-bold z-10">
+                              {cell.number}
+                            </span>
+                          )}
+                          <input
+                            ref={el => { if (!inputRefs.current[ri]) inputRefs.current[ri] = []; inputRefs.current[ri][ci] = el }}
+                            value={input[ri]?.[ci] ?? ''}
+                            onChange={e => handleInput(e, ri, ci)}
+                            onKeyDown={e => handleKeyDown(e, ri, ci)}
+                            onFocus={() => setSelected({ row: ri, col: ci })}
+                            maxLength={1}
+                            className="w-full h-full text-center bg-transparent text-sm font-bold text-verde-100 outline-none caret-transparent uppercase"
+                            style={{ fontSize: Math.max(10, cellSize * 0.4) }}
+                          />
+                        </>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleCheck}
+              className="flex-1 py-2 rounded-xl bg-amber-900/40 border border-amber-800/50 text-amber-300 text-sm font-semibold hover:bg-amber-900/60 transition-colors"
+            >
+              {ct.check}
+            </button>
+            <button
+              onClick={handleReset}
+              className="flex-1 py-2 rounded-xl bg-verde-900/30 border border-verde-800/40 text-verde-400 text-sm font-semibold hover:bg-verde-900/50 transition-colors"
+            >
+              {ct.reset}
+            </button>
+          </div>
+
+          {checked && !complete && (
+            <p className="text-xs text-verde-500 text-center">
+              {correctCount} {ct.outOf} {words.length} {ct.correct}
+            </p>
           )}
         </div>
-      </div>
 
-      {/* Action buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={handleCheck}
-          className="flex-1 py-2 rounded-xl bg-amber-900/40 border border-amber-800/50 text-amber-300 text-sm font-semibold hover:bg-amber-900/60 transition-colors"
-        >
-          {ct.check}
-        </button>
-        <button
-          onClick={handleReset}
-          className="flex-1 py-2 rounded-xl bg-verde-900/30 border border-verde-800/40 text-verde-400 text-sm font-semibold hover:bg-verde-900/50 transition-colors"
-        >
-          {ct.reset}
-        </button>
+        {/* Right: mascot (visible only when there's horizontal space) */}
+        <div className="hidden sm:flex flex-1 justify-center items-end min-w-0 pb-1">
+          <Image
+            src="/mascot-nobg.png"
+            alt="Italianto mascota"
+            width={180}
+            height={180}
+            className="object-contain drop-shadow-lg select-none pointer-events-none"
+            style={{ maxHeight: `${size.rows * cellSize + 40}px` }}
+            priority
+          />
+        </div>
       </div>
-
-      {checked && !complete && (
-        <p className="text-xs text-verde-500 text-center">
-          {correctCount} {ct.outOf} {words.length} {ct.correct}
-        </p>
-      )}
 
       {/* Clues */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
