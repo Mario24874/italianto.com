@@ -119,11 +119,11 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
       hideId = setTimeout(() => setBubbleMsg(null), 6000)
     }
 
-    // First message after 8s, then repeat every 60–90s
+    // First message after 5s, then repeat every 60–90s
     const firstId = setTimeout(() => {
       showMessage()
       intervalId = setInterval(showMessage, 60000 + Math.random() * 30000)
-    }, 8000)
+    }, 5000)
 
     return () => {
       clearTimeout(firstId)
@@ -360,39 +360,62 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
 
         {/* Right: animated mascot + speech bubble */}
         <div className="hidden sm:flex flex-1 justify-center items-end min-w-0 pb-1">
+          {/* Keyframes defined inline so they're guaranteed available */}
+          <style>{`
+            @keyframes itl-float {
+              0%,100% { transform: translateY(0px); }
+              50%      { transform: translateY(-10px); }
+            }
+            @keyframes itl-speak {
+              0%,100% { transform: translateY(0) rotate(0deg); }
+              20%     { transform: translateY(-7px) rotate(-6deg); }
+              40%     { transform: translateY(-7px) rotate(6deg); }
+              60%     { transform: translateY(-4px) rotate(-3deg); }
+              80%     { transform: translateY(-4px) rotate(3deg); }
+            }
+            @keyframes itl-bubble {
+              from { opacity:0; transform: translateY(8px) scale(0.92); }
+              to   { opacity:1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
+
           <div className="relative flex flex-col items-center">
-            {/* Speech bubble — uses slide-up keyframe from globals.css */}
+            {/* Speech bubble — new key per message so animation always replays */}
             {bubbleMsg && (
               <div
+                key={bubbleMsg}
                 className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-max max-w-[170px] z-10"
-                style={{ animation: 'slide-up 0.3s ease-out forwards' }}
+                style={{ animation: 'itl-bubble 0.3s ease-out forwards' }}
               >
                 <div className="bg-[#132213] border border-verde-700/50 rounded-2xl px-3 py-2 shadow-xl">
                   <p className="text-xs text-verde-100 leading-snug text-center whitespace-normal">
                     {bubbleMsg}
                   </p>
                 </div>
-                {/* Arrow pointing down */}
                 <div className="flex justify-center -mt-px">
                   <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[7px] border-l-transparent border-r-transparent border-t-verde-700/50" />
                 </div>
               </div>
             )}
-            {/* Mascot: float always, wiggle when speaking */}
-            <Image
-              src="/mascot-nobg.png"
-              alt="Italianto mascota"
-              width={180}
-              height={180}
-              className="object-contain drop-shadow-lg select-none pointer-events-none"
+            {/* Wrapper div drives the animation — keeps Next.js Image clean */}
+            <div
               style={{
                 maxHeight: `${size.rows * cellSize + 40}px`,
                 animation: mascotBounce
-                  ? 'mascot-wiggle 0.9s ease-in-out forwards'
-                  : 'float 5s ease-in-out infinite',
+                  ? 'itl-speak 0.9s ease-in-out forwards'
+                  : 'itl-float 5s ease-in-out infinite',
               }}
-              priority
-            />
+            >
+              <Image
+                src="/mascot-nobg.png"
+                alt="Italianto mascota"
+                width={180}
+                height={180}
+                className="object-contain drop-shadow-lg select-none pointer-events-none"
+                style={{ maxHeight: `${size.rows * cellSize + 40}px` }}
+                priority
+              />
+            </div>
           </div>
         </div>
       </div>
