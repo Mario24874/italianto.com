@@ -245,6 +245,12 @@ export function TutorLive({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callStatus])
 
+  // Sync the actual displayed avatar to context so the bubble always matches TutorLive
+  useEffect(() => {
+    tutorSession.updateLiveAvatar(avatarSrc)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avatarSrc])
+
   // ── Stats ──────────────────────────────────────────────────────────────────
   const fetchStats = useCallback(() => {
     fetch('/api/tutor/stats')

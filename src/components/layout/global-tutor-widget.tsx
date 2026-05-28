@@ -22,7 +22,7 @@ function BubbleEqualizer({ active }: { active: boolean }) {
 
 // ── Draggable bubble ──────────────────────────────────────────────────────────
 function DraggableBubble() {
-  const { activeTutor, callStatus, expand, deactivateSession, startCallRef, doEndCallRef } = useTutorSession()
+  const { activeTutor, callStatus, liveAvatarSrc, expand, deactivateSession, startCallRef, doEndCallRef } = useTutorSession()
   const isSpeaking = callStatus === 'speaking'
   const isListening = callStatus === 'listening'
   const isConnecting = callStatus === 'connecting'
@@ -95,13 +95,13 @@ function DraggableBubble() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* Avatar */}
+      {/* Avatar — use liveAvatarSrc (synced from TutorLive prefs) with fallback to initial */}
       <div className={cn(
         'size-10 rounded-full overflow-hidden ring-2 shrink-0 transition-all',
         isSpeaking ? 'ring-verde-500 scale-105' : 'ring-verde-800/60',
       )}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={activeTutor.avatarSrc} alt={activeTutor.name} className="size-full object-cover" />
+        <img src={liveAvatarSrc ?? activeTutor.avatarSrc} alt={activeTutor.name} className="size-full object-cover" />
       </div>
 
       {/* Name + status */}
