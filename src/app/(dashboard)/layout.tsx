@@ -8,6 +8,8 @@ import { Menu, Sun, Moon, Globe } from 'lucide-react'
 import { FeedbackWidget } from '@/components/dashboard/feedback-widget'
 import { GlobalMusicPlayer } from '@/components/layout/global-music-player'
 import SessionTracker from '@/components/layout/session-tracker'
+import { TutorSessionProvider } from '@/contexts/tutor-session-context'
+import { GlobalTutorWidget } from '@/components/layout/global-tutor-widget'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -19,6 +21,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => { setMounted(true) }, [])
 
   return (
+    <TutorSessionProvider>
     <div className="flex h-screen bg-bg-dark text-verde-100 overflow-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex shrink-0">
@@ -84,6 +87,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <FeedbackWidget />
         <GlobalMusicPlayer />
       </div>
+      <GlobalTutorWidget />
     </div>
+    </TutorSessionProvider>
   )
 }

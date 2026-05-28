@@ -4,12 +4,13 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Mic, MicOff, PhoneOff, Settings, Volume2, VolumeX,
+  Mic, MicOff, PhoneOff, Settings, Volume2, VolumeX, Minus,
   ArrowLeft, AlertCircle, Check, Phone, Video, VideoOff,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PLANS } from '@/lib/plans'
 import type { PlanType } from '@/lib/plans'
+import { useTutorSession } from '@/contexts/tutor-session-context'
 
 // ── Gemini Live voice mapping per avatar slug ─────────────────────────────────
 // Voices: Puck (male/upbeat), Charon (male/clear), Aoede (female/warm), Kore (female/firm), Fenrir (male/strong)
@@ -77,6 +78,8 @@ export interface TutorLiveProps {
   geminiVoice?: string | null
   minutesUsed: number
   planType: PlanType
+  onRequestMinimize?: () => void
+  onClose?: () => void
 }
 
 // ── Weekly progress chart ─────────────────────────────────────────────────────
@@ -177,9 +180,10 @@ function base64PCM16ToFloat32(b64: string): Float32Array {
 // ── Main component ────────────────────────────────────────────────────────────
 export function TutorLive({
   tutorName, tutorSlug, avatarUrl: _avatarUrl, geminiVoice: _geminiVoice,
-  minutesUsed, planType,
+  minutesUsed, planType, onRequestMinimize, onClose,
 }: TutorLiveProps) {
   const router = useRouter()
+  const tutorSession = useTutorSession()
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [callStatus, setCallStatus] = useState<CallStatus>('idle')
@@ -234,6 +238,12 @@ export function TutorLive({
   // Keep refs in sync so doEndCall always reads current values
   useEffect(() => { prefsRef.current = prefs }, [prefs])
   useEffect(() => { messagesRef.current = messages }, [messages])
+
+  // Sync callStatus to context so the floating bubble can read it
+  useEffect(() => {
+    tutorSession.setCallStatus(callStatus)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [callStatus])
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const fetchStats = useCallback(() => {
@@ -576,6 +586,11 @@ export function TutorLive({
 
   useEffect(() => () => { doEndCall() }, [doEndCall])
 
+  // Always keep context refs current so the floating bubble can call startCall/doEndCall
+  // (must be after the functions are defined — direct ref assignment is safe in render)
+  tutorSession.startCallRef.current = startCall
+  tutorSession.doEndCallRef.current = doEndCall
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   const formatDuration = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
@@ -667,10 +682,23 @@ export function TutorLive({
           </div>
         </div>
 
-        <div className="px-4 pb-5 pt-2 border-t border-verde-900/30 shrink-0">
+        <div className="px-4 pb-5 pt-2 border-t border-verde-900/30 shrink-0 space-y-2">
           <button onClick={() => setShowSettings(false)}
             className="w-full py-3 bg-verde-700 hover:bg-verde-600 text-white text-sm font-semibold rounded-xl transition-colors">
             Salva e torna alla conversazione
+          </button>
+          <button
+            onClick={() => {
+              // Clear preferred tutor so user can choose again
+              fetch('/api/user/tutor-preference', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug: null }),
+              }).catch(() => {})
+              onClose ? onClose() : router.push('/tutor')
+            }}
+            className="w-full py-2 text-xs text-verde-600 hover:text-verde-400 transition-colors rounded-xl hover:bg-verde-950/30">
+            Cambia tutor
           </button>
         </div>
       </div>
@@ -683,10 +711,22 @@ export function TutorLive({
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-verde-900/30 shrink-0 bg-bg-dark/80 backdrop-blur">
-        <button onClick={() => { doEndCall(); router.push('/tutor') }}
-          className="p-2 rounded-xl text-verde-500 hover:text-verde-300 transition-colors">
-          <ArrowLeft size={20} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => { doEndCall(); onClose ? onClose() : router.push('/tutor') }}
+            title="Cerrar sesión"
+            className="p-2 rounded-xl text-verde-500 hover:text-verde-300 transition-colors">
+            <ArrowLeft size={20} />
+          </button>
+          {onRequestMinimize && (
+            <button
+              onClick={onRequestMinimize}
+              title="Minimizar"
+              className="p-2 rounded-xl text-verde-500 hover:text-verde-300 transition-colors">
+              <Minus size={16} />
+            </button>
+          )}
+        </div>
         <div className="text-center">
           <p className="font-bold text-verde-100 text-sm">{effectiveName}</p>
           <p className="text-xs text-verde-500 capitalize">{prefs.tono} · {prefs.livello}</p>

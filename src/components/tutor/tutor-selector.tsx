@@ -26,8 +26,16 @@ export function TutorSelector() {
       .finally(() => setLoading(false))
   }, [])
 
-  const select = (slug: string) => {
+  const select = async (slug: string) => {
     setSelecting(slug)
+    // Persist preferred tutor so /tutor redirects here automatically next time
+    try {
+      await fetch('/api/user/tutor-preference', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug }),
+      })
+    } catch {}
     router.push(`/tutor/${slug}`)
   }
 
