@@ -89,6 +89,14 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
   }
+
+  @keyframes mascot-wiggle {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    20%       { transform: translateY(-6px) rotate(-6deg); }
+    40%       { transform: translateY(-6px) rotate(6deg); }
+    60%       { transform: translateY(-4px) rotate(-4deg); }
+    80%       { transform: translateY(-4px) rotate(4deg); }
+  }
 }
 
 /* ─── Base styles ──────────────────────────────────────────────────────── */

@@ -105,7 +105,7 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
     const shuffled = [...BUBBLE_MESSAGES].sort(() => Math.random() - 0.5)
     let idx = 0
     let hideId: ReturnType<typeof setTimeout> | null = null
-    let bounceId: ReturnType<typeof setTimeout> | null = null
+    let wiggleId: ReturnType<typeof setTimeout> | null = null
     let intervalId: ReturnType<typeof setInterval> | null = null
 
     function showMessage() {
@@ -113,23 +113,23 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
       idx++
       setBubbleMsg(msg)
       setMascotBounce(true)
-      if (bounceId) clearTimeout(bounceId)
+      if (wiggleId) clearTimeout(wiggleId)
       if (hideId) clearTimeout(hideId)
-      bounceId = setTimeout(() => setMascotBounce(false), 1000)
+      wiggleId = setTimeout(() => setMascotBounce(false), 900)
       hideId = setTimeout(() => setBubbleMsg(null), 6000)
     }
 
-    // First message after 30s, then repeat every 75–120s
+    // First message after 8s, then repeat every 60–90s
     const firstId = setTimeout(() => {
       showMessage()
-      intervalId = setInterval(showMessage, 75000 + Math.random() * 45000)
-    }, 30000)
+      intervalId = setInterval(showMessage, 60000 + Math.random() * 30000)
+    }, 8000)
 
     return () => {
       clearTimeout(firstId)
       if (intervalId) clearInterval(intervalId)
       if (hideId) clearTimeout(hideId)
-      if (bounceId) clearTimeout(bounceId)
+      if (wiggleId) clearTimeout(wiggleId)
       setBubbleMsg(null)
       setMascotBounce(false)
     }
@@ -361,30 +361,36 @@ export function CrosswordPlayer({ content }: { content: CrosswordContent }) {
         {/* Right: animated mascot + speech bubble */}
         <div className="hidden sm:flex flex-1 justify-center items-end min-w-0 pb-1">
           <div className="relative flex flex-col items-center">
-            {/* Speech bubble */}
+            {/* Speech bubble — uses slide-up keyframe from globals.css */}
             {bubbleMsg && (
-              <div className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-max max-w-[180px] animate-in fade-in zoom-in-95 duration-200">
-                <div className="bg-[#132213] border border-verde-700/50 rounded-2xl px-3 py-2 shadow-lg">
+              <div
+                className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-max max-w-[170px] z-10"
+                style={{ animation: 'slide-up 0.3s ease-out forwards' }}
+              >
+                <div className="bg-[#132213] border border-verde-700/50 rounded-2xl px-3 py-2 shadow-xl">
                   <p className="text-xs text-verde-100 leading-snug text-center whitespace-normal">
                     {bubbleMsg}
                   </p>
                 </div>
                 {/* Arrow pointing down */}
-                <div className="flex justify-center">
-                  <div className="w-0 h-0 border-l-[7px] border-r-[7px] border-t-[7px] border-l-transparent border-r-transparent border-t-verde-700/50" />
+                <div className="flex justify-center -mt-px">
+                  <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[7px] border-l-transparent border-r-transparent border-t-verde-700/50" />
                 </div>
               </div>
             )}
+            {/* Mascot: float always, wiggle when speaking */}
             <Image
               src="/mascot-nobg.png"
               alt="Italianto mascota"
               width={180}
               height={180}
-              className={cn(
-                'object-contain drop-shadow-lg select-none pointer-events-none transition-transform duration-300',
-                mascotBounce && 'animate-bounce'
-              )}
-              style={{ maxHeight: `${size.rows * cellSize + 40}px` }}
+              className="object-contain drop-shadow-lg select-none pointer-events-none"
+              style={{
+                maxHeight: `${size.rows * cellSize + 40}px`,
+                animation: mascotBounce
+                  ? 'mascot-wiggle 0.9s ease-in-out forwards'
+                  : 'float 5s ease-in-out infinite',
+              }}
               priority
             />
           </div>
