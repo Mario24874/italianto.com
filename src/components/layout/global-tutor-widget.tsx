@@ -22,7 +22,7 @@ function BubbleEqualizer({ active }: { active: boolean }) {
 
 // ── Draggable bubble ──────────────────────────────────────────────────────────
 function DraggableBubble() {
-  const { activeTutor, callStatus, liveAvatarSrc, expand, deactivateSession, startCallRef, doEndCallRef } = useTutorSession()
+  const { activeTutor, callStatus, liveAvatarSrc, liveDisplayName, expand, deactivateSession, startCallRef, doEndCallRef } = useTutorSession()
   const isSpeaking = callStatus === 'speaking'
   const isListening = callStatus === 'listening'
   const isConnecting = callStatus === 'connecting'
@@ -106,7 +106,7 @@ function DraggableBubble() {
 
       {/* Name + status */}
       <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-        <span className="text-xs font-semibold text-verde-200 truncate leading-tight">{activeTutor.name}</span>
+        <span className="text-xs font-semibold text-verde-200 truncate leading-tight">{liveDisplayName ?? activeTutor.name}</span>
         <BubbleEqualizer active={isSpeaking} />
       </div>
 

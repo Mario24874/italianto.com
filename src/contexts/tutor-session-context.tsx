@@ -18,9 +18,10 @@ interface TutorSessionContextValue {
   activeTutor: ActiveTutorData | null
   callStatus: TutorCallStatus
   isMinimized: boolean
-  // The avatar actually shown by TutorLive (may differ from activeTutor.avatarSrc
-  // if user customized it via settings — synced on every prefs change)
+  // Avatar and name actually shown by TutorLive — may differ from activeTutor
+  // if the user customized them via settings. Synced on every prefs change.
   liveAvatarSrc: string | null
+  liveDisplayName: string | null
 
   startCallRef: React.MutableRefObject<(() => void) | null>
   doEndCallRef: React.MutableRefObject<(() => void) | null>
@@ -29,6 +30,7 @@ interface TutorSessionContextValue {
   deactivateSession: () => void
   setCallStatus: (s: TutorCallStatus) => void
   updateLiveAvatar: (src: string) => void
+  updateLiveDisplayName: (name: string) => void
   minimize: () => void
   expand: () => void
 }
@@ -38,12 +40,14 @@ const TutorSessionContext = createContext<TutorSessionContextValue>({
   callStatus: 'idle',
   isMinimized: false,
   liveAvatarSrc: null,
+  liveDisplayName: null,
   startCallRef: { current: null },
   doEndCallRef: { current: null },
   activateSession: () => {},
   deactivateSession: () => {},
   setCallStatus: () => {},
   updateLiveAvatar: () => {},
+  updateLiveDisplayName: () => {},
   minimize: () => {},
   expand: () => {},
 })
@@ -53,13 +57,15 @@ export function TutorSessionProvider({ children }: { children: ReactNode }) {
   const [callStatus, setCallStatus] = useState<TutorCallStatus>('idle')
   const [isMinimized, setIsMinimized] = useState(false)
   const [liveAvatarSrc, setLiveAvatarSrc] = useState<string | null>(null)
+  const [liveDisplayName, setLiveDisplayName] = useState<string | null>(null)
 
   const startCallRef = useRef<(() => void) | null>(null)
   const doEndCallRef = useRef<(() => void) | null>(null)
 
   const activateSession = useCallback((data: ActiveTutorData) => {
     setActiveTutor(data)
-    setLiveAvatarSrc(null) // will be set by TutorLive on first render
+    setLiveAvatarSrc(null)
+    setLiveDisplayName(null)
     setIsMinimized(false)
     setCallStatus('idle')
   }, [])
@@ -70,20 +76,22 @@ export function TutorSessionProvider({ children }: { children: ReactNode }) {
     setCallStatus('idle')
     setIsMinimized(false)
     setLiveAvatarSrc(null)
+    setLiveDisplayName(null)
     startCallRef.current = null
     doEndCallRef.current = null
   }, [])
 
   const updateLiveAvatar = useCallback((src: string) => setLiveAvatarSrc(src), [])
+  const updateLiveDisplayName = useCallback((name: string) => setLiveDisplayName(name), [])
   const minimize = useCallback(() => setIsMinimized(true), [])
   const expand = useCallback(() => setIsMinimized(false), [])
 
   return (
     <TutorSessionContext.Provider value={{
-      activeTutor, callStatus, isMinimized, liveAvatarSrc,
+      activeTutor, callStatus, isMinimized, liveAvatarSrc, liveDisplayName,
       startCallRef, doEndCallRef,
       activateSession, deactivateSession,
-      setCallStatus, updateLiveAvatar, minimize, expand,
+      setCallStatus, updateLiveAvatar, updateLiveDisplayName, minimize, expand,
     }}>
       {children}
     </TutorSessionContext.Provider>
