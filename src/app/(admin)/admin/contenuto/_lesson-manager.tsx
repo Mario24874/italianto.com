@@ -90,6 +90,11 @@ function ImportPanel({ onImport }: { onImport: (data: Partial<LessonFormData>) =
     form.append('file', file)
     try {
       const res = await fetch('/api/admin/lessons/import', { method: 'POST', body: form })
+      // Guard: if proxy returned HTML (timeout/502), don't try to parse as JSON
+      const ct = res.headers.get('content-type') ?? ''
+      if (!ct.includes('application/json')) {
+        throw new Error(`Error del servidor (${res.status}). Prueba con un archivo más corto en formato TXT.`)
+      }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `Error al importar (${res.status})`)
       onImport(data.lesson)
@@ -173,6 +178,10 @@ function ExerciseImportPanel({
     form.append('language', baseLang)
     try {
       const res = await fetch('/api/admin/lessons/import-exercises', { method: 'POST', body: form })
+      const ct = res.headers.get('content-type') ?? ''
+      if (!ct.includes('application/json')) {
+        throw new Error(`Error del servidor (${res.status}). Prueba con un archivo TXT más corto.`)
+      }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al generar ejercicios')
       onImport(baseLang, data.exercises)

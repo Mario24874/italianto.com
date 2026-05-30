@@ -3,7 +3,7 @@ import { isAdmin } from '@/lib/admin'
 import type { Exercise } from '@/types'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 120
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
@@ -181,45 +181,66 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Formato no soportado. Usa PDF, DOCX o TXT.' }, { status: 400 })
   }
 
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 110_000)
+
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents,
           generationConfig: { temperature: 0.3, responseMimeType: 'application/json' },
+          thinkingConfig: { thinkingBudget: 0 },
         }),
       }
     )
 
     if (!response.ok) {
       const errText = await response.text()
-      console.error('[Gemini exercises error]', response.status, errText)
-      return NextResponse.json({ error: 'Error al procesar con IA' }, { status: 502 })
+      console.error('[Gemini exercises error]', response.status, errText.slice(0, 500))
+      return NextResponse.json({ error: `Error de IA (${response.status}). Intenta de nuevo.` }, { status: 502 })
     }
 
     const geminiData = await response.json()
     const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
 
+    if (!rawText) {
+      return NextResponse.json({ error: 'La IA devolvió una respuesta vacía. Intenta de nuevo.' }, { status: 502 })
+    }
+
+    let jsonStr = rawText.trim()
+    const fenced = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (fenced) jsonStr = fenced[1].trim()
+
     let exercises: Exercise[]
     try {
-      const parsed = JSON.parse(rawText)
+      const parsed = JSON.parse(jsonStr)
       exercises = Array.isArray(parsed) ? parsed : parsed.exercises ?? []
     } catch {
-      console.error('[Gemini exercises JSON parse error]', rawText.slice(0, 300))
+      console.error('[Gemini exercises JSON parse error]', rawText.slice(0, 500))
       return NextResponse.json({ error: 'No se pudo estructurar los ejercicios. Intenta con otro archivo.' }, { status: 502 })
     }
 
     if (!exercises.length) {
-      return NextResponse.json({ error: 'El archivo no contiene suficiente contenido para generar ejercicios' }, { status: 422 })
+      return NextResponse.json({ error: 'El archivo no contiene suficiente contenido para generar ejercicios.' }, { status: 422 })
     }
 
     return NextResponse.json({ exercises })
   } catch (err) {
+    if ((err as Error).name === 'AbortError') {
+      return NextResponse.json(
+        { error: 'El archivo tardó demasiado. Prueba con un archivo más corto en formato TXT.' },
+        { status: 504 }
+      )
+    }
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[POST /api/admin/lessons/import-exercises]', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
+  } finally {
+    clearTimeout(timeout)
   }
 }
