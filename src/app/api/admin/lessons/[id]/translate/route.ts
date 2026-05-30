@@ -88,8 +88,7 @@ export async function POST(
 
   try {
     const response = await fetch(
-      // gemini-2.0-flash: no thinking tokens, fast, ideal for translation
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         signal: controller.signal,
@@ -99,8 +98,6 @@ export async function POST(
           generationConfig: {
             temperature: 0.1,
             responseMimeType: 'application/json',
-            // thinkingConfig inside generationConfig (correct placement for 2.5-flash if switched back)
-            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       }
