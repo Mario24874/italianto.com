@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import type { LessonTranslations, VocabularyItem } from '@/types'
 import { BookOpen } from 'lucide-react'
-
-const LS_KEY = 'italianto_lesson_lang'
+import { useLanguage } from '@/contexts/language-context'
+import type { Language } from '@/contexts/language-context'
 
 const LANG_LABELS: Record<string, { flag: string; label: string }> = {
   es: { flag: '🇪🇸', label: 'Español' },
@@ -13,11 +12,9 @@ const LANG_LABELS: Record<string, { flag: string; label: string }> = {
 }
 
 interface Props {
-  /** Default content in Spanish */
   defaultContent: string
   defaultGrammarNotes: string
   defaultVocabulary: VocabularyItem[]
-  /** Translated versions: { en: {...}, it: {...} } */
   translations: LessonTranslations
 }
 
@@ -27,40 +24,54 @@ export function LessonContentSwitcher({
   defaultVocabulary,
   translations,
 }: Props) {
-  // Build available language list: Spanish always first, then whatever has a translation
-  const available: string[] = ['es', ...Object.keys(translations).filter(l => !!translations[l as 'en' | 'it' | 'es'])]
+  // Use the global language — this is the single source of truth for the whole lesson experience.
+  // Changing the tab here also updates the global lang, so exercises and UI labels stay in sync.
+  const { lang, setLang } = useLanguage()
 
-  const [lang, setLang] = useState<string>('es')
+  // Languages with actual content: ES always available (it's the default), plus any generated translation
+  const available: Language[] = ['es', ...(['en', 'it'] as Language[]).filter(
+    l => !!translations[l]?.content_html
+  )]
 
-  // Restore preference from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(LS_KEY)
-      if (saved && available.includes(saved)) setLang(saved)
-    } catch { /* ignore */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // If the global language has no translation, render a fallback notice and use Spanish content
+  const activeLang: Language = available.includes(lang) ? lang : 'es'
+  const missingTranslation = lang !== 'es' && !available.includes(lang)
 
-  const switchLang = (l: string) => {
-    setLang(l)
-    try { localStorage.setItem(LS_KEY, l) } catch { /* ignore */ }
+  const switchLang = (l: Language) => {
+    setLang(l)  // syncs global language: UI labels, exercises, content — all coherent
   }
 
-  // Resolve content for selected lang — check translations first (ES may have a generated translation)
-  const t = translations[lang as 'en' | 'it' | 'es'] ?? null
-  const contentHtml = t?.content_html ?? (lang === 'es' ? defaultContent : null) ?? defaultContent
-  const grammarNotes = t?.grammar_notes ?? (lang === 'es' ? defaultGrammarNotes : null) ?? defaultGrammarNotes
-  const vocabulary = t?.vocabulary ?? defaultVocabulary
+  // If the user arrives with a global lang that IS available but not yet selected
+  // (e.g. they set English globally and visit a lesson with English translation),
+  // the global lang already drives the content — no extra effect needed.
+
+  // Resolve content for active language
+  const tr = translations[activeLang] ?? null
+  const contentHtml = tr?.content_html ?? (activeLang === 'es' ? defaultContent : null) ?? defaultContent
+  const grammarNotes = tr?.grammar_notes ?? (activeLang === 'es' ? defaultGrammarNotes : null) ?? defaultGrammarNotes
+  const vocabulary = tr?.vocabulary ?? defaultVocabulary
+
+  const VOCAB_LABEL: Record<Language, string> = {
+    es: `Vocabulario (${vocabulary.length} palabras)`,
+    en: `Vocabulary (${vocabulary.length} words)`,
+    it: `Vocabolario (${vocabulary.length} parole)`,
+  }
+
+  const GRAMMAR_LABEL: Record<Language, string> = {
+    es: 'Notas de gramática',
+    en: 'Grammar notes',
+    it: 'Note grammaticali',
+  }
 
   return (
     <div className="space-y-5">
-      {/* ── Language switcher tabs (only shown if >1 language available) ── */}
+      {/* ── Language switcher tabs ── */}
       {available.length > 1 && (
         <div className="flex items-center gap-1 p-1 rounded-xl bg-verde-950/40 border border-verde-800/30 w-fit">
           {available.map(l => {
             const meta = LANG_LABELS[l]
             if (!meta) return null
-            const active = lang === l
+            const active = activeLang === l
             return (
               <button
                 key={l}
@@ -80,7 +91,19 @@ export function LessonContentSwitcher({
         </div>
       )}
 
-      {/* ── Lesson content ── */}
+      {/* ── Notice when translation is missing for the user's preferred language ── */}
+      {missingTranslation && (
+        <div className="flex items-start gap-2.5 rounded-xl px-4 py-3 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-300/60 dark:border-amber-700/30 text-sm">
+          <span className="text-amber-600 dark:text-amber-400 mt-0.5">⚠️</span>
+          <p className="text-amber-800 dark:text-amber-300 leading-snug">
+            {lang === 'en'
+              ? 'This lesson is not yet available in English. Showing Spanish version.'
+              : 'Questa lezione non è ancora disponibile in italiano. Visualizzazione in spagnolo.'}
+          </p>
+        </div>
+      )}
+
+      {/* ── Lesson content (HTML from admin) ── */}
       {contentHtml && (
         <div
           className={[
@@ -132,11 +155,7 @@ export function LessonContentSwitcher({
           <div className="flex items-center gap-2 mb-4">
             <BookOpen size={16} className="text-verde-600 dark:text-verde-500" />
             <h2 className="font-semibold text-verde-700 dark:text-verde-200 text-sm uppercase tracking-wide">
-              {lang === 'es'
-                ? `Vocabulario (${vocabulary.length} palabras)`
-                : lang === 'en'
-                ? `Vocabulary (${vocabulary.length} words)`
-                : `Vocabolario (${vocabulary.length} parole)`}
+              {VOCAB_LABEL[activeLang]}
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -147,7 +166,7 @@ export function LessonContentSwitcher({
                   <span className="text-verde-500 text-xs">→</span>
                   <span className="text-verde-700 dark:text-verde-400 text-sm">{item.translation}</span>
                 </div>
-                {item.example && <p className="text-verde-600 text-xs mt-1 italic">{item.example}</p>}
+                {item.example && <p className="text-verde-600 dark:text-verde-500 text-xs mt-1 italic">{item.example}</p>}
               </div>
             ))}
           </div>
@@ -158,9 +177,7 @@ export function LessonContentSwitcher({
       {grammarNotes && (
         <div>
           <h2 className="font-semibold text-verde-700 dark:text-verde-200 text-sm uppercase tracking-wide mb-3">
-            {lang === 'es' ? 'Notas de gramática'
-              : lang === 'en' ? 'Grammar notes'
-              : 'Note grammaticali'}
+            {GRAMMAR_LABEL[activeLang]}
           </h2>
           <p className="text-verde-700 dark:text-verde-400 text-sm leading-relaxed whitespace-pre-line">{grammarNotes}</p>
         </div>
