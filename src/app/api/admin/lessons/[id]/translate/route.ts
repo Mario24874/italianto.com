@@ -14,35 +14,62 @@ const LANG_NAMES: Record<string, string> = {
   es: 'Spanish',
 }
 
+const TRANSLATION_TOOL: Anthropic.Tool = {
+  name: 'save_translation',
+  description: 'Save the translated lesson content. Do not modify Italian words or HTML structure.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      content_html: {
+        type: 'string',
+        description: 'The translated HTML. Every tag, attribute, class, and emoji must remain identical. Only translate Spanish explanatory text.',
+      },
+      grammar_notes: {
+        type: 'string',
+        description: 'Translated grammar notes (plain text).',
+      },
+      vocabulary: {
+        type: 'array',
+        description: 'Vocabulary array. Keep "word" and "example" unchanged (Italian). Translate only "translation".',
+        items: {
+          type: 'object',
+          properties: {
+            word: { type: 'string' },
+            translation: { type: 'string' },
+            example: { type: 'string' },
+          },
+          required: ['word', 'translation'],
+        },
+      },
+    },
+    required: ['content_html', 'grammar_notes', 'vocabulary'],
+  },
+}
+
 function buildSystemPrompt(lang: string): string {
   const targetLang = LANG_NAMES[lang] ?? lang
   return `You are an HTML-aware translator for an Italian language learning platform.
-Your task: translate Spanish instructional text into ${targetLang}.
+Translate the Spanish instructional text into ${targetLang}.
 
-STRICT RULES:
-- Copy every HTML tag, attribute, class, id, and emoji verbatim — do NOT change any HTML structure.
-- Emojis at the start of <h2> headings must stay exactly as-is.
-- DO NOT translate or modify Italian words, phrases, or example sentences — they are the lesson subject matter.
-- In tables: translate only Spanish explanation cells; leave cells containing Italian words/examples unchanged.
-- Vocabulary array: keep "word" (Italian) and "example" (Italian sentence) unchanged; translate only "translation".
-
-OUTPUT: Return ONLY a valid JSON object. No markdown, no code fences, no prose. Just the JSON.
-
-JSON format:
-{"content_html":"<translated HTML>","grammar_notes":"<translated notes>","vocabulary":[{"word":"<unchanged>","translation":"<translated to ${targetLang}>","example":"<unchanged>"}]}`
+RULES:
+- Copy every HTML tag, attribute, class, id, and emoji verbatim.
+- DO NOT translate Italian words, phrases, or example sentences.
+- In tables: translate only Spanish explanation cells.
+- Vocabulary: translate only the "translation" field; keep "word" and "example" unchanged.
+- You MUST call the save_translation tool with your result.`
 }
 
 function buildUserMessage(lesson: LessonRow): string {
   const vocabJson = JSON.stringify(lesson.vocabulary ?? [])
-  return `Translate the following lesson content.
+  return `Translate this Italian lesson from Spanish to ${LANG_NAMES[lesson.level as string] ?? 'English'}.
 
-SOURCE content_html:
+content_html:
 ${lesson.content_html}
 
-SOURCE grammar_notes:
-${lesson.grammar_notes}
+grammar_notes:
+${lesson.grammar_notes ?? ''}
 
-SOURCE vocabulary JSON:
+vocabulary:
 ${vocabJson}`
 }
 
@@ -59,37 +86,26 @@ async function processTranslation(
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8096,
+      max_tokens: 16000,
       system: buildSystemPrompt(lang),
+      tools: [TRANSLATION_TOOL],
+      tool_choice: { type: 'tool', name: 'save_translation' },
       messages: [
         { role: 'user', content: buildUserMessage(lesson) },
       ],
     })
 
-    const block = message.content.find(b => b.type === 'text')
-    const rawText = block?.type === 'text' ? block.text : ''
+    // With tool_choice forced, the response must contain a tool_use block
+    const toolBlock = message.content.find(b => b.type === 'tool_use')
 
-    if (!rawText) {
-      rejectTranslateJob(jobId, 'Claude devolvió una respuesta vacía. Intenta de nuevo.')
+    if (!toolBlock || toolBlock.type !== 'tool_use') {
+      const stopReason = message.stop_reason
+      console.error('[Claude translate] no tool_use block, stop_reason:', stopReason, JSON.stringify(message.content).slice(0, 300))
+      rejectTranslateJob(jobId, `Claude no llamó la herramienta de traducción (stop_reason: ${stopReason}). Intenta de nuevo.`)
       return
     }
 
-    // Strip markdown fences if present
-    let jsonStr = rawText.trim()
-    const fenced = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (fenced) jsonStr = fenced[1].trim()
-    const start = jsonStr.indexOf('{')
-    const end = jsonStr.lastIndexOf('}')
-    if (start !== -1 && end > start) jsonStr = jsonStr.slice(start, end + 1)
-
-    let translation: LessonTranslation
-    try {
-      translation = JSON.parse(jsonStr)
-    } catch {
-      console.error('[Claude translate JSON parse error]', rawText.slice(0, 500))
-      rejectTranslateJob(jobId, 'La IA no devolvió JSON válido. Intenta de nuevo.')
-      return
-    }
+    const translation = toolBlock.input as LessonTranslation
 
     if (!translation.content_html) {
       rejectTranslateJob(jobId, 'Traducción incompleta — falta content_html.')
@@ -98,7 +114,8 @@ async function processTranslation(
 
     const supabase = getSupabaseAdmin()
     const { data: current } = await supabase.from('lessons').select('translations').eq('id', lessonId).single()
-    const existing = (current?.translations ?? {}) as Record<string, LessonTranslation>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing = ((current as any)?.translations ?? {}) as Record<string, LessonTranslation>
     const updated = { ...existing, [lang]: translation }
 
     const { error: updateErr } = await supabase
@@ -115,7 +132,7 @@ async function processTranslation(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[processTranslation]', msg)
-    rejectTranslateJob(jobId, `Error inesperado: ${msg}`)
+    rejectTranslateJob(jobId, `Error: ${msg}`)
   }
 }
 
@@ -129,7 +146,7 @@ export async function POST(
 
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ error: 'ANTHROPIC_API_KEY no configurada' }, { status: 500 })
+    return NextResponse.json({ error: 'ANTHROPIC_API_KEY no configurada en Easypanel' }, { status: 500 })
   }
 
   const { id } = await params
@@ -148,7 +165,6 @@ export async function POST(
     return NextResponse.json({ error: 'Lección no encontrada' }, { status: 404 })
   }
 
-  // Create job, fire Claude in background, return immediately (no timeout risk)
   const jobId = createTranslateJob()
   void processTranslation(apiKey, lesson as LessonRow, lang, id, jobId)
   return NextResponse.json({ jobId })
@@ -171,7 +187,8 @@ export async function DELETE(
 
   const supabase = getSupabaseAdmin()
   const { data: lesson } = await supabase.from('lessons').select('translations').eq('id', id).single()
-  const translations = { ...(lesson?.translations ?? {}) }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const translations = { ...((lesson as any)?.translations ?? {}) }
   delete translations[lang as 'en' | 'it' | 'es']
 
   await supabase.from('lessons').update({ translations, updated_at: new Date().toISOString() }).eq('id', id)
