@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/admin'
+import { createJob, resolveJob, rejectJob } from '../import-job/route'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -88,6 +89,71 @@ REGLAS GENERALES
 - Si el documento está en varios idiomas: el contenido italiano va en italiano, las explicaciones en el idioma de la guía
 - Responde SOLO el JSON, absolutamente nada más`
 
+/** Background Gemini processing — called fire-and-forget from POST */
+async function processWithGemini(apiKey: string, contents: object[], jobId: string) {
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          generationConfig: {
+            temperature: 0.3,
+            responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
+          },
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error('[Gemini import error]', response.status, errText.slice(0, 500))
+      rejectJob(jobId, `Error de IA (${response.status}). Intenta de nuevo.`)
+      return
+    }
+
+    const geminiData = await response.json()
+    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+
+    if (!rawText) {
+      rejectJob(jobId, 'La IA devolvió una respuesta vacía. Intenta de nuevo.')
+      return
+    }
+
+    let jsonStr = rawText.trim()
+    const fenced = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (fenced) jsonStr = fenced[1].trim()
+    if (!jsonStr.startsWith('{')) {
+      const start = jsonStr.indexOf('{')
+      const end = jsonStr.lastIndexOf('}')
+      if (start !== -1 && end > start) jsonStr = jsonStr.slice(start, end + 1)
+    }
+
+    let parsed: ImportedLesson
+    try {
+      parsed = JSON.parse(jsonStr)
+    } catch {
+      console.error('[Gemini import JSON parse error]', rawText.slice(0, 500))
+      rejectJob(jobId, 'No se pudo estructurar el contenido. Intenta con otro archivo o formato.')
+      return
+    }
+
+    if (!parsed.title || !parsed.content_html) {
+      rejectJob(jobId, 'El archivo no contiene suficiente contenido para generar una lección.')
+      return
+    }
+
+    resolveJob(jobId, parsed as unknown as Record<string, unknown>)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[processWithGemini]', msg)
+    rejectJob(jobId, 'Error inesperado procesando el archivo.')
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
@@ -112,15 +178,11 @@ export async function POST(req: NextRequest) {
 
   const fileName = file.name.toLowerCase()
   const mimeType = file.type
-
-  // ── Build Gemini request parts based on file type ─────────────────────────
   let contents: object[]
 
   if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
-    // PDFs: send inline base64 — Gemini reads them natively
     const arrayBuffer = await file.arrayBuffer()
     const base64 = arrayBufferToBase64(arrayBuffer)
-
     contents = [{
       parts: [
         { inline_data: { mime_type: 'application/pdf', data: base64 } },
@@ -131,119 +193,32 @@ export async function POST(req: NextRequest) {
     mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     fileName.endsWith('.docx')
   ) {
-    // DOCX: extract raw text with mammoth, then send as plain text
     try {
       const mammoth = await import('mammoth')
-      const arrayBuffer = await file.arrayBuffer()
-      // Convert Web API ArrayBuffer to Node.js Buffer for mammoth compatibility
-      const buffer = Buffer.from(arrayBuffer)
+      const buffer = Buffer.from(await file.arrayBuffer())
       let { value: rawText } = await mammoth.extractRawText({ buffer })
-
       if (!rawText.trim()) {
         return NextResponse.json({ error: 'El documento .docx está vacío o no se pudo leer' }, { status: 400 })
       }
       if (rawText.length > 12000) rawText = rawText.slice(0, 12000)
-
-      contents = [{
-        parts: [{ text: `${GEMINI_PROMPT}\n\nCONTENIDO DEL DOCUMENTO:\n${rawText}` }],
-      }]
+      contents = [{ parts: [{ text: `${GEMINI_PROMPT}\n\nCONTENIDO DEL DOCUMENTO:\n${rawText}` }] }]
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      console.error('[DOCX parse error]', msg)
+      console.error('[DOCX parse error]', e instanceof Error ? e.message : e)
       return NextResponse.json({ error: 'No se pudo leer el archivo .docx. Verifica que no esté dañado.' }, { status: 400 })
     }
-  } else if (
-    mimeType === 'text/plain' ||
-    fileName.endsWith('.txt') ||
-    fileName.endsWith('.md')
-  ) {
+  } else if (mimeType === 'text/plain' || fileName.endsWith('.txt') || fileName.endsWith('.md')) {
     let text = await file.text()
     if (!text.trim()) {
       return NextResponse.json({ error: 'El archivo de texto está vacío' }, { status: 400 })
     }
-    // Trim to ~12 000 chars to stay well under Gemini's practical timeout for this route
     if (text.length > 12000) text = text.slice(0, 12000)
-
-    contents = [{
-      parts: [{ text: `${GEMINI_PROMPT}\n\nCONTENIDO:\n${text}` }],
-    }]
+    contents = [{ parts: [{ text: `${GEMINI_PROMPT}\n\nCONTENIDO:\n${text}` }] }]
   } else {
-    return NextResponse.json({
-      error: 'Formato no soportado. Usa PDF, DOCX o TXT.',
-    }, { status: 400 })
+    return NextResponse.json({ error: 'Formato no soportado. Usa PDF, DOCX o TXT.' }, { status: 400 })
   }
 
-  // ── Call Gemini ───────────────────────────────────────────────────────────
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 25_000)
-
-  try {
-    const response = await fetch(
-      // gemini-2.0-flash: no thinking tokens, faster for structured generation
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            temperature: 0.3,
-            responseMimeType: 'application/json',
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      }
-    )
-
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('[Gemini import error]', response.status, errText.slice(0, 500))
-      return NextResponse.json({ error: `Error de IA (${response.status}). Intenta de nuevo.` }, { status: 502 })
-    }
-
-    const geminiData = await response.json()
-    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-
-    if (!rawText) {
-      console.error('[Gemini import] empty response', JSON.stringify(geminiData).slice(0, 300))
-      return NextResponse.json({ error: 'La IA devolvió una respuesta vacía. Intenta de nuevo.' }, { status: 502 })
-    }
-
-    // Strip markdown fences if Gemini wraps JSON despite responseMimeType
-    let jsonStr = rawText.trim()
-    const fenced = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (fenced) jsonStr = fenced[1].trim()
-    if (!jsonStr.startsWith('{')) {
-      const start = jsonStr.indexOf('{')
-      const end = jsonStr.lastIndexOf('}')
-      if (start !== -1 && end > start) jsonStr = jsonStr.slice(start, end + 1)
-    }
-
-    let parsed: ImportedLesson
-    try {
-      parsed = JSON.parse(jsonStr)
-    } catch {
-      console.error('[Gemini import JSON parse error]', rawText.slice(0, 500))
-      return NextResponse.json({ error: 'No se pudo estructurar el contenido. Intenta con otro archivo o formato.' }, { status: 502 })
-    }
-
-    if (!parsed.title || !parsed.content_html) {
-      return NextResponse.json({ error: 'El archivo no contiene suficiente contenido para generar una lección.' }, { status: 422 })
-    }
-
-    return NextResponse.json({ lesson: parsed })
-  } catch (err) {
-    if ((err as Error).name === 'AbortError') {
-      return NextResponse.json(
-        { error: 'El archivo tardó demasiado en procesarse. Prueba con un archivo más corto o en formato TXT.' },
-        { status: 504 }
-      )
-    }
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[POST /api/admin/lessons/import]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
-  } finally {
-    clearTimeout(timeout)
-  }
+  // Create job, start processing in background, return immediately
+  const jobId = createJob()
+  void processWithGemini(apiKey, contents, jobId)
+  return NextResponse.json({ jobId })
 }

@@ -89,15 +89,27 @@ function ImportPanel({ onImport }: { onImport: (data: Partial<LessonFormData>) =
     const form = new FormData()
     form.append('file', file)
     try {
+      // Step 1: submit file → get jobId immediately (fast, no timeout risk)
       const res = await fetch('/api/admin/lessons/import', { method: 'POST', body: form })
-      // Guard: if proxy returned HTML (timeout/502), don't try to parse as JSON
       const ct = res.headers.get('content-type') ?? ''
       if (!ct.includes('application/json')) {
-        throw new Error(`Error del servidor (${res.status}). Prueba con un archivo más corto en formato TXT.`)
+        throw new Error(`Error del servidor (${res.status}). Intenta de nuevo.`)
       }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `Error al importar (${res.status})`)
-      onImport(data.lesson)
+
+      // Step 2: poll until done (up to 90s)
+      const jobId = data.jobId as string
+      const start = Date.now()
+      while (Date.now() - start < 90_000) {
+        await new Promise(r => setTimeout(r, 2000))
+        const poll = await fetch(`/api/admin/lessons/import-job?id=${jobId}`)
+        const pollData = await poll.json()
+        if (pollData.status === 'done') { onImport(pollData.lesson); return }
+        if (pollData.status === 'error') throw new Error(pollData.error || 'Error procesando el archivo')
+        // still pending — loop
+      }
+      throw new Error('El procesamiento tardó demasiado. Intenta con un archivo más corto.')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al importar')
     } finally { setImporting(false) }
