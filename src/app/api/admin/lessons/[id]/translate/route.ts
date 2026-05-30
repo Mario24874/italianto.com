@@ -82,13 +82,13 @@ export async function POST(
 
   const prompt = buildPrompt(lang, lesson as LessonRow)
 
-  // Abort after 25s so we return clean JSON before nginx times out
+  // Abort after 20s so we return clean JSON before nginx times out
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 25_000)
+  const timeout = setTimeout(() => controller.abort(), 20_000)
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         signal: controller.signal,
