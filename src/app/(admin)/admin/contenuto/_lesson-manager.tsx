@@ -583,6 +583,11 @@ function TranslationPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lang }),
       })
+      // Guard against nginx/proxy returning HTML instead of JSON on timeout
+      const ct = res.headers.get('content-type') ?? ''
+      if (!ct.includes('application/json')) {
+        throw new Error(`Error del servidor (${res.status}). El contenido puede ser demasiado largo — espera un momento e intenta de nuevo.`)
+      }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al traducir')
       onUpdate({ ...translations, [lang]: data.translation })
