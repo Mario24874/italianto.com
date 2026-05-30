@@ -599,19 +599,33 @@ function TranslationPanel({
   const handleTranslate = async (lang: 'en' | 'it' | 'es') => {
     setTranslating(lang)
     try {
+      // Step 1: submit → get jobId immediately (no timeout risk)
       const res = await fetch(`/api/admin/lessons/${lessonId}/translate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lang }),
       })
-      // Guard against nginx/proxy returning HTML instead of JSON on timeout
       const ct = res.headers.get('content-type') ?? ''
       if (!ct.includes('application/json')) {
-        throw new Error(`Error del servidor (${res.status}). El contenido puede ser demasiado largo — espera un momento e intenta de nuevo.`)
+        throw new Error(`Error del servidor (${res.status}). Intenta de nuevo.`)
       }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al traducir')
-      onUpdate({ ...translations, [lang]: data.translation })
+
+      // Step 2: poll until done (up to 90s)
+      const jobId = data.jobId as string
+      const start = Date.now()
+      while (Date.now() - start < 90_000) {
+        await new Promise(r => setTimeout(r, 2000))
+        const poll = await fetch(`/api/admin/lessons/translate-job?id=${jobId}`)
+        const pollData = await poll.json()
+        if (pollData.status === 'done') {
+          onUpdate({ ...translations, [lang]: pollData.translation })
+          return
+        }
+        if (pollData.status === 'error') throw new Error(pollData.error || 'Error al traducir')
+      }
+      throw new Error('La traducción tardó demasiado. Intenta de nuevo.')
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error al traducir')
     } finally { setTranslating(null) }

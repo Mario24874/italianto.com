@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { createTranslateJob, resolveTranslateJob, rejectTranslateJob } from '../../translate-job/route'
 import type { LessonRow, LessonTranslation } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -44,11 +45,89 @@ ${vocabJson}`
 function extractJson(raw: string): string {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fenced) return fenced[1].trim()
-  // Find first { to last } in case there's leading/trailing prose
   const start = raw.indexOf('{')
   const end = raw.lastIndexOf('}')
   if (start !== -1 && end > start) return raw.slice(start, end + 1)
   return raw.trim()
+}
+
+/** Background Gemini translation — fire-and-forget from POST */
+async function processTranslation(
+  apiKey: string,
+  lesson: LessonRow,
+  lang: string,
+  lessonId: string,
+  jobId: string
+) {
+  try {
+    const prompt = buildPrompt(lang, lesson)
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+          },
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error('[Gemini translate error]', response.status, errText.slice(0, 500))
+      rejectTranslateJob(jobId, `Error de IA (${response.status}). Intenta de nuevo.`)
+      return
+    }
+
+    const geminiData = await response.json()
+    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+
+    if (!rawText) {
+      console.error('[Gemini translate] empty response', JSON.stringify(geminiData).slice(0, 300))
+      rejectTranslateJob(jobId, 'Gemini devolvió una respuesta vacía. Intenta de nuevo.')
+      return
+    }
+
+    let translation: LessonTranslation
+    try {
+      translation = JSON.parse(extractJson(rawText))
+    } catch {
+      console.error('[Gemini translate JSON parse error]', rawText.slice(0, 500))
+      rejectTranslateJob(jobId, 'La IA no devolvió JSON válido. Intenta de nuevo.')
+      return
+    }
+
+    if (!translation.content_html) {
+      rejectTranslateJob(jobId, 'Traducción incompleta — falta content_html.')
+      return
+    }
+
+    const supabase = getSupabaseAdmin()
+    const { data: current } = await supabase.from('lessons').select('translations').eq('id', lessonId).single()
+    const existing = (current?.translations ?? {}) as Record<string, LessonTranslation>
+    const updated = { ...existing, [lang]: translation }
+
+    const { error: updateErr } = await supabase
+      .from('lessons')
+      .update({ translations: updated, updated_at: new Date().toISOString() })
+      .eq('id', lessonId)
+
+    if (updateErr) {
+      rejectTranslateJob(jobId, updateErr.message)
+      return
+    }
+
+    resolveTranslateJob(jobId, translation, lang)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[processTranslation]', msg)
+    rejectTranslateJob(jobId, 'Error inesperado al traducir.')
+  }
 }
 
 export async function POST(
@@ -80,86 +159,10 @@ export async function POST(
     return NextResponse.json({ error: 'Lección no encontrada' }, { status: 404 })
   }
 
-  const prompt = buildPrompt(lang, lesson as LessonRow)
-
-  // Abort after 20s so we return clean JSON before nginx times out
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 20_000)
-
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json',
-          },
-        }),
-      }
-    )
-
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('[Gemini translate error]', response.status, errText.slice(0, 500))
-      return NextResponse.json(
-        { error: `Gemini devolvió error ${response.status}. Intenta de nuevo o reduce el contenido.` },
-        { status: 502 }
-      )
-    }
-
-    const geminiData = await response.json()
-    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-
-    if (!rawText) {
-      console.error('[Gemini translate] empty response', JSON.stringify(geminiData).slice(0, 300))
-      return NextResponse.json({ error: 'Gemini devolvió una respuesta vacía. Intenta de nuevo.' }, { status: 502 })
-    }
-
-    let translation: LessonTranslation
-    try {
-      translation = JSON.parse(extractJson(rawText))
-    } catch {
-      console.error('[Gemini translate JSON parse error]', rawText.slice(0, 500))
-      return NextResponse.json(
-        { error: 'La IA no devolvió JSON válido. Intenta de nuevo.' },
-        { status: 502 }
-      )
-    }
-
-    // Validate minimum required fields
-    if (!translation.content_html) {
-      return NextResponse.json({ error: 'Traducción incompleta — falta content_html.' }, { status: 502 })
-    }
-
-    const existing = (lesson as LessonRow).translations ?? {}
-    const updated = { ...existing, [lang]: translation }
-
-    const { error: updateErr } = await supabase
-      .from('lessons')
-      .update({ translations: updated, updated_at: new Date().toISOString() })
-      .eq('id', id)
-
-    if (updateErr) throw updateErr
-
-    return NextResponse.json({ translation, lang })
-  } catch (err) {
-    if ((err as Error).name === 'AbortError') {
-      return NextResponse.json(
-        { error: 'La traducción tardó demasiado. El contenido es muy largo — intenta dividir la lección en partes más cortas.' },
-        { status: 504 }
-      )
-    }
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[POST /api/admin/lessons/:id/translate]', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
-  } finally {
-    clearTimeout(timeout)
-  }
+  // Create job, fire Gemini in background, return immediately (no timeout risk)
+  const jobId = createTranslateJob()
+  void processTranslation(apiKey, lesson as LessonRow, lang, id, jobId)
+  return NextResponse.json({ jobId })
 }
 
 export async function DELETE(
