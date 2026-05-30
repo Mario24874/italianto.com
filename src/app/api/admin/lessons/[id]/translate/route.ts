@@ -16,30 +16,29 @@ function buildPrompt(lang: string, lesson: LessonRow): string {
   const targetLang = LANG_NAMES[lang] ?? lang
   const vocabJson = JSON.stringify(lesson.vocabulary ?? [])
 
-  return `You are a professional translator specializing in Italian language learning content.
+  return `You are a professional HTML-aware translator for an Italian language learning platform.
 
-You will translate this Italian lesson from Spanish to ${targetLang}.
+## Task
+Translate the Spanish instructional text in the HTML below into ${targetLang}, while keeping the HTML structure byte-for-byte identical.
 
-CRITICAL RULES — read carefully:
-1. Translate ONLY the instructional/explanatory text (Spanish) into ${targetLang}
-2. NEVER translate Italian words, phrases, sentences, or examples — they are the lesson subject matter
-3. In HTML tables: translate column headers and Spanish text cells ONLY; leave Italian-content cells unchanged
-4. Preserve ALL HTML tags, class attributes, and structure EXACTLY
-5. In <blockquote class="tip"> / <blockquote class="info"> / <blockquote class="dialogo">: translate the explanation but keep Italian examples unchanged
-6. Return ONLY raw JSON, no markdown, no backticks
+## Absolute rules (violations cause rejection):
+1. OUTPUT must be valid JSON — no markdown fences, no extra text outside the JSON object.
+2. DO NOT change any HTML tag, attribute, class name, id, emoji, or structure. Copy every <tag>, </tag>, and attribute verbatim.
+3. DO NOT translate or alter Italian words, sentences, or examples (they are the lesson subject matter — the thing being taught). Identify Italian by recognising Italian words; leave them as-is.
+4. DO translate only the Spanish explanatory/instructional text that surrounds Italian content.
+5. Tables: translate <th> and <td> cells that contain Spanish text only. Keep cells containing Italian words or grammatical examples unchanged.
+6. Emojis at the start of <h2> headings must be kept exactly as-is.
+7. <blockquote class="tip">, <blockquote class="info">, <blockquote class="dialogo">: translate the Spanish explanation; keep Italian words/examples unchanged.
+8. Vocabulary: keep "word" (Italian) and "example" (Italian sentence) unchanged; translate only "translation" to ${targetLang}.
 
-Return this exact JSON structure:
+## OUTPUT format (return exactly this JSON, nothing else):
 {
-  "content_html": "...translated HTML here...",
-  "grammar_notes": "...translated grammar notes here...",
-  "vocabulary": [
-    { "word": "unchanged Italian word", "translation": "TRANSLATED to ${targetLang}", "example": "unchanged Italian example sentence" }
-  ]
+  "content_html": "<exact HTML with only Spanish text translated>",
+  "grammar_notes": "<grammar notes translated to ${targetLang}>",
+  "vocabulary": [{ "word": "<unchanged>", "translation": "<translated to ${targetLang}>", "example": "<unchanged>" }]
 }
 
-For vocabulary: keep "word" field unchanged (it's Italian), translate "translation" field to ${targetLang}, keep "example" field unchanged (it's an Italian example sentence).
-
-SOURCE CONTENT:
+## SOURCE
 
 content_html:
 ${lesson.content_html}

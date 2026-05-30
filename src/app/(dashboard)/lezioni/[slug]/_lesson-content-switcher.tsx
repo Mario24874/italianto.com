@@ -23,22 +23,29 @@ function splitAtH2(html: string): Array<{ heading: string | null; html: string }
   })
 }
 
-/** Normalise a string for fuzzy section matching */
+/** Normalise for fuzzy section matching: strip emojis/symbols, lowercase, collapse spaces */
 function normSec(text: string) {
-  return text.toLowerCase().replace(/\s+/g, ' ').trim()
+  return text
+    .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}]/gu, '') // strip emojis
+    .replace(/[^\w\sÀ-ɏ]/gu, ' ')  // strip non-word, non-Latin chars
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
-/** Audio clips assigned to a specific section heading */
+/** Returns clips whose section fuzzy-matches the given heading.
+ *  "Los Meses" matches "📅 Meses y Días" if either contains the other after normalization. */
 function clipsFor(clips: AudioClip[], heading: string | null): AudioClip[] {
   if (!heading) return []
   const nh = normSec(heading)
-  return clips.filter(c => c.section?.trim() && normSec(c.section) === nh)
+  if (!nh) return []
+  return clips.filter(c => {
+    const ns = normSec(c.section ?? '')
+    if (!ns) return false
+    return nh === ns || nh.includes(ns) || ns.includes(nh)
+  })
 }
 
-/** Audio clips with no section assigned (global / unpositioned) */
-function globalClips(clips: AudioClip[]): AudioClip[] {
-  return clips.filter(c => !c.section?.trim())
-}
 
 // ─── Prose classes shared across all section fragments ────────────────────────
 
@@ -171,7 +178,14 @@ export function LessonContentSwitcher({
 
   // Split content into sections at <h2> boundaries
   const sections = contentHtml ? splitAtH2(contentHtml) : []
-  const global = globalClips(audioClips)
+
+  // Compute which clips match inline (so the rest can be shown at the end)
+  const matchedIds = new Set<string>()
+  for (const sec of sections) {
+    for (const c of clipsFor(audioClips, sec.heading)) matchedIds.add(c.id)
+  }
+  // "Global" = clips with no section + clips whose section didn't match any heading
+  const globalAudio = audioClips.filter(c => !matchedIds.has(c.id))
 
   // Audio play handler — only one clip plays at a time across the whole lesson
   const handlePlay = (clipId: string, audioEl: HTMLAudioElement) => {
@@ -257,8 +271,8 @@ export function LessonContentSwitcher({
             )
           })}
 
-          {/* Global clips (no section assigned) shown after all content */}
-          {global.length > 0 && (
+          {/* Global / unmatched clips shown after all content */}
+          {globalAudio.length > 0 && (
             <div className="rounded-xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/60 dark:bg-amber-950/10 px-4 py-3 mt-4">
               <div className="flex items-center gap-1.5 mb-2.5">
                 <Headphones size={13} className="text-amber-600 dark:text-amber-400" />
@@ -267,7 +281,7 @@ export function LessonContentSwitcher({
                 </span>
               </div>
               <div className="flex flex-col gap-2">
-                {global.map(clip => (
+                {globalAudio.map(clip => (
                   <div key={clip.id} data-clip-row className="flex items-center gap-3">
                     <button
                       type="button"
