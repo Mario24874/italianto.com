@@ -1,9 +1,83 @@
 'use client'
 
-import type { LessonTranslations, VocabularyItem } from '@/types'
-import { BookOpen } from 'lucide-react'
+import { useState } from 'react'
+import type { LessonTranslations, VocabularyItem, AudioClip } from '@/types'
+import { BookOpen, Headphones, Play, Pause } from 'lucide-react'
 import { useLanguage } from '@/contexts/language-context'
 import type { Language } from '@/contexts/language-context'
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Split a content HTML string into blocks at each <h2> boundary.
+ *  Each block keeps the <h2> that opens it (if any).
+ *  Returns [{heading: string|null, html: string}]  */
+function splitAtH2(html: string): Array<{ heading: string | null; html: string }> {
+  // Lookahead split keeps the <h2 tag in the following chunk
+  const chunks = html.split(/(?=<h2[\s>])/i).filter(c => c.trim())
+  return chunks.map(chunk => {
+    const m = chunk.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)
+    const heading = m
+      ? m[1].replace(/<[^>]+>/g, '').replace(/&[a-zA-Z0-9#]+;/g, ' ').replace(/\s+/g, ' ').trim()
+      : null
+    return { heading, html: chunk }
+  })
+}
+
+/** Normalise a string for fuzzy section matching */
+function normSec(text: string) {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+/** Audio clips assigned to a specific section heading */
+function clipsFor(clips: AudioClip[], heading: string | null): AudioClip[] {
+  if (!heading) return []
+  const nh = normSec(heading)
+  return clips.filter(c => c.section?.trim() && normSec(c.section) === nh)
+}
+
+/** Audio clips with no section assigned (global / unpositioned) */
+function globalClips(clips: AudioClip[]): AudioClip[] {
+  return clips.filter(c => !c.section?.trim())
+}
+
+// ─── Prose classes shared across all section fragments ────────────────────────
+
+const PROSE = [
+  'prose prose-sm max-w-none',
+  '[&_h2]:text-verde-800 dark:[&_h2]:text-verde-100 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:mb-3 [&_h2]:mt-8',
+  '[&_h2]:pb-2 [&_h2]:border-b [&_h2]:border-verde-300/60 dark:[&_h2]:border-verde-800/40',
+  '[&_h3]:text-verde-700 dark:[&_h3]:text-verde-200 [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-base',
+  '[&_h4]:text-verde-700 dark:[&_h4]:text-verde-300 [&_h4]:font-semibold [&_h4]:mb-1.5 [&_h4]:mt-4 [&_h4]:text-sm',
+  '[&_p]:text-verde-800 dark:[&_p]:text-verde-400 [&_p]:leading-relaxed [&_p]:mb-3',
+  '[&_strong]:text-verde-900 dark:[&_strong]:text-verde-100 [&_strong]:font-bold',
+  '[&_em]:text-verde-700 dark:[&_em]:text-verde-300 [&_em]:italic',
+  '[&_hr]:border-verde-300/60 dark:[&_hr]:border-verde-800/30 [&_hr]:my-6',
+  '[&_ul]:text-verde-800 dark:[&_ul]:text-verde-400 [&_ul]:space-y-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3',
+  '[&_ol]:text-verde-800 dark:[&_ol]:text-verde-400 [&_ol]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3',
+  '[&_li]:text-verde-800 dark:[&_li]:text-verde-400 [&_li]:leading-relaxed',
+  '[&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4 [&_img]:mx-auto [&_img]:block',
+  '[&_img]:border [&_img]:border-verde-300/60 dark:[&_img]:border-verde-800/30',
+  '[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm [&_table]:rounded-xl [&_table]:overflow-hidden',
+  '[&_thead]:bg-verde-100/80 dark:[&_thead]:bg-verde-900/60',
+  '[&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:text-verde-800 dark:[&_th]:text-verde-200 [&_th]:font-bold [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wide',
+  '[&_th]:border-b [&_th]:border-verde-300/60 dark:[&_th]:border-verde-700/40',
+  '[&_td]:px-3 [&_td]:py-2 [&_td]:text-verde-700 dark:[&_td]:text-verde-300 [&_td]:border-b [&_td]:border-verde-200/60 dark:[&_td]:border-verde-900/30',
+  '[&_tbody_tr:last-child_td]:border-b-0',
+  '[&_tbody_tr:hover]:bg-verde-100/60 dark:[&_tbody_tr:hover]:bg-verde-900/20',
+  '[&_blockquote]:rounded-xl [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:not-italic',
+  '[&_blockquote.tip]:bg-amber-50/80 dark:[&_blockquote.tip]:bg-amber-950/30 [&_blockquote.tip]:border-amber-600/50 [&_blockquote.tip]:text-amber-800 dark:[&_blockquote.tip]:text-amber-200',
+  '[&_blockquote.tip_p]:text-amber-700 dark:[&_blockquote.tip_p]:text-amber-300 [&_blockquote.tip_strong]:text-amber-900 dark:[&_blockquote.tip_strong]:text-amber-100',
+  '[&_blockquote.info]:bg-blue-50/80 dark:[&_blockquote.info]:bg-blue-950/30 [&_blockquote.info]:border-blue-600/50 [&_blockquote.info]:text-blue-800 dark:[&_blockquote.info]:text-blue-200',
+  '[&_blockquote.info_p]:text-blue-700 dark:[&_blockquote.info_p]:text-blue-300 [&_blockquote.info_strong]:text-blue-900 dark:[&_blockquote.info_strong]:text-blue-100',
+  '[&_blockquote.dialogo]:bg-verde-50/80 dark:[&_blockquote.dialogo]:bg-verde-950/30 [&_blockquote.dialogo]:border-verde-600/50 [&_blockquote.dialogo]:text-verde-800 dark:[&_blockquote.dialogo]:text-verde-200 [&_blockquote.dialogo]:font-mono [&_blockquote.dialogo]:text-xs',
+  '[&_blockquote.dialogo_p]:mb-1 [&_blockquote.dialogo_p]:text-verde-700 dark:[&_blockquote.dialogo_p]:text-verde-300',
+  '[&_blockquote.dialogo_strong]:text-verde-900 dark:[&_blockquote.dialogo_strong]:text-verde-100',
+  '[&_blockquote:not(.tip):not(.info):not(.dialogo)]:border-verde-400/60 dark:[&_blockquote:not(.tip):not(.info):not(.dialogo)]:border-verde-700/40',
+  '[&_blockquote:not(.tip):not(.info):not(.dialogo)]:bg-verde-50/60 dark:[&_blockquote:not(.tip):not(.info):not(.dialogo)]:bg-verde-950/20',
+  '[&_blockquote:not(.tip):not(.info):not(.dialogo)]:text-verde-700 dark:[&_blockquote:not(.tip):not(.info):not(.dialogo)]:text-verde-400 [&_blockquote:not(.tip):not(.info):not(.dialogo)]:italic',
+].join(' ')
+
+// ─── Inline audio player (compact) ───────────────────────────────────────────
 
 const LANG_LABELS: Record<string, { flag: string; label: string }> = {
   es: { flag: '🇪🇸', label: 'Español' },
@@ -11,11 +85,62 @@ const LANG_LABELS: Record<string, { flag: string; label: string }> = {
   it: { flag: '🇮🇹', label: 'Italiano' },
 }
 
+interface InlineAudioProps {
+  clips: AudioClip[]
+  playing: string | null
+  onPlay: (id: string, el: HTMLAudioElement) => void
+}
+
+function InlineAudio({ clips, playing, onPlay }: InlineAudioProps) {
+  if (clips.length === 0) return null
+  return (
+    <div className="my-4 rounded-xl border border-amber-200/70 dark:border-amber-800/30 bg-amber-50/70 dark:bg-amber-950/10 px-4 py-3">
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <Headphones size={13} className="text-amber-600 dark:text-amber-400" />
+        <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+          Pronunciación
+        </span>
+      </div>
+      <div className="flex flex-col gap-2">
+        {clips.map(clip => (
+          <div key={clip.id} data-clip-row className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={e => {
+                const row = (e.currentTarget as HTMLElement).closest('[data-clip-row]')
+                const audioEl = row?.querySelector('audio') as HTMLAudioElement | null
+                if (audioEl) onPlay(clip.id, audioEl)
+              }}
+              className={`shrink-0 size-7 rounded-full flex items-center justify-center transition-colors ${
+                playing === clip.id
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-800/50'
+              }`}
+            >
+              {playing === clip.id ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
+            </button>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-amber-900 dark:text-amber-200">{clip.title}</span>
+              {clip.description && (
+                <span className="ml-2 text-xs text-amber-600 dark:text-amber-600">{clip.description}</span>
+              )}
+            </div>
+            <audio data-clip={clip.id} src={clip.url} preload="none" className="hidden" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 interface Props {
   defaultContent: string
   defaultGrammarNotes: string
   defaultVocabulary: VocabularyItem[]
   translations: LessonTranslations
+  audioClips?: AudioClip[]
 }
 
 export function LessonContentSwitcher({
@@ -23,33 +148,43 @@ export function LessonContentSwitcher({
   defaultGrammarNotes,
   defaultVocabulary,
   translations,
+  audioClips = [],
 }: Props) {
-  // Use the global language — this is the single source of truth for the whole lesson experience.
-  // Changing the tab here also updates the global lang, so exercises and UI labels stay in sync.
   const { lang, setLang } = useLanguage()
+  const [playingId, setPlayingId] = useState<string | null>(null)
 
-  // Languages with actual content: ES always available (it's the default), plus any generated translation
+  // Available languages: ES always present + those with a generated translation
   const available: Language[] = ['es', ...(['en', 'it'] as Language[]).filter(
     l => !!translations[l]?.content_html
   )]
 
-  // If the global language has no translation, render a fallback notice and use Spanish content
   const activeLang: Language = available.includes(lang) ? lang : 'es'
   const missingTranslation = lang !== 'es' && !available.includes(lang)
 
-  const switchLang = (l: Language) => {
-    setLang(l)  // syncs global language: UI labels, exercises, content — all coherent
-  }
-
-  // If the user arrives with a global lang that IS available but not yet selected
-  // (e.g. they set English globally and visit a lesson with English translation),
-  // the global lang already drives the content — no extra effect needed.
+  const switchLang = (l: Language) => setLang(l)
 
   // Resolve content for active language
   const tr = translations[activeLang] ?? null
   const contentHtml = tr?.content_html ?? (activeLang === 'es' ? defaultContent : null) ?? defaultContent
   const grammarNotes = tr?.grammar_notes ?? (activeLang === 'es' ? defaultGrammarNotes : null) ?? defaultGrammarNotes
   const vocabulary = tr?.vocabulary ?? defaultVocabulary
+
+  // Split content into sections at <h2> boundaries
+  const sections = contentHtml ? splitAtH2(contentHtml) : []
+  const global = globalClips(audioClips)
+
+  // Audio play handler — only one clip plays at a time across the whole lesson
+  const handlePlay = (clipId: string, audioEl: HTMLAudioElement) => {
+    if (playingId === clipId) {
+      audioEl.pause()
+      setPlayingId(null)
+    } else {
+      document.querySelectorAll('audio[data-clip]').forEach(el => (el as HTMLAudioElement).pause())
+      audioEl.play().catch(() => {})
+      setPlayingId(clipId)
+      audioEl.onended = () => setPlayingId(null)
+    }
+  }
 
   const VOCAB_LABEL: Record<Language, string> = {
     es: `Vocabulario (${vocabulary.length} palabras)`,
@@ -65,20 +200,19 @@ export function LessonContentSwitcher({
 
   return (
     <div className="space-y-5">
-      {/* ── Language switcher tabs ── */}
+      {/* ── Language tabs ── */}
       {available.length > 1 && (
         <div className="flex items-center gap-1 p-1 rounded-xl bg-verde-950/40 border border-verde-800/30 w-fit">
           {available.map(l => {
             const meta = LANG_LABELS[l]
             if (!meta) return null
-            const active = activeLang === l
             return (
               <button
                 key={l}
                 onClick={() => switchLang(l)}
                 className={[
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  active
+                  activeLang === l
                     ? 'bg-verde-700 text-white shadow-sm'
                     : 'text-verde-500 hover:text-verde-300 hover:bg-verde-900/40',
                 ].join(' ')}
@@ -91,7 +225,7 @@ export function LessonContentSwitcher({
         </div>
       )}
 
-      {/* ── Notice when translation is missing for the user's preferred language ── */}
+      {/* ── Missing translation notice ── */}
       {missingTranslation && (
         <div className="flex items-start gap-2.5 rounded-xl px-4 py-3 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-300/60 dark:border-amber-700/30 text-sm">
           <span className="text-amber-600 dark:text-amber-400 mt-0.5">⚠️</span>
@@ -103,50 +237,66 @@ export function LessonContentSwitcher({
         </div>
       )}
 
-      {/* ── Lesson content (HTML from admin) ── */}
-      {contentHtml && (
-        <div
-          className={[
-            'prose prose-sm max-w-none',
-            '[&_h2]:text-verde-800 dark:[&_h2]:text-verde-100 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:mb-3 [&_h2]:mt-8',
-            '[&_h2]:pb-2 [&_h2]:border-b [&_h2]:border-verde-300/60 dark:[&_h2]:border-verde-800/40',
-            '[&_h3]:text-verde-700 dark:[&_h3]:text-verde-200 [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-base',
-            '[&_h4]:text-verde-700 dark:[&_h4]:text-verde-300 [&_h4]:font-semibold [&_h4]:mb-1.5 [&_h4]:mt-4 [&_h4]:text-sm',
-            '[&_p]:text-verde-800 dark:[&_p]:text-verde-400 [&_p]:leading-relaxed [&_p]:mb-3',
-            '[&_strong]:text-verde-900 dark:[&_strong]:text-verde-100 [&_strong]:font-bold',
-            '[&_em]:text-verde-700 dark:[&_em]:text-verde-300 [&_em]:italic',
-            '[&_hr]:border-verde-300/60 dark:[&_hr]:border-verde-800/30 [&_hr]:my-6',
-            '[&_ul]:text-verde-800 dark:[&_ul]:text-verde-400 [&_ul]:space-y-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3',
-            '[&_ol]:text-verde-800 dark:[&_ol]:text-verde-400 [&_ol]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3',
-            '[&_li]:text-verde-800 dark:[&_li]:text-verde-400 [&_li]:leading-relaxed',
-            '[&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4 [&_img]:mx-auto [&_img]:block',
-            '[&_img]:border [&_img]:border-verde-300/60 dark:[&_img]:border-verde-800/30',
-            '[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm',
-            '[&_table]:rounded-xl [&_table]:overflow-hidden',
-            '[&_thead]:bg-verde-100/80 dark:[&_thead]:bg-verde-900/60',
-            '[&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:text-verde-800 dark:[&_th]:text-verde-200 [&_th]:font-bold [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wide',
-            '[&_th]:border-b [&_th]:border-verde-300/60 dark:[&_th]:border-verde-700/40',
-            '[&_td]:px-3 [&_td]:py-2 [&_td]:text-verde-700 dark:[&_td]:text-verde-300 [&_td]:border-b [&_td]:border-verde-200/60 dark:[&_td]:border-verde-900/30',
-            '[&_tbody_tr:last-child_td]:border-b-0',
-            '[&_tbody_tr:hover]:bg-verde-100/60 dark:[&_tbody_tr:hover]:bg-verde-900/20',
-            '[&_blockquote]:rounded-xl [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:my-4',
-            '[&_blockquote]:border-l-4 [&_blockquote]:not-italic',
-            '[&_blockquote.tip]:bg-amber-50/80 dark:[&_blockquote.tip]:bg-amber-950/30 [&_blockquote.tip]:border-amber-600/50',
-            '[&_blockquote.tip]:text-amber-800 dark:[&_blockquote.tip]:text-amber-200',
-            '[&_blockquote.tip_p]:text-amber-700 dark:[&_blockquote.tip_p]:text-amber-300 [&_blockquote.tip_strong]:text-amber-900 dark:[&_blockquote.tip_strong]:text-amber-100',
-            '[&_blockquote.info]:bg-blue-50/80 dark:[&_blockquote.info]:bg-blue-950/30 [&_blockquote.info]:border-blue-600/50',
-            '[&_blockquote.info]:text-blue-800 dark:[&_blockquote.info]:text-blue-200',
-            '[&_blockquote.info_p]:text-blue-700 dark:[&_blockquote.info_p]:text-blue-300 [&_blockquote.info_strong]:text-blue-900 dark:[&_blockquote.info_strong]:text-blue-100',
-            '[&_blockquote.dialogo]:bg-verde-50/80 dark:[&_blockquote.dialogo]:bg-verde-950/30 [&_blockquote.dialogo]:border-verde-600/50',
-            '[&_blockquote.dialogo]:text-verde-800 dark:[&_blockquote.dialogo]:text-verde-200 [&_blockquote.dialogo]:font-mono [&_blockquote.dialogo]:text-xs',
-            '[&_blockquote.dialogo_p]:mb-1 [&_blockquote.dialogo_p]:text-verde-700 dark:[&_blockquote.dialogo_p]:text-verde-300',
-            '[&_blockquote.dialogo_strong]:text-verde-900 dark:[&_blockquote.dialogo_strong]:text-verde-100',
-            '[&_blockquote:not(.tip):not(.info):not(.dialogo)]:border-verde-400/60 dark:[&_blockquote:not(.tip):not(.info):not(.dialogo)]:border-verde-700/40',
-            '[&_blockquote:not(.tip):not(.info):not(.dialogo)]:bg-verde-50/60 dark:[&_blockquote:not(.tip):not(.info):not(.dialogo)]:bg-verde-950/20',
-            '[&_blockquote:not(.tip):not(.info):not(.dialogo)]:text-verde-700 dark:[&_blockquote:not(.tip):not(.info):not(.dialogo)]:text-verde-400 [&_blockquote:not(.tip):not(.info):not(.dialogo)]:italic',
-          ].join(' ')}
-          dangerouslySetInnerHTML={{ __html: contentHtml }}
-        />
+      {/* ── Content split into sections with inline audio ── */}
+      {sections.length > 0 && (
+        <div>
+          {sections.map((sec, i) => {
+            const inlineClips = clipsFor(audioClips, sec.heading)
+            return (
+              <div key={i}>
+                {/* HTML block for this section */}
+                <div
+                  className={PROSE}
+                  dangerouslySetInnerHTML={{ __html: sec.html }}
+                />
+                {/* Audio clips assigned to this section — hidden when empty */}
+                {inlineClips.length > 0 && (
+                  <InlineAudio clips={inlineClips} playing={playingId} onPlay={handlePlay} />
+                )}
+              </div>
+            )
+          })}
+
+          {/* Global clips (no section assigned) shown after all content */}
+          {global.length > 0 && (
+            <div className="rounded-xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/60 dark:bg-amber-950/10 px-4 py-3 mt-4">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <Headphones size={13} className="text-amber-600 dark:text-amber-400" />
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                  Pronunciación general
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {global.map(clip => (
+                  <div key={clip.id} data-clip-row className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={e => {
+                        const row = (e.currentTarget as HTMLElement).closest('[data-clip-row]')
+                        const audioEl = row?.querySelector('audio') as HTMLAudioElement | null
+                        if (audioEl) handlePlay(clip.id, audioEl)
+                      }}
+                      className={`shrink-0 size-7 rounded-full flex items-center justify-center transition-colors ${
+                        playingId === clip.id
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-800/50'
+                      }`}
+                    >
+                      {playingId === clip.id ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-amber-900 dark:text-amber-200">{clip.title}</span>
+                      {clip.description && (
+                        <span className="ml-2 text-xs text-amber-600 dark:text-amber-600">{clip.description}</span>
+                      )}
+                    </div>
+                    <audio data-clip={clip.id} src={clip.url} preload="none" className="hidden" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Vocabulary ── */}

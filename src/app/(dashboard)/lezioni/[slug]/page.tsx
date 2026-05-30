@@ -12,7 +12,6 @@ import { ChevronLeft, Lock, AlignLeft, GraduationCap, CalendarClock } from 'luci
 import { LessonExam } from './_lesson-exam'
 import { LessonExercises } from './_lesson-exercises'
 import { LessonContentSwitcher } from './_lesson-content-switcher'
-import { LessonAudio } from './_lesson-audio'
 
 const PLAN_HIERARCHY: PlanType[] = ['free', 'essenziale', 'avanzato', 'maestro']
 
@@ -256,13 +255,9 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 defaultGrammarNotes={lesson.grammar_notes}
                 defaultVocabulary={lesson.vocabulary ?? []}
                 translations={lesson.translations ?? {}}
+                audioClips={lesson.audio_clips ?? []}
               />
             </div>
-          )}
-
-          {/* ── Audio Pronunciation ── */}
-          {Array.isArray(lesson.audio_clips) && lesson.audio_clips.length > 0 && (
-            <LessonAudio clips={lesson.audio_clips} />
           )}
 
           {/* ── Interactive Exercises ── */}

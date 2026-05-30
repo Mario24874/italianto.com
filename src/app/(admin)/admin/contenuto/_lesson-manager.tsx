@@ -670,15 +670,32 @@ function TranslationPanel({
 }
 
 // ─── Audio Section ────────────────────────────────────────────────────────────
+
+/** Extract h2 heading texts from a content HTML string */
+function extractH2Headings(html: string): string[] {
+  const regex = /<h2[^>]*>([\s\S]*?)<\/h2>/gi
+  const results: string[] = []
+  let m: RegExpExecArray | null
+  while ((m = regex.exec(html)) !== null) {
+    const text = m[1].replace(/<[^>]+>/g, '').replace(/&[a-zA-Z0-9#]+;/g, ' ').replace(/\s+/g, ' ').trim()
+    if (text) results.push(text)
+  }
+  return results
+}
+
 function AudioSection({
   clips,
+  contentHtml,
   onChange,
 }: {
   clips: AudioClip[]
+  contentHtml: string
   onChange: (clips: AudioClip[]) => void
 }) {
   const [uploading, setUploading] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const h2Headings = extractH2Headings(contentHtml)
 
   const handleFile = async (file: File) => {
     const allowed = ['audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/wav', 'audio/webm', 'audio/aac']
@@ -716,7 +733,7 @@ function AudioSection({
         <div className="flex items-center gap-2">
           <Headphones size={14} className="text-amber-400" />
           <span className="text-xs font-semibold text-amber-300 uppercase tracking-wide">Audios de pronunciación</span>
-          <span className="text-xs text-amber-700">— opcional</span>
+          <span className="text-xs text-amber-700">— se insertan después de cada sección</span>
         </div>
         <button type="button" onClick={() => fileRef.current?.click()}
           disabled={!!uploading}
@@ -728,18 +745,25 @@ function AudioSection({
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }} />
       </div>
 
+      {h2Headings.length === 0 && clips.length === 0 && (
+        <p className="text-xs text-amber-700/70 italic">
+          Tip: guarda la lección con contenido primero para ver las secciones disponibles en el selector.
+        </p>
+      )}
+
       {clips.length === 0 ? (
         <div
           onClick={() => fileRef.current?.click()}
           className="flex flex-col items-center gap-2 py-4 rounded-lg border border-dashed border-amber-800/30 bg-amber-950/10 cursor-pointer hover:bg-amber-900/10 transition-all group"
         >
           <Headphones size={20} className="text-amber-700 group-hover:text-amber-500 transition-colors" />
-          <p className="text-xs text-amber-700 group-hover:text-amber-500">Arrastra o haz clic para subir audios MP3/OGG/WAV</p>
+          <p className="text-xs text-amber-700 group-hover:text-amber-500">Haz clic para subir audios MP3/OGG/WAV</p>
         </div>
       ) : (
         <div className="space-y-2">
           {clips.map((clip, i) => (
-            <div key={clip.id} className="rounded-lg border border-amber-800/20 bg-amber-950/20 px-3 py-2 space-y-1.5">
+            <div key={clip.id} className="rounded-lg border border-amber-800/20 bg-amber-950/20 px-3 py-2 space-y-2">
+              {/* Row 1: title + player + delete */}
               <div className="flex items-center gap-2">
                 <Headphones size={13} className="text-amber-500 shrink-0" />
                 <input
@@ -755,21 +779,26 @@ function AudioSection({
                   <X size={13} />
                 </button>
               </div>
+              {/* Row 2: description + section picker */}
               <div className="flex gap-2 pl-5">
                 <input
                   type="text"
                   value={clip.description ?? ''}
                   onChange={e => updateClip(i, 'description', e.target.value)}
                   placeholder="Descripción (opcional)"
-                  className="flex-1 bg-transparent text-xs text-amber-400 placeholder:text-amber-700 focus:outline-none border-b border-amber-800/20 pb-0.5"
+                  className="flex-1 bg-transparent text-xs text-amber-400 placeholder:text-amber-700 focus:outline-none border-b border-amber-800/20 pb-0.5 min-w-0"
                 />
-                <input
-                  type="text"
+                {/* Section selector — dropdown with actual h2 headings from the lesson */}
+                <select
                   value={clip.section ?? ''}
                   onChange={e => updateClip(i, 'section', e.target.value)}
-                  placeholder="Sección (ej: Los Meses)"
-                  className="flex-1 bg-transparent text-xs text-amber-500 placeholder:text-amber-800 focus:outline-none border-b border-amber-800/20 pb-0.5"
-                />
+                  className="flex-1 bg-amber-950/60 border border-amber-800/30 rounded text-xs text-amber-300 focus:outline-none focus:border-amber-600 px-1.5 py-0.5 min-w-0 max-w-[180px]"
+                >
+                  <option value="">📌 Al final (sin sección)</option>
+                  {h2Headings.map(h => (
+                    <option key={h} value={h}>▶ Después de: {h}</option>
+                  ))}
+                </select>
               </div>
             </div>
           ))}
@@ -1492,6 +1521,7 @@ function LessonModal({
             {/* ── Audio Clips ── */}
             <AudioSection
               clips={form.audio_clips}
+              contentHtml={form.content_html}
               onChange={clips => setField('audio_clips', clips)}
             />
 
