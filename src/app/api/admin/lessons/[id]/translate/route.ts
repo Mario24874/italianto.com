@@ -82,13 +82,14 @@ export async function POST(
 
   const prompt = buildPrompt(lang, lesson as LessonRow)
 
-  // Abort after 110s so we can return a clean JSON error before nginx/platform cuts us
+  // Abort after 25s so we return clean JSON before nginx times out
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 110_000)
+  const timeout = setTimeout(() => controller.abort(), 25_000)
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      // gemini-2.0-flash: no thinking tokens, fast, ideal for translation
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         signal: controller.signal,
@@ -98,10 +99,9 @@ export async function POST(
           generationConfig: {
             temperature: 0.1,
             responseMimeType: 'application/json',
+            // thinkingConfig inside generationConfig (correct placement for 2.5-flash if switched back)
+            thinkingConfig: { thinkingBudget: 0 },
           },
-          // Disable thinking tokens — translation doesn't benefit from reasoning,
-          // and thinking adds significant latency for large HTML content
-          thinkingConfig: { thinkingBudget: 0 },
         }),
       }
     )

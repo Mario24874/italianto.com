@@ -137,11 +137,12 @@ export async function POST(req: NextRequest) {
       const arrayBuffer = await file.arrayBuffer()
       // Convert Web API ArrayBuffer to Node.js Buffer for mammoth compatibility
       const buffer = Buffer.from(arrayBuffer)
-      const { value: rawText } = await mammoth.extractRawText({ buffer })
+      let { value: rawText } = await mammoth.extractRawText({ buffer })
 
       if (!rawText.trim()) {
         return NextResponse.json({ error: 'El documento .docx está vacío o no se pudo leer' }, { status: 400 })
       }
+      if (rawText.length > 12000) rawText = rawText.slice(0, 12000)
 
       contents = [{
         parts: [{ text: `${GEMINI_PROMPT}\n\nCONTENIDO DEL DOCUMENTO:\n${rawText}` }],
@@ -156,10 +157,12 @@ export async function POST(req: NextRequest) {
     fileName.endsWith('.txt') ||
     fileName.endsWith('.md')
   ) {
-    const text = await file.text()
+    let text = await file.text()
     if (!text.trim()) {
       return NextResponse.json({ error: 'El archivo de texto está vacío' }, { status: 400 })
     }
+    // Trim to ~12 000 chars to stay well under Gemini's practical timeout for this route
+    if (text.length > 12000) text = text.slice(0, 12000)
 
     contents = [{
       parts: [{ text: `${GEMINI_PROMPT}\n\nCONTENIDO:\n${text}` }],
@@ -172,11 +175,12 @@ export async function POST(req: NextRequest) {
 
   // ── Call Gemini ───────────────────────────────────────────────────────────
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 110_000)
+  const timeout = setTimeout(() => controller.abort(), 25_000)
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      // gemini-2.0-flash: no thinking tokens, faster for structured generation
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         signal: controller.signal,
@@ -186,9 +190,8 @@ export async function POST(req: NextRequest) {
           generationConfig: {
             temperature: 0.3,
             responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
           },
-          // Disable thinking tokens — generation doesn't need reasoning, just format compliance
-          thinkingConfig: { thinkingBudget: 0 },
         }),
       }
     )

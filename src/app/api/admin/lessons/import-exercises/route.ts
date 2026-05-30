@@ -182,19 +182,22 @@ export async function POST(req: NextRequest) {
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 110_000)
+  const timeout = setTimeout(() => controller.abort(), 25_000)
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents,
-          generationConfig: { temperature: 0.3, responseMimeType: 'application/json' },
-          thinkingConfig: { thinkingBudget: 0 },
+          generationConfig: {
+            temperature: 0.3,
+            responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
+          },
         }),
       }
     )
