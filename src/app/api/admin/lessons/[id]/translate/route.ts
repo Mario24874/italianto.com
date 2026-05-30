@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 import { isAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { createTranslateJob, resolveTranslateJob, rejectTranslateJob } from '../../translate-job/route'
@@ -13,23 +14,27 @@ const LANG_NAMES: Record<string, string> = {
   es: 'Spanish',
 }
 
-function buildPrompt(lang: string, lesson: LessonRow): string {
+function buildSystemPrompt(lang: string): string {
   const targetLang = LANG_NAMES[lang] ?? lang
-  const vocabJson = JSON.stringify(lesson.vocabulary ?? [])
-
   return `You are an HTML-aware translator for an Italian language learning platform.
-Translate the Spanish instructional text in the HTML below into ${targetLang}.
+Your task: translate Spanish instructional text into ${targetLang}.
 
-RULES (strictly enforced):
+STRICT RULES:
 - Copy every HTML tag, attribute, class, id, and emoji verbatim — do NOT change any HTML structure.
-- Emojis at the start of <h2> headings must stay exactly as-is (e.g. "📅 Meses y Días" → "📅 Meses e Giorni").
+- Emojis at the start of <h2> headings must stay exactly as-is.
 - DO NOT translate or modify Italian words, phrases, or example sentences — they are the lesson subject matter.
 - In tables: translate only Spanish explanation cells; leave cells containing Italian words/examples unchanged.
-- Vocabulary: keep "word" (Italian) and "example" (Italian sentence) unchanged; translate only "translation".
-- Return ONLY valid JSON — no markdown fences, no prose, no extra text.
+- Vocabulary array: keep "word" (Italian) and "example" (Italian sentence) unchanged; translate only "translation".
 
-JSON output format:
-{"content_html":"<translated HTML>","grammar_notes":"<translated notes>","vocabulary":[{"word":"<unchanged>","translation":"<translated to ${targetLang}>","example":"<unchanged>"}]}
+OUTPUT: Return ONLY a valid JSON object. No markdown, no code fences, no prose. Just the JSON.
+
+JSON format:
+{"content_html":"<translated HTML>","grammar_notes":"<translated notes>","vocabulary":[{"word":"<unchanged>","translation":"<translated to ${targetLang}>","example":"<unchanged>"}]}`
+}
+
+function buildUserMessage(lesson: LessonRow): string {
+  const vocabJson = JSON.stringify(lesson.vocabulary ?? [])
+  return `Translate the following lesson content.
 
 SOURCE content_html:
 ${lesson.content_html}
@@ -41,17 +46,7 @@ SOURCE vocabulary JSON:
 ${vocabJson}`
 }
 
-/** Strip markdown code fences if Gemini wraps the JSON in them */
-function extractJson(raw: string): string {
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
-  if (fenced) return fenced[1].trim()
-  const start = raw.indexOf('{')
-  const end = raw.lastIndexOf('}')
-  if (start !== -1 && end > start) return raw.slice(start, end + 1)
-  return raw.trim()
-}
-
-/** Background Gemini translation — fire-and-forget from POST */
+/** Background Claude translation — fire-and-forget from POST */
 async function processTranslation(
   apiKey: string,
   lesson: LessonRow,
@@ -60,44 +55,38 @@ async function processTranslation(
   jobId: string
 ) {
   try {
-    const prompt = buildPrompt(lang, lesson)
+    const client = new Anthropic({ apiKey })
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json',
-          },
-        }),
-      }
-    )
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8096,
+      system: buildSystemPrompt(lang),
+      messages: [
+        { role: 'user', content: buildUserMessage(lesson) },
+      ],
+    })
 
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('[Gemini translate error]', response.status, errText.slice(0, 500))
-      rejectTranslateJob(jobId, `Error de IA (${response.status}). Intenta de nuevo.`)
-      return
-    }
-
-    const geminiData = await response.json()
-    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    const block = message.content.find(b => b.type === 'text')
+    const rawText = block?.type === 'text' ? block.text : ''
 
     if (!rawText) {
-      console.error('[Gemini translate] empty response', JSON.stringify(geminiData).slice(0, 300))
-      rejectTranslateJob(jobId, 'Gemini devolvió una respuesta vacía. Intenta de nuevo.')
+      rejectTranslateJob(jobId, 'Claude devolvió una respuesta vacía. Intenta de nuevo.')
       return
     }
+
+    // Strip markdown fences if present
+    let jsonStr = rawText.trim()
+    const fenced = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (fenced) jsonStr = fenced[1].trim()
+    const start = jsonStr.indexOf('{')
+    const end = jsonStr.lastIndexOf('}')
+    if (start !== -1 && end > start) jsonStr = jsonStr.slice(start, end + 1)
 
     let translation: LessonTranslation
     try {
-      translation = JSON.parse(extractJson(rawText))
+      translation = JSON.parse(jsonStr)
     } catch {
-      console.error('[Gemini translate JSON parse error]', rawText.slice(0, 500))
+      console.error('[Claude translate JSON parse error]', rawText.slice(0, 500))
       rejectTranslateJob(jobId, 'La IA no devolvió JSON válido. Intenta de nuevo.')
       return
     }
@@ -126,7 +115,7 @@ async function processTranslation(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[processTranslation]', msg)
-    rejectTranslateJob(jobId, 'Error inesperado al traducir.')
+    rejectTranslateJob(jobId, `Error inesperado: ${msg}`)
   }
 }
 
@@ -138,9 +127,9 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY no configurada' }, { status: 500 })
+    return NextResponse.json({ error: 'ANTHROPIC_API_KEY no configurada' }, { status: 500 })
   }
 
   const { id } = await params
@@ -159,7 +148,7 @@ export async function POST(
     return NextResponse.json({ error: 'Lección no encontrada' }, { status: 404 })
   }
 
-  // Create job, fire Gemini in background, return immediately (no timeout risk)
+  // Create job, fire Claude in background, return immediately (no timeout risk)
   const jobId = createTranslateJob()
   void processTranslation(apiKey, lesson as LessonRow, lang, id, jobId)
   return NextResponse.json({ jobId })

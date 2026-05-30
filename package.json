@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
     "@clerk/localizations": "^4.6.8",
     "@clerk/nextjs": "^6.12.0",
     "@emailjs/browser": "^4.3.3",
