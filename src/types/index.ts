@@ -287,6 +287,7 @@ export interface AudioClip {
   title: string
   url: string
   description?: string
+  section?: string  // optional section label to group clips under a heading
 }
 
 // ─── Lesson Row ───────────────────────────────────────────────────────────────

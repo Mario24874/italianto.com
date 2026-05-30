@@ -33,9 +33,9 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
   return (
     <div className="rounded-xl border border-verde-900/30 bg-verde-950/10 p-4 mb-2">
-      <div className="flex justify-between text-xs font-semibold text-verde-500 mb-2">
+      <div className="flex justify-between text-xs font-semibold text-verde-700 dark:text-verde-500 mb-2">
         <span>{tEx.progress}</span>
-        <span className="text-verde-400">{done} / {total} {tEx.completed}</span>
+        <span className="text-verde-600 dark:text-verde-400">{done} / {total} {tEx.completed}</span>
       </div>
       <div className="h-2 bg-verde-950/50 rounded-full overflow-hidden">
         <div
@@ -53,7 +53,7 @@ function SectionDivider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 my-4">
       <div className="flex-1 h-px bg-verde-900/40" />
-      <span className="text-sm font-bold text-verde-400 whitespace-nowrap">{label}</span>
+      <span className="text-sm font-bold text-verde-600 dark:text-verde-400 whitespace-nowrap">{label}</span>
       <div className="flex-1 h-px bg-verde-900/40" />
     </div>
   )
@@ -116,7 +116,7 @@ function FillBlankExercise({
           const ok = results?.[idx]
           return (
             <div key={item.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-verde-950/20 border border-verde-900/20 hover:border-verde-800/40 transition-colors">
-              <span className="text-sm text-verde-300 font-medium min-w-0 flex-shrink-0" style={{ minWidth: '120px' }}>
+              <span className="text-sm text-verde-700 dark:text-verde-300 font-medium min-w-0 flex-shrink-0" style={{ minWidth: '120px' }}>
                 {cleanLabel(item.label)}
               </span>
               <input
@@ -131,7 +131,7 @@ function FillBlankExercise({
                     ? ok
                       ? 'border-green-600/60 text-green-300 bg-green-950/30'
                       : 'border-red-600/60 text-red-300 bg-red-950/30'
-                    : 'border-verde-800/40 text-verde-200 focus:border-verde-500',
+                    : 'border-verde-800/40 text-verde-900 dark:text-verde-200 focus:border-verde-500',
                 ].join(' ')}
               />
               {checked && (ok
@@ -165,7 +165,7 @@ function FillBlankExercise({
         <div className="rounded-xl bg-verde-950/30 border border-verde-800/30 p-3 space-y-1">
           <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">{tEx.correctAnswers}</p>
           {ex.answerPanel.map((line, i) => (
-            <p key={i} className="text-xs text-verde-400 flex items-center gap-1.5">
+            <p key={i} className="text-xs text-verde-600 dark:text-verde-400 flex items-center gap-1.5">
               <ChevronRight size={10} className="text-verde-600 shrink-0" />{line}
             </p>
           ))}
@@ -254,10 +254,10 @@ function ChoiceExercise({
 
   const stateClass = (state: string) => {
     switch (state) {
-      case 'selected': return 'border-blue-500/70 bg-blue-950/40 text-blue-300'
+      case 'selected': return 'border-blue-500/70 bg-blue-950/40 text-blue-100 dark:text-blue-300'
       case 'correct': return 'border-green-600/60 bg-green-950/30 text-green-300'
       case 'wrong': return 'border-red-600/60 bg-red-950/30 text-red-400'
-      default: return 'border-verde-800/30 bg-verde-950/20 text-verde-300 hover:border-verde-600/50 hover:bg-verde-900/20'
+      default: return 'border-verde-800/30 bg-verde-950/20 text-verde-700 dark:text-verde-300 hover:border-verde-600/50 hover:bg-verde-900/20'
     }
   }
 
@@ -293,7 +293,7 @@ function ChoiceExercise({
         <div className="space-y-3">
           {ex.questions.map(q => (
             <div key={q.id}>
-              <p className="text-sm font-semibold text-verde-200 mb-2">{q.text}</p>
+              <p className="text-sm font-semibold text-verde-800 dark:text-verde-200 mb-2">{q.text}</p>
               <div className="flex flex-wrap gap-2">
                 {q.options.map(opt => (
                   <button key={opt.value} type="button" onClick={() => selectGroup(q.id, opt.value)}
@@ -327,9 +327,9 @@ function ChoiceExercise({
 
       {showAnswers && ex.answerPanel && (
         <div className="rounded-xl bg-verde-950/30 border border-verde-800/30 p-3 space-y-1">
-          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">{tEx.correctAnswers}</p>
+          <p className="text-xs font-bold text-verde-600 dark:text-verde-400 uppercase tracking-wide mb-2">{tEx.correctAnswers}</p>
           {ex.answerPanel.map((line, i) => (
-            <p key={i} className="text-xs text-verde-400 flex items-center gap-1.5">
+            <p key={i} className="text-xs text-verde-600 dark:text-verde-400 flex items-center gap-1.5">
               <ChevronRight size={10} className="text-verde-600 shrink-0" />{line}
             </p>
           ))}
@@ -379,7 +379,7 @@ function DialogueExercise({
         <div className="flex flex-wrap gap-1.5 p-3 rounded-xl bg-verde-950/30 border border-verde-800/20">
           <span className="text-xs text-verde-600 mr-1 self-center">Palabras:</span>
           {ex.wordBank.map(w => (
-            <span key={w} className="px-2 py-0.5 rounded-md bg-verde-900/40 border border-verde-700/30 text-xs text-verde-300 font-medium italic">{w}</span>
+            <span key={w} className="px-2 py-0.5 rounded-md bg-verde-900/40 border border-verde-700/30 text-xs text-verde-100 dark:text-verde-300 font-medium italic">{w}</span>
           ))}
         </div>
       )}
@@ -392,8 +392,8 @@ function DialogueExercise({
 
           return (
             <div key={lineIdx} className="flex items-baseline gap-2 flex-wrap leading-relaxed">
-              <span className="text-xs font-bold text-verde-400 shrink-0">{line.speaker}:</span>
-              <span className="text-sm text-verde-200 flex flex-wrap items-baseline gap-1">
+              <span className="text-xs font-bold text-verde-600 dark:text-verde-400 shrink-0">{line.speaker}:</span>
+              <span className="text-sm text-verde-800 dark:text-verde-200 flex flex-wrap items-baseline gap-1">
                 {segments.map((seg, segIdx) => {
                   if (seg.type === 'text') return <span key={segIdx}>{seg.content}</span>
                   const id = seg.content
@@ -410,7 +410,7 @@ function DialogueExercise({
                         'w-24 text-center italic',
                         checked
                           ? isOk ? 'border-green-500 text-green-300' : 'border-red-500 text-red-300'
-                          : 'border-verde-600 text-verde-200 focus:border-verde-400',
+                          : 'border-verde-600 text-verde-800 dark:text-verde-200 focus:border-verde-400',
                       ].join(' ')}
                     />
                   )
@@ -442,9 +442,9 @@ function DialogueExercise({
 
       {showAnswers && ex.answerPanel && (
         <div className="rounded-xl bg-verde-950/30 border border-verde-800/30 p-3 space-y-1">
-          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">{tEx.completeDialogue}</p>
+          <p className="text-xs font-bold text-verde-600 dark:text-verde-400 uppercase tracking-wide mb-2">{tEx.completeDialogue}</p>
           {ex.answerPanel.map((line, i) => (
-            <p key={i} className="text-xs text-verde-400 flex items-center gap-1.5">
+            <p key={i} className="text-xs text-verde-600 dark:text-verde-400 flex items-center gap-1.5">
               <ChevronRight size={10} className="text-verde-600 shrink-0" />{line}
             </p>
           ))}
@@ -480,10 +480,10 @@ function FreeWriteExercise({
       <div className="space-y-2">
         {ex.fields.map(field => (
           <div key={field.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-verde-950/20 border border-verde-900/20">
-            <span className="text-sm text-verde-400 font-medium shrink-0">{field.prefix}</span>
+            <span className="text-sm text-verde-600 dark:text-verde-400 font-medium shrink-0">{field.prefix}</span>
             <input type="text" value={values[field.id] ?? ''} onChange={e => setValues(v => ({ ...v, [field.id]: e.target.value }))}
               placeholder={field.placeholder}
-              className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-verde-200 placeholder:text-verde-700" />
+              className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-verde-900 dark:text-verde-200 placeholder:text-verde-500 dark:placeholder:text-verde-700" />
           </div>
         ))}
       </div>
@@ -497,10 +497,10 @@ function FreeWriteExercise({
 
       {shown && filled > 0 && (
         <div className="rounded-xl bg-verde-950/30 border border-verde-800/30 p-4 space-y-1.5">
-          <p className="text-xs font-bold text-verde-400 uppercase tracking-wide mb-2">{tEx.myPresentation}</p>
+          <p className="text-xs font-bold text-verde-600 dark:text-verde-400 uppercase tracking-wide mb-2">{tEx.myPresentation}</p>
           {ex.fields.map(field => values[field.id]?.trim() && (
-            <p key={field.id} className="text-sm text-verde-300">
-              <span className="font-semibold text-verde-400">{field.prefix}</span> {values[field.id]}
+            <p key={field.id} className="text-sm text-verde-700 dark:text-verde-300">
+              <span className="font-semibold text-verde-600 dark:text-verde-400">{field.prefix}</span> {values[field.id]}
             </p>
           ))}
         </div>
@@ -525,9 +525,9 @@ function ExerciseCard({
           <span className="text-sm font-black text-blue-300">{ex.number}</span>
         </div>
         <div>
-          <h3 className="font-bold text-verde-100 text-base">{ex.title}</h3>
+          <h3 className="font-bold text-verde-900 dark:text-verde-100 text-base">{ex.title}</h3>
           {ex.instruction && (
-            <p className="text-xs text-verde-500 mt-1 leading-relaxed border-l-2 border-blue-700/40 pl-2.5">
+            <p className="text-xs text-verde-600 dark:text-verde-500 mt-1 leading-relaxed border-l-2 border-blue-700/40 pl-2.5">
               {ex.instruction}
             </p>
           )}
@@ -558,10 +558,10 @@ function ScorePanel({ scores, total }: { scores: Record<string, number>; total: 
 
   return (
     <div className="rounded-2xl border border-verde-900/30 bg-verde-950/10 p-6 text-center space-y-2">
-      <p className="text-xs font-semibold text-verde-500 uppercase tracking-wide">{tEx.exercisesResult}</p>
-      <p className="text-5xl font-black text-verde-400">{avg}%</p>
-      <p className="text-sm text-verde-400">{label}</p>
-      <p className="text-xs text-verde-600">{count} {tEx.resultOf} {total} {tEx.exercisesVerified}</p>
+      <p className="text-xs font-semibold text-verde-700 dark:text-verde-500 uppercase tracking-wide">{tEx.exercisesResult}</p>
+      <p className="text-5xl font-black text-verde-600 dark:text-verde-400">{avg}%</p>
+      <p className="text-sm text-verde-600 dark:text-verde-400">{label}</p>
+      <p className="text-xs text-verde-700 dark:text-verde-600">{count} {tEx.resultOf} {total} {tEx.exercisesVerified}</p>
     </div>
   )
 }
@@ -620,8 +620,8 @@ export function LessonExercises({
               className={[
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all',
                 selectedLang === l
-                  ? 'border-blue-500/70 bg-blue-950/40 text-blue-200'
-                  : 'border-verde-900/30 bg-verde-950/10 text-verde-500 hover:text-verde-300 hover:border-verde-800/40',
+                  ? 'border-blue-500/70 bg-blue-950/40 text-white dark:text-blue-200'
+                  : 'border-verde-900/30 bg-verde-950/10 text-verde-700 dark:text-verde-500 hover:text-verde-600 dark:hover:text-verde-300 hover:border-verde-800/40',
               ].join(' ')}
             >
               <span>{LANG_FLAGS[l]}</span>

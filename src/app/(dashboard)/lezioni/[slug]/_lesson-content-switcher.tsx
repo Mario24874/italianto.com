@@ -130,9 +130,13 @@ export function LessonContentSwitcher({
       {vocabulary.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <BookOpen size={16} className="text-verde-500" />
-            <h2 className="font-semibold text-verde-300 text-sm uppercase tracking-wide">
-              Vocabolario ({vocabulary.length} parole)
+            <BookOpen size={16} className="text-verde-600 dark:text-verde-500" />
+            <h2 className="font-semibold text-verde-700 dark:text-verde-200 text-sm uppercase tracking-wide">
+              {lang === 'es'
+                ? `Vocabulario (${vocabulary.length} palabras)`
+                : lang === 'en'
+                ? `Vocabulary (${vocabulary.length} words)`
+                : `Vocabolario (${vocabulary.length} parole)`}
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -153,8 +157,8 @@ export function LessonContentSwitcher({
       {/* ── Grammar Notes ── */}
       {grammarNotes && (
         <div>
-          <h2 className="font-semibold text-verde-300 text-sm uppercase tracking-wide mb-3">
-            {lang === 'es' ? 'Note di grammatica'
+          <h2 className="font-semibold text-verde-700 dark:text-verde-200 text-sm uppercase tracking-wide mb-3">
+            {lang === 'es' ? 'Notas de gramática'
               : lang === 'en' ? 'Grammar notes'
               : 'Note grammaticali'}
           </h2>

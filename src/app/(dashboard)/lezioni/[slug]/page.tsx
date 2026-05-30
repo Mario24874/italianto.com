@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect, notFound } from 'next/navigation'
+
+export const dynamic = 'force-dynamic'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { getServerLang } from '@/lib/lang-server'
 import type { PlanType } from '@/lib/plans'

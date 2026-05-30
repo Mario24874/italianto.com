@@ -44,6 +44,7 @@ interface LessonFormData {
   slug: string
   level: LessonLevel
   status: LessonStatus
+  plan_required: string
   content_html: string
   grammar_notes: string
   vocabulary: VocabularyItem[]
@@ -59,6 +60,7 @@ const emptyForm = (): LessonFormData => ({
   slug: '',
   level: 'A1',
   status: 'draft',
+  plan_required: 'free',
   content_html: '',
   grammar_notes: '',
   vocabulary: [],
@@ -737,27 +739,38 @@ function AudioSection({
       ) : (
         <div className="space-y-2">
           {clips.map((clip, i) => (
-            <div key={clip.id} className="flex items-center gap-2 rounded-lg border border-amber-800/20 bg-amber-950/20 px-3 py-2">
-              <Headphones size={13} className="text-amber-500 shrink-0" />
-              <input
-                type="text"
-                value={clip.title}
-                onChange={e => updateClip(i, 'title', e.target.value)}
-                placeholder="Título del audio"
-                className="flex-1 bg-transparent text-xs text-amber-200 placeholder:text-amber-700 focus:outline-none"
-              />
-              <input
-                type="text"
-                value={clip.description ?? ''}
-                onChange={e => updateClip(i, 'description', e.target.value)}
-                placeholder="Descripción (opcional)"
-                className="flex-1 bg-transparent text-xs text-amber-400 placeholder:text-amber-700 focus:outline-none hidden sm:block"
-              />
-              <audio src={clip.url} controls className="h-6 w-28 shrink-0" />
-              <button type="button" onClick={() => removeClip(i)}
-                className="p-1 text-red-500 hover:text-red-400 transition-colors shrink-0">
-                <X size={13} />
-              </button>
+            <div key={clip.id} className="rounded-lg border border-amber-800/20 bg-amber-950/20 px-3 py-2 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Headphones size={13} className="text-amber-500 shrink-0" />
+                <input
+                  type="text"
+                  value={clip.title}
+                  onChange={e => updateClip(i, 'title', e.target.value)}
+                  placeholder="Título del audio"
+                  className="flex-1 bg-transparent text-xs text-amber-200 placeholder:text-amber-700 focus:outline-none"
+                />
+                <audio src={clip.url} controls className="h-6 w-28 shrink-0" />
+                <button type="button" onClick={() => removeClip(i)}
+                  className="p-1 text-red-500 hover:text-red-400 transition-colors shrink-0">
+                  <X size={13} />
+                </button>
+              </div>
+              <div className="flex gap-2 pl-5">
+                <input
+                  type="text"
+                  value={clip.description ?? ''}
+                  onChange={e => updateClip(i, 'description', e.target.value)}
+                  placeholder="Descripción (opcional)"
+                  className="flex-1 bg-transparent text-xs text-amber-400 placeholder:text-amber-700 focus:outline-none border-b border-amber-800/20 pb-0.5"
+                />
+                <input
+                  type="text"
+                  value={clip.section ?? ''}
+                  onChange={e => updateClip(i, 'section', e.target.value)}
+                  placeholder="Sección (ej: Los Meses)"
+                  className="flex-1 bg-transparent text-xs text-amber-500 placeholder:text-amber-800 focus:outline-none border-b border-amber-800/20 pb-0.5"
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -1285,6 +1298,7 @@ function LessonModal({
       slug: lesson.slug,
       level: lesson.level,
       status: lesson.status,
+      plan_required: lesson.plan_required ?? 'free',
       content_html: lesson.content_html,
       grammar_notes: lesson.grammar_notes,
       vocabulary: lesson.vocabulary ?? [],
@@ -1352,6 +1366,7 @@ function LessonModal({
           slug: form.slug,
           level: form.level,
           status: form.status,
+          plan_required: form.plan_required,
           content_html: form.content_html,
           grammar_notes: form.grammar_notes,
           vocabulary: form.vocabulary.filter(v => v.word.trim()),
@@ -1438,8 +1453,8 @@ function LessonModal({
               )}
             </div>
 
-            {/* ── Level + Status ── */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* ── Level + Status + Plan ── */}
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-medium text-verde-400 mb-1.5">Nivel</label>
                 <select value={form.level} onChange={e => setField('level', e.target.value as LessonLevel)}
@@ -1453,6 +1468,16 @@ function LessonModal({
                   className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-sm text-verde-200 focus:outline-none focus:border-verde-600">
                   <option value="draft">Borrador</option>
                   <option value="published">Publicado</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-verde-400 mb-1.5">Plan requerido</label>
+                <select value={form.plan_required} onChange={e => setField('plan_required', e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-verde-950/50 border border-verde-800/40 text-sm text-verde-200 focus:outline-none focus:border-verde-600">
+                  <option value="free">Free</option>
+                  <option value="essenziale">Essenziale</option>
+                  <option value="avanzato">Avanzato</option>
+                  <option value="maestro">Maestro</option>
                 </select>
               </div>
             </div>
