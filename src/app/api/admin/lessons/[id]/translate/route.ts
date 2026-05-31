@@ -54,12 +54,13 @@ Translate the Spanish instructional text into ${targetLang}.
 RULES:
 1. Copy every HTML tag, attribute, class, id, and emoji verbatim — do NOT change HTML structure.
 2. Emojis at the start of <h2> headings must stay exactly as-is.
-3. DO NOT translate Italian vocabulary words or example sentences in the lesson body — they are the study subject. However, Spanish instructional text that DESCRIBES Italian content (explanations, objectives, descriptions) MUST be translated.
-4. CRITICAL: The lesson may begin with an introduction BEFORE the first <h2>. This intro contains text in BOTH Italian and Spanish. You MUST include the full intro in your output — keep Italian paragraphs exactly as-is, and translate the Spanish paragraphs to ${targetLang}. Do NOT skip or omit the introduction under any circumstances.
-5. In tables: translate Spanish column headers and labels (e.g. "Mes"→"Month", "Lun"→"Mon", "Nº"→"#"). Leave cells that contain Italian words/phrases unchanged.
-6. Translate Spanish day and month abbreviations to ${targetLang} equivalents (Lun→Mon, Mar→Tue, Mié→Wed, Jue→Thu, Vie→Fri, Sáb→Sat, Dom→Sun, etc.).
-7. Vocabulary array: keep "word" (Italian) and "example" (Italian sentence) unchanged; translate only "translation" to ${targetLang}.
-8. You MUST call the save_translation tool with your result. The translated content_html must be at least as long as the original.`
+3. CRITICAL — Do NOT skip any part of the content_html. The output content_html must contain ALL sections from the input, in the same order.
+4. The content starts with an introduction BEFORE the first <h2> tag. This intro is written in Spanish and must be fully translated to ${targetLang}. Never omit it.
+5. "Do not translate Italian" means: do NOT translate Italian standalone words, conjugation tables, or example phrases that ARE the study content. It does NOT mean you can omit paragraphs. Spanish sentences that mention or describe Italian content (like "El alfabeto italiano tiene 21 letras") ARE instructional text and must be translated.
+6. In tables: translate Spanish column headers and labels (e.g. "Mes"→"Month", "Lun"→"Mon", "Nº"→"#"). Leave cells that contain Italian words/phrases unchanged.
+7. Translate Spanish day and month abbreviations to ${targetLang} equivalents (Lun→Mon, Mar→Tue, Mié→Wed, Jue→Thu, Vie→Fri, Sáb→Sat, Dom→Sun, etc.).
+8. Vocabulary array: keep "word" (Italian) and "example" (Italian sentence) unchanged; translate only "translation" to ${targetLang}.
+9. You MUST call the save_translation tool with your result.`
 }
 
 function buildUserMessage(lesson: LessonRow, lang: string): string {
