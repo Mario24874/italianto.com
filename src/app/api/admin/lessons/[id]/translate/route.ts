@@ -22,30 +22,36 @@ function splitIntro(html: string): { intro: string; body: string } {
 }
 
 /**
- * Return the best Spanish source HTML to translate from.
+ * Return the best source HTML to translate from, along with its language.
  * lesson.content_html (Gemini import) may start directly at <h2> with no intro.
  * Falls back to another language's translation that has an intro — but NEVER
  * to the target language itself (that would be circular: translating ES→ES).
  */
-function getSourceHtml(lesson: LessonRow, targetLang: string): string {
+function getSourceHtml(lesson: LessonRow, targetLang: string): { html: string; sourceLang: string } {
   const raw = lesson.content_html ?? ''
-  if (splitIntro(raw).intro) return raw
+  if (splitIntro(raw).intro) return { html: raw, sourceLang: 'es' }
 
-  // Check other translations for one that has an intro, skipping the target language
   for (const lang of ['it', 'es', 'en'] as const) {
-    if (lang === targetLang) continue  // never use the target as its own source
+    if (lang === targetLang) continue
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const html = ((lesson as any).translations?.[lang]?.content_html ?? '') as string
-    if (html && splitIntro(html).intro) return html
+    if (html && splitIntro(html).intro) return { html, sourceLang: lang }
   }
 
-  return raw
+  return { html: raw, sourceLang: 'es' }
+}
+
+/** Strip markdown code fences that haiku sometimes adds despite instructions */
+function stripFences(text: string): string {
+  const fenced = text.match(/^```(?:html)?\s*([\s\S]*?)```\s*$/)
+  return fenced ? fenced[1].trim() : text.trim()
 }
 
 /** Translate a short HTML snippet with a direct call — no tool use needed */
 async function translateHtmlSnippet(
   client: Anthropic,
   html: string,
+  sourceLang: string,
   targetLang: string
 ): Promise<string> {
   const response = await client.messages.create({
@@ -53,17 +59,17 @@ async function translateHtmlSnippet(
     max_tokens: 2000,
     messages: [{
       role: 'user',
-      content: `Translate the following HTML from Spanish to ${targetLang}.
+      content: `Translate the following HTML from ${sourceLang} to ${targetLang}.
 Rules:
 - Preserve ALL HTML tags, attributes, classes, and emojis exactly as-is.
-- Only translate the Spanish text content between tags.
-- Do NOT add any explanation, preamble, or markdown — output the HTML directly.
+- Only translate the ${sourceLang} text content between tags.
+- Do NOT add any explanation, preamble, or markdown code fences — output the HTML directly.
 
 ${html}`,
     }],
   })
   const block = response.content.find(b => b.type === 'text')
-  return block?.type === 'text' ? block.text.trim() : ''
+  return block?.type === 'text' ? stripFences(block.text) : ''
 }
 
 const BODY_TOOL: Anthropic.Tool = {
@@ -98,23 +104,26 @@ const BODY_TOOL: Anthropic.Tool = {
   },
 }
 
-function buildBodyPrompt(lang: string): string {
+function buildBodyPrompt(lang: string, srcLang: string): string {
   const targetLang = LANG_NAMES[lang] ?? lang
+  const sourceLang = LANG_NAMES[srcLang] ?? srcLang
   return `You are an HTML-aware translator for an Italian language learning platform.
-Translate Spanish instructional text to ${targetLang}.
+Translate ${sourceLang} instructional text to ${targetLang}.
 
 RULES:
 1. Preserve every HTML tag, attribute, class, id, and emoji verbatim.
 2. Emojis at the start of <h2> headings stay exactly as-is.
-3. Do NOT translate Italian: standalone words, conjugation tables, or study-content phrases. Spanish sentences that describe Italian ARE instructional and must be translated.
-4. Tables: translate Spanish column headers (Mes→Month, Lun→Mon, Nº→#). Leave Italian-word cells unchanged.
-5. Translate Spanish day/month abbreviations (Lun→Mon, Mar→Tue, Mié→Wed, Jue→Thu, Vie→Fri, Sáb→Sat, Dom→Sun).
+3. Do NOT translate Italian standalone words, conjugation tables, or study-content phrases. Sentences that describe Italian ARE instructional and must be translated.
+4. Tables: translate column headers to ${targetLang} (Mes→Month/Mese, Lun→Mon/Lun, Nº→#). Leave Italian-word cells unchanged.
+5. Translate day/month abbreviations to ${targetLang} equivalents.
 6. Vocabulary: keep "word" and "example" (Italian) unchanged; translate only "translation".
 7. Call the save_translation tool with your result.`
 }
 
-function buildBodyMessage(lesson: LessonRow, lang: string, body: string): string {
-  return `Translate this Italian lesson body from Spanish to ${LANG_NAMES[lang] ?? lang}.
+function buildBodyMessage(lesson: LessonRow, lang: string, body: string, srcLang: string): string {
+  const sourceLang = LANG_NAMES[srcLang] ?? srcLang
+  const targetLang = LANG_NAMES[lang] ?? lang
+  return `Translate this Italian lesson body from ${sourceLang} to ${targetLang}.
 
 body_html (from the first <h2> to the end):
 ${body}
@@ -137,27 +146,33 @@ async function processTranslation(
   try {
     const client = new Anthropic({ apiKey })
     const targetLang = LANG_NAMES[lang] ?? lang
-    const sourceHtml = getSourceHtml(lesson, lang)
+    const { html: sourceHtml, sourceLang } = getSourceHtml(lesson, lang)
     const { intro, body } = splitIntro(sourceHtml)
+    const sourceLangLabel = LANG_NAMES[sourceLang] ?? sourceLang
 
-    console.log(`[translate:${lang}] intro=${intro.length}chars body=${body.length}chars lesson=${lessonId}`)
+    console.log(`[translate:${lang}] source=${sourceLang} intro=${intro.length}chars body=${body.length}chars lesson=${lessonId}`)
 
     // ── Step 1: translate intro independently (if it exists) ──────────────────
-    // Isolated call → model has nothing else to do, cannot skip the intro.
     let introHtml = ''
     if (intro) {
-      introHtml = await translateHtmlSnippet(client, intro, targetLang)
-      console.log(`[translate:${lang}] intro translated → ${introHtml.length}chars`)
+      if (sourceLang === lang) {
+        // Intro is already in the target language — copy as-is, no translation
+        introHtml = intro
+        console.log(`[translate:${lang}] intro copied as-is (source=target)`)
+      } else {
+        introHtml = await translateHtmlSnippet(client, intro, sourceLangLabel, targetLang)
+        console.log(`[translate:${lang}] intro translated ${sourceLang}→${lang} → ${introHtml.length}chars`)
+      }
     }
 
     // ── Step 2: translate body + grammar + vocabulary with tool_use ───────────
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 16000,
-      system: buildBodyPrompt(lang),
+      system: buildBodyPrompt(lang, sourceLang),
       tools: [BODY_TOOL],
       tool_choice: { type: 'tool', name: 'save_translation' },
-      messages: [{ role: 'user', content: buildBodyMessage(lesson, lang, body) }],
+      messages: [{ role: 'user', content: buildBodyMessage(lesson, lang, body, sourceLang) }],
     })
 
     const toolBlock = message.content.find(b => b.type === 'tool_use')
