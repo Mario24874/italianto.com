@@ -20,9 +20,13 @@ const TRANSLATION_TOOL: Anthropic.Tool = {
   input_schema: {
     type: 'object' as const,
     properties: {
-      content_html: {
+      intro_html: {
         type: 'string',
-        description: 'The translated HTML. Every tag, attribute, class, and emoji must remain identical. Only translate Spanish explanatory text.',
+        description: 'Translated HTML of the INTRODUCTION — everything that appears BEFORE the first <h2> tag. Preserve all tags, classes, and emojis. If the original intro is empty, use empty string.',
+      },
+      body_html: {
+        type: 'string',
+        description: 'Translated HTML of the BODY — everything starting from the first <h2> tag to the end. Every tag, attribute, class, and emoji must remain identical.',
       },
       grammar_notes: {
         type: 'string',
@@ -42,8 +46,15 @@ const TRANSLATION_TOOL: Anthropic.Tool = {
         },
       },
     },
-    required: ['content_html', 'grammar_notes', 'vocabulary'],
+    required: ['intro_html', 'body_html', 'grammar_notes', 'vocabulary'],
   },
+}
+
+/** Split HTML into the intro (before first <h2>) and the body (from first <h2> onwards) */
+function splitIntro(html: string): { intro: string; body: string } {
+  const match = html.match(/^([\s\S]*?)(<h2[\s>][\s\S]*)$/i)
+  if (!match) return { intro: '', body: html }
+  return { intro: match[1].trim(), body: match[2] }
 }
 
 function buildSystemPrompt(lang: string): string {
@@ -54,21 +65,24 @@ Translate the Spanish instructional text into ${targetLang}.
 RULES:
 1. Copy every HTML tag, attribute, class, id, and emoji verbatim — do NOT change HTML structure.
 2. Emojis at the start of <h2> headings must stay exactly as-is.
-3. CRITICAL — Do NOT skip any part of the content_html. The output content_html must contain ALL sections from the input, in the same order.
-4. The content starts with an introduction BEFORE the first <h2> tag. This intro is written in Spanish and must be fully translated to ${targetLang}. Never omit it.
-5. "Do not translate Italian" means: do NOT translate Italian standalone words, conjugation tables, or example phrases that ARE the study content. It does NOT mean you can omit paragraphs. Spanish sentences that mention or describe Italian content (like "El alfabeto italiano tiene 21 letras") ARE instructional text and must be translated.
-6. In tables: translate Spanish column headers and labels (e.g. "Mes"→"Month", "Lun"→"Mon", "Nº"→"#"). Leave cells that contain Italian words/phrases unchanged.
-7. Translate Spanish day and month abbreviations to ${targetLang} equivalents (Lun→Mon, Mar→Tue, Mié→Wed, Jue→Thu, Vie→Fri, Sáb→Sat, Dom→Sun, etc.).
-8. Vocabulary array: keep "word" (Italian) and "example" (Italian sentence) unchanged; translate only "translation" to ${targetLang}.
-9. You MUST call the save_translation tool with your result.`
+3. The content is split into TWO separate fields: intro_html (before the first <h2>) and body_html (from the first <h2> to the end). Translate BOTH completely.
+4. "Do not translate Italian" means: do NOT translate Italian standalone words, conjugation tables, or example phrases that ARE the study content. Spanish sentences that describe Italian (e.g. "El alfabeto italiano tiene 21 letras") ARE instructional text and must be translated.
+5. In tables: translate Spanish column headers and labels (e.g. "Mes"→"Month", "Lun"→"Mon", "Nº"→"#"). Leave cells that contain Italian words/phrases unchanged.
+6. Translate Spanish day and month abbreviations to ${targetLang} equivalents (Lun→Mon, Mar→Tue, Mié→Wed, Jue→Thu, Vie→Fri, Sáb→Sat, Dom→Sun, etc.).
+7. Vocabulary array: keep "word" (Italian) and "example" (Italian sentence) unchanged; translate only "translation" to ${targetLang}.
+8. You MUST call the save_translation tool with your result.`
 }
 
 function buildUserMessage(lesson: LessonRow, lang: string): string {
   const vocabJson = JSON.stringify(lesson.vocabulary ?? [])
+  const { intro, body } = splitIntro(lesson.content_html ?? '')
   return `Translate this Italian lesson from Spanish to ${LANG_NAMES[lang] ?? lang}.
 
-content_html:
-${lesson.content_html}
+INTRO (everything before the first <h2> — translate this into intro_html):
+${intro || '(empty)'}
+
+BODY (from the first <h2> to the end — translate this into body_html):
+${body}
 
 grammar_notes:
 ${lesson.grammar_notes ?? ''}
@@ -109,11 +123,20 @@ async function processTranslation(
       return
     }
 
-    const translation = toolBlock.input as LessonTranslation
-
-    if (!translation.content_html) {
-      rejectTranslateJob(jobId, 'Traducción incompleta — falta content_html.')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = toolBlock.input as any
+    if (!raw.body_html) {
+      rejectTranslateJob(jobId, 'Traducción incompleta — falta body_html.')
       return
+    }
+
+    // Reconstruct full content_html from the two separately-translated fields
+    const introHtml = (raw.intro_html ?? '').trim()
+    const bodyHtml = (raw.body_html ?? '').trim()
+    const translation: LessonTranslation = {
+      content_html: introHtml ? `${introHtml}\n${bodyHtml}` : bodyHtml,
+      grammar_notes: raw.grammar_notes ?? '',
+      vocabulary: raw.vocabulary ?? [],
     }
 
     const supabase = getSupabaseAdmin()

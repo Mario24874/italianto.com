@@ -32,12 +32,12 @@ function currentWeekStart(): string {
 }
 
 const LEVEL_COLORS: Record<LessonLevel, string> = {
-  A1: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/40',
-  A2: 'bg-green-900/50 text-green-300 border-green-700/40',
-  B1: 'bg-yellow-900/50 text-yellow-300 border-yellow-700/40',
-  B2: 'bg-orange-900/50 text-orange-300 border-orange-700/40',
-  C1: 'bg-red-900/50 text-red-300 border-red-700/40',
-  C2: 'bg-purple-900/50 text-purple-300 border-purple-700/40',
+  A1: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/40',
+  A2: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700/40',
+  B1: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700/40',
+  B2: 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-700/40',
+  C1: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700/40',
+  C2: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-700/40',
 }
 
 export async function generateMetadata(
@@ -181,14 +181,14 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           <div>
             {lockedByProgress ? (
               <>
-                <h2 className="text-xl font-bold text-verde-200">{t.lessons.locked}</h2>
+                <h2 className="text-xl font-bold text-verde-700 dark:text-verde-200">{t.lessons.locked}</h2>
                 <p className="text-verde-500 text-sm mt-2 max-w-sm mx-auto">
                   {t.lessons.lockedMsg}
                 </p>
               </>
             ) : quotaExhausted ? (
               <>
-                <h2 className="text-xl font-bold text-verde-200">{t.lessons.weeklyLimit}</h2>
+                <h2 className="text-xl font-bold text-verde-700 dark:text-verde-200">{t.lessons.weeklyLimit}</h2>
                 <p className="text-verde-500 text-sm mt-2 max-w-sm mx-auto">
                   {PLAN_LABELS_LESSON[userPlan]} · {weekLimit} {weekLimit === 1 ? t.lessons.lesson : t.lessons.lessonsWord} {t.lessons.perWeek}.
                   {' '}{t.lessons.weeklyReset}
@@ -196,7 +196,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               </>
             ) : (
               <>
-                <h2 className="text-xl font-bold text-verde-200">{t.lessons.subscribeToContinue}</h2>
+                <h2 className="text-xl font-bold text-verde-700 dark:text-verde-200">{t.lessons.subscribeToContinue}</h2>
                 <p className="text-verde-500 text-sm mt-2 max-w-xs mx-auto">
                   {t.lessons.subscribeMsg}
                 </p>

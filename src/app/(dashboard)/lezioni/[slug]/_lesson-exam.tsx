@@ -22,19 +22,23 @@ interface ResultInfo {
 function getResult(score: number): ResultInfo {
   if (score >= 10) return {
     score, status: 'passed', labelKey: 'excellent',
-    color: 'text-emerald-400', icon: <Trophy size={32} className="text-emerald-400" />,
+    color: 'text-emerald-600 dark:text-emerald-400',
+    icon: <Trophy size={32} className="text-emerald-600 dark:text-emerald-400" />,
   }
   if (score >= 9) return {
     score, status: 'passed', labelKey: 'good',
-    color: 'text-green-400', icon: <CheckCircle2 size={32} className="text-green-400" />,
+    color: 'text-green-600 dark:text-green-400',
+    icon: <CheckCircle2 size={32} className="text-green-600 dark:text-green-400" />,
   }
   if (score >= 8) return {
     score, status: 'passed', labelKey: 'passed',
-    color: 'text-verde-400', icon: <CheckCircle2 size={32} className="text-verde-400" />,
+    color: 'text-verde-600 dark:text-verde-400',
+    icon: <CheckCircle2 size={32} className="text-verde-600 dark:text-verde-400" />,
   }
   return {
     score, status: 'failed', labelKey: 'failed',
-    color: 'text-red-400', icon: <XCircle size={32} className="text-red-400" />,
+    color: 'text-red-600 dark:text-red-400',
+    icon: <XCircle size={32} className="text-red-600 dark:text-red-400" />,
   }
 }
 
@@ -117,7 +121,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
             <BrainCircuit size={24} className="text-verde-400" />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-verde-100 text-lg">{te.title}</h3>
+            <h3 className="font-bold text-verde-800 dark:text-verde-100 text-lg">{te.title}</h3>
             <p className="text-verde-500 text-sm mt-0.5">
               {te.description}
               {attempts > 0 && (
@@ -155,7 +159,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
         <div className="flex flex-col items-center gap-4 text-center">
           <Loader2 size={32} className="animate-spin text-verde-500" />
           <div>
-            <p className="font-semibold text-verde-200">{te.generating}</p>
+            <p className="font-semibold text-verde-700 dark:text-verde-200">{te.generating}</p>
             <p className="text-verde-600 text-sm mt-1">{te.wait}</p>
           </div>
         </div>
@@ -204,7 +208,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
                 key={i}
                 className={`rounded-xl p-3 border ${isCorrect ? 'border-verde-800/40 bg-verde-950/30' : 'border-red-800/40 bg-red-950/20'}`}
               >
-                <p className="text-sm font-medium text-verde-200 mb-1">{i + 1}. {q.question}</p>
+                <p className="text-sm font-medium text-verde-700 dark:text-verde-200 mb-1">{i + 1}. {q.question}</p>
                 <p className={`text-xs ${isCorrect ? 'text-verde-400' : 'text-red-400'}`}>
                   {isCorrect ? '✓' : '✗'} Tu: {userAnswer ? q.options.find(o => o.startsWith(userAnswer + ')')) ?? userAnswer : '—'}
                 </p>
@@ -230,7 +234,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
   return (
     <div className="mt-10 space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-verde-100 text-lg flex items-center gap-2">
+        <h3 className="font-bold text-verde-800 dark:text-verde-100 text-lg flex items-center gap-2">
           <BrainCircuit size={20} className="text-verde-400" />
           {te.title} — {questions.length} {te.questions}
         </h3>
@@ -245,7 +249,7 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
             key={i}
             className="rounded-2xl border border-verde-900/30 bg-verde-950/20 p-4"
           >
-            <p className="font-medium text-verde-200 text-sm mb-3">
+            <p className="font-medium text-verde-700 dark:text-verde-200 text-sm mb-3">
               <span className="text-verde-500 mr-1.5">{i + 1}.</span>
               {q.question}
             </p>
@@ -260,8 +264,8 @@ export function LessonExam({ slug, initialProgress }: LessonExamProps) {
                     onClick={() => setAnswers(prev => ({ ...prev, [i]: letter }))}
                     className={`text-left px-3 py-2.5 rounded-xl text-sm transition-all border ${
                       selected
-                        ? 'border-verde-600 bg-verde-900/50 text-verde-100'
-                        : 'border-verde-900/30 bg-verde-950/10 text-verde-400 hover:border-verde-800/50 hover:text-verde-300'
+                        ? 'border-verde-600 bg-verde-100 dark:bg-verde-900/50 text-verde-800 dark:text-verde-100'
+                        : 'border-verde-300 dark:border-verde-900/30 bg-verde-50 dark:bg-verde-950/10 text-verde-700 dark:text-verde-400 hover:border-verde-500 dark:hover:border-verde-800/50 hover:text-verde-800 dark:hover:text-verde-300'
                     }`}
                   >
                     {option}

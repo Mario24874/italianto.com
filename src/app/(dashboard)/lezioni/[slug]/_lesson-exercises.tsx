@@ -67,17 +67,17 @@ function ResultBox({ correct, total }: { correct: number; total: number }) {
   const of_ = tEx.resultOf
   const cor = tEx.resultCorrect
   if (correct === total) return (
-    <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-green-950/40 border border-green-700/40 text-green-400 text-sm font-semibold">
+    <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-green-100 dark:bg-green-950/40 border border-green-300 dark:border-green-700/40 text-green-700 dark:text-green-400 text-sm font-semibold">
       <CheckCircle2 size={16} /> {tEx.resultPerfect} {correct} {of_} {total} {cor}.
     </div>
   )
   if (correct === 0) return (
-    <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-red-950/30 border border-red-700/40 text-red-400 text-sm font-semibold">
+    <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-red-100 dark:bg-red-950/30 border border-red-300 dark:border-red-700/40 text-red-700 dark:text-red-400 text-sm font-semibold">
       <XCircle size={16} /> {tEx.resultNone}
     </div>
   )
   return (
-    <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-yellow-950/30 border border-yellow-700/40 text-yellow-400 text-sm font-semibold">
+    <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-yellow-100 dark:bg-yellow-950/30 border border-yellow-300 dark:border-yellow-700/40 text-yellow-700 dark:text-yellow-400 text-sm font-semibold">
       <CheckCircle2 size={16} /> {correct} {of_} {total} {cor}. {tEx.resultAlmost}
     </div>
   )
@@ -129,8 +129,8 @@ function FillBlankExercise({
                   'flex-1 min-w-0 px-3 py-1.5 rounded-lg text-sm border transition-colors bg-verde-950/40 outline-none',
                   checked
                     ? ok
-                      ? 'border-green-600/60 text-green-300 bg-green-950/30'
-                      : 'border-red-600/60 text-red-300 bg-red-950/30'
+                      ? 'border-green-600/60 text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-950/30'
+                      : 'border-red-600/60 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/30'
                     : 'border-verde-800/40 text-verde-900 dark:text-verde-200 focus:border-verde-500',
                 ].join(' ')}
               />
@@ -254,10 +254,10 @@ function ChoiceExercise({
 
   const stateClass = (state: string) => {
     switch (state) {
-      case 'selected': return 'border-blue-500/70 bg-blue-950/40 text-blue-100 dark:text-blue-300'
-      case 'correct': return 'border-green-600/60 bg-green-950/30 text-green-300'
-      case 'wrong': return 'border-red-600/60 bg-red-950/30 text-red-400'
-      default: return 'border-verde-800/30 bg-verde-950/20 text-verde-700 dark:text-verde-300 hover:border-verde-600/50 hover:bg-verde-900/20'
+      case 'selected': return 'border-blue-500/70 bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300'
+      case 'correct': return 'border-green-600/60 bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-300'
+      case 'wrong': return 'border-red-600/60 bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400'
+      default: return 'border-verde-300 dark:border-verde-800/30 bg-verde-50 dark:bg-verde-950/20 text-verde-700 dark:text-verde-300 hover:border-verde-500 dark:hover:border-verde-600/50 hover:bg-verde-100 dark:hover:bg-verde-900/20'
     }
   }
 
@@ -379,7 +379,7 @@ function DialogueExercise({
         <div className="flex flex-wrap gap-1.5 p-3 rounded-xl bg-verde-950/30 border border-verde-800/20">
           <span className="text-xs text-verde-600 mr-1 self-center">Palabras:</span>
           {ex.wordBank.map(w => (
-            <span key={w} className="px-2 py-0.5 rounded-md bg-verde-900/40 border border-verde-700/30 text-xs text-verde-100 dark:text-verde-300 font-medium italic">{w}</span>
+            <span key={w} className="px-2 py-0.5 rounded-md bg-verde-100 dark:bg-verde-900/40 border border-verde-300 dark:border-verde-700/30 text-xs text-verde-800 dark:text-verde-300 font-medium italic">{w}</span>
           ))}
         </div>
       )}
@@ -409,7 +409,7 @@ function DialogueExercise({
                         'border-b-2 bg-transparent text-sm outline-none px-1 transition-colors',
                         'w-24 text-center italic',
                         checked
-                          ? isOk ? 'border-green-500 text-green-300' : 'border-red-500 text-red-300'
+                          ? isOk ? 'border-green-500 text-green-700 dark:text-green-300' : 'border-red-500 text-red-700 dark:text-red-300'
                           : 'border-verde-600 text-verde-800 dark:text-verde-200 focus:border-verde-400',
                       ].join(' ')}
                     />
