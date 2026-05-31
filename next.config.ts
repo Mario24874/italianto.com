@@ -2,6 +2,15 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Next.js 15.5+ standalone mode adds an internal proxy that defaults to 1MB.
+  // Without this, binary FormData (DOCX uploads) is silently truncated → mammoth crashes → 502.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  experimental: {
+    proxyClientMaxBodySize: '20mb',
+  } as any,
+  serverActions: {
+    bodySizeLimit: '20mb',
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
