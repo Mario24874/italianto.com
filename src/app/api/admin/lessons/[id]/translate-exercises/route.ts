@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 import { isAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import type { Exercise, ExerciseTranslations, LessonRow } from '@/types'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 90
 
 const LANG_NAMES: Record<string, string> = {
   en: 'English',
@@ -19,7 +20,6 @@ function findSource(lesson: Pick<LessonRow, 'exercises' | 'exercise_translations
   const exTr = (lesson.exercise_translations ?? {}) as ExerciseTranslations
   const legacyCount = lesson.exercises?.length ?? 0
 
-  // Find best translation (most exercises)
   let bestTr: { exercises: Exercise[]; sourceLang: string } | null = null
   for (const lang of ['it', 'es', 'en'] as const) {
     if ((exTr[lang]?.length ?? 0) > (bestTr?.exercises.length ?? 0)) {
@@ -27,8 +27,6 @@ function findSource(lesson: Pick<LessonRow, 'exercises' | 'exercise_translations
     }
   }
 
-  // Prefer legacy exercises[] when it has MORE items (includes manually-added exercises).
-  // Legacy exercises were always generated in Spanish (original hardcoded language: 'es').
   if (legacyCount > 0 && legacyCount >= (bestTr?.exercises.length ?? 0)) {
     return { exercises: lesson.exercises!, sourceLang: 'es' }
   }
@@ -40,7 +38,6 @@ function buildPrompt(exercises: Exercise[], sourceLang: string, targetLang: stri
   const src = LANG_NAMES[sourceLang] ?? sourceLang
   const tgt = LANG_NAMES[targetLang] ?? targetLang
   return `You are a professional translator for an Italian language learning app.
-
 Translate the following interactive exercises from ${src} to ${tgt}.
 
 RULES:
@@ -48,10 +45,26 @@ RULES:
 2. DO NOT translate: "answer" fields (correct Italian responses), "wordBank" entries (Italian words), dialogue "lines[].text" (Italian dialogue), "answerPanel" entries, letter options (A–Z) in choice exercises
 3. For "options[].value": translate if descriptive label (e.g. "Formal", "Informal", "Both"); keep if Italian content or single letters
 4. Keep ALL structural fields exactly as-is: id, type, number, multiSelect, answers, correct, wordBank, lines, answerPanel
-5. Return ONLY a valid JSON array — no markdown, no backticks
+5. Call the save_exercises tool with the translated array.
 
 SOURCE EXERCISES:
 ${JSON.stringify(exercises, null, 2)}`
+}
+
+const EXERCISES_TOOL: Anthropic.Tool = {
+  name: 'save_exercises',
+  description: 'Save the translated exercises array.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      exercises: {
+        type: 'array',
+        description: 'Translated exercises with the same structure as the input. Every structural field preserved, only instructional text translated.',
+        items: { type: 'object' as const },
+      },
+    },
+    required: ['exercises'],
+  },
 }
 
 export async function POST(
@@ -60,8 +73,8 @@ export async function POST(
 ) {
   if (!(await isAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY no configurada' }, { status: 500 })
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY no configurada' }, { status: 500 })
 
   const { id } = await params
   const body = await req.json()
@@ -83,10 +96,10 @@ export async function POST(
   const source = findSource(lesson)
 
   if (!source) {
-    return NextResponse.json({ error: 'No hay ejercicios para traducir. Importa ejercicios primero y guarda la lección.' }, { status: 400 })
+    return NextResponse.json({ error: 'No hay ejercicios para traducir. Importa ejercicios primero.' }, { status: 400 })
   }
 
-  // If source lang == target, just store the source as-is (no translation needed)
+  // Same-language: copy as-is, no translation needed
   if (source.sourceLang === lang) {
     const existingTr = ((lesson.exercise_translations ?? {}) as ExerciseTranslations)
     const updatedTr: ExerciseTranslations = { ...existingTr, [lang]: source.exercises }
@@ -95,52 +108,36 @@ export async function POST(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .update({ exercise_translations: updatedTr as any, updated_at: new Date().toISOString() })
       .eq('id', id)
-    if (updateErr) {
-      const msg = updateErr instanceof Error ? updateErr.message : String(updateErr)
-      return NextResponse.json({ error: msg }, { status: 500 })
-    }
+    if (updateErr) return NextResponse.json({ error: String(updateErr) }, { status: 500 })
     return NextResponse.json({ exercises: source.exercises, lang })
   }
 
-  const prompt = buildPrompt(source.exercises, source.sourceLang, lang)
-
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
-        }),
-      }
-    )
+    const client = new Anthropic({ apiKey })
 
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('[Gemini translate-exercises error]', response.status, errText)
-      return NextResponse.json({ error: 'Error al traducir con IA' }, { status: 502 })
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8000,
+      tools: [EXERCISES_TOOL],
+      tool_choice: { type: 'tool', name: 'save_exercises' },
+      messages: [{ role: 'user', content: buildPrompt(source.exercises, source.sourceLang, lang) }],
+    })
+
+    const toolBlock = message.content.find(b => b.type === 'tool_use')
+    if (!toolBlock || toolBlock.type !== 'tool_use') {
+      return NextResponse.json({ error: 'Error al traducir. Intenta de nuevo.' }, { status: 502 })
     }
 
-    const geminiData = await response.json()
-    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = toolBlock.input as any
+    const translated: Exercise[] = Array.isArray(raw.exercises) ? raw.exercises : []
 
-    let exercises: Exercise[]
-    try {
-      const parsed = JSON.parse(rawText)
-      exercises = Array.isArray(parsed) ? parsed : parsed.exercises ?? []
-    } catch {
-      console.error('[translate-exercises JSON parse error]', rawText.slice(0, 300))
-      return NextResponse.json({ error: 'Error al procesar la traducción' }, { status: 502 })
-    }
-
-    if (!exercises.length) {
-      return NextResponse.json({ error: 'No se pudieron generar ejercicios traducidos' }, { status: 502 })
+    if (!translated.length) {
+      return NextResponse.json({ error: 'No se generaron ejercicios traducidos.' }, { status: 502 })
     }
 
     const existingTr = ((lesson.exercise_translations ?? {}) as ExerciseTranslations)
-    const updatedTr: ExerciseTranslations = { ...existingTr, [lang]: exercises }
+    const updatedTr: ExerciseTranslations = { ...existingTr, [lang]: translated }
 
     const { error: updateErr } = await supabase
       .from('lessons')
@@ -150,7 +147,7 @@ export async function POST(
 
     if (updateErr) throw updateErr
 
-    return NextResponse.json({ exercises, lang })
+    return NextResponse.json({ exercises: translated, lang })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[POST /api/admin/lessons/:id/translate-exercises]', msg)

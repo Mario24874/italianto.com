@@ -620,7 +620,7 @@ export function LessonExercises({
               className={[
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all',
                 selectedLang === l
-                  ? 'border-blue-500/70 bg-blue-950/40 text-white dark:text-blue-200'
+                  ? 'border-blue-500/70 bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200'
                   : 'border-verde-900/30 bg-verde-950/10 text-verde-700 dark:text-verde-500 hover:text-verde-600 dark:hover:text-verde-300 hover:border-verde-800/40',
               ].join(' ')}
             >

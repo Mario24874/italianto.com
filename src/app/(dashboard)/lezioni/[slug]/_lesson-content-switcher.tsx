@@ -101,10 +101,10 @@ interface InlineAudioProps {
 function InlineAudio({ clips, playing, onPlay }: InlineAudioProps) {
   if (clips.length === 0) return null
   return (
-    <div className="my-4 rounded-xl border border-amber-200/70 dark:border-amber-800/30 bg-amber-50/70 dark:bg-amber-950/10 px-4 py-3">
+    <div className="my-4 rounded-xl border border-amber-300 dark:border-amber-800/30 bg-amber-50 dark:bg-amber-950/10 px-4 py-3">
       <div className="flex items-center gap-1.5 mb-2.5">
-        <Headphones size={13} className="text-amber-600 dark:text-amber-400" />
-        <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+        <Headphones size={13} className="text-amber-700 dark:text-amber-400" />
+        <span className="text-xs font-semibold text-amber-800 dark:text-amber-400 uppercase tracking-wide">
           Pronunciación
         </span>
       </div>
@@ -121,15 +121,15 @@ function InlineAudio({ clips, playing, onPlay }: InlineAudioProps) {
               className={`shrink-0 size-7 rounded-full flex items-center justify-center transition-colors ${
                 playing === clip.id
                   ? 'bg-amber-500 text-white'
-                  : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-800/50'
+                  : 'bg-amber-200 dark:bg-amber-900/50 text-amber-800 dark:text-amber-400 hover:bg-amber-300 dark:hover:bg-amber-800/50'
               }`}
             >
               {playing === clip.id ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
             </button>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-amber-900 dark:text-amber-200">{clip.title}</span>
+              <span className="text-sm font-semibold text-amber-900 dark:text-amber-200">{clip.title}</span>
               {clip.description && (
-                <span className="ml-2 text-xs text-amber-600 dark:text-amber-600">{clip.description}</span>
+                <span className="ml-2 text-xs text-amber-700 dark:text-amber-500">{clip.description}</span>
               )}
             </div>
             <audio data-clip={clip.id} src={clip.url} preload="none" className="hidden" />
@@ -280,10 +280,10 @@ export function LessonContentSwitcher({
 
           {/* Global / unmatched clips shown after all content */}
           {globalAudio.length > 0 && (
-            <div className="rounded-xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/60 dark:bg-amber-950/10 px-4 py-3 mt-4">
+            <div className="rounded-xl border border-amber-300 dark:border-amber-800/30 bg-amber-50 dark:bg-amber-950/10 px-4 py-3 mt-4">
               <div className="flex items-center gap-1.5 mb-2.5">
-                <Headphones size={13} className="text-amber-600 dark:text-amber-400" />
-                <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                <Headphones size={13} className="text-amber-700 dark:text-amber-400" />
+                <span className="text-xs font-semibold text-amber-800 dark:text-amber-400 uppercase tracking-wide">
                   Pronunciación general
                 </span>
               </div>
@@ -300,15 +300,15 @@ export function LessonContentSwitcher({
                       className={`shrink-0 size-7 rounded-full flex items-center justify-center transition-colors ${
                         playingId === clip.id
                           ? 'bg-amber-500 text-white'
-                          : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-800/50'
+                          : 'bg-amber-200 dark:bg-amber-900/50 text-amber-800 dark:text-amber-400 hover:bg-amber-300 dark:hover:bg-amber-800/50'
                       }`}
                     >
                       {playingId === clip.id ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-amber-900 dark:text-amber-200">{clip.title}</span>
+                      <span className="text-sm font-semibold text-amber-900 dark:text-amber-200">{clip.title}</span>
                       {clip.description && (
-                        <span className="ml-2 text-xs text-amber-600 dark:text-amber-600">{clip.description}</span>
+                        <span className="ml-2 text-xs text-amber-700 dark:text-amber-500">{clip.description}</span>
                       )}
                     </div>
                     <audio data-clip={clip.id} src={clip.url} preload="none" className="hidden" />
