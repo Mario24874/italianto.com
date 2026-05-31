@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import { StatsCard } from '@/components/admin/stats-card'
 import { formatDate } from '@/lib/utils'
 import { BookOpen, TrendingUp, Users, CheckCircle2, BarChart3, Activity, Eye, Star } from 'lucide-react'
+import { ApiUsageWidget } from './_api-usage-widget'
 
 export const metadata: Metadata = { title: 'Analíticas — Admin' }
 export const dynamic = 'force-dynamic'
@@ -169,6 +170,11 @@ export default async function AdminAnaliticasPage() {
       {/* Learning KPIs */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map(kpi => <StatsCard key={kpi.title} {...kpi} />)}
+      </div>
+
+      {/* API Usage */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ApiUsageWidget />
       </div>
 
       {/* Sessions + Top Lessons + Level Dist */}

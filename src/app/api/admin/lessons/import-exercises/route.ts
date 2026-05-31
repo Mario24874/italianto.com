@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { isAdmin } from '@/lib/admin'
 import type { Exercise } from '@/types'
+import { logApiUsage } from '@/lib/api-usage'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -319,6 +320,7 @@ export async function POST(req: NextRequest) {
     })
 
     console.log(`[import-exercises] Claude response: stop_reason=${message.stop_reason} content_blocks=${message.content.length}`)
+    void logApiUsage('claude-haiku', 'import-exercises', message.usage.input_tokens, message.usage.output_tokens)
 
     // Step 4: extract tool_use block (guaranteed by tool_choice: forced)
     const toolBlock = message.content.find(b => b.type === 'tool_use')

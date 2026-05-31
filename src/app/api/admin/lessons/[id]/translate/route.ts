@@ -4,6 +4,7 @@ import { isAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { createTranslateJob, resolveTranslateJob, rejectTranslateJob } from '../../translate-job/route'
 import type { LessonRow, LessonTranslation } from '@/types'
+import { logApiUsage } from '@/lib/api-usage'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -174,6 +175,8 @@ async function processTranslation(
       tool_choice: { type: 'tool', name: 'save_translation' },
       messages: [{ role: 'user', content: buildBodyMessage(lesson, lang, body, sourceLang) }],
     })
+
+    void logApiUsage('claude-haiku', `translate:${lang}`, message.usage.input_tokens, message.usage.output_tokens)
 
     const toolBlock = message.content.find(b => b.type === 'tool_use')
     if (!toolBlock || toolBlock.type !== 'tool_use') {

@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { isAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import type { Exercise, ExerciseTranslations, LessonRow } from '@/types'
+import { logApiUsage } from '@/lib/api-usage'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -199,6 +200,7 @@ export async function POST(
     })
 
     console.log(`[translate-exercises:${lang}] stop_reason=${message.stop_reason} blocks=${message.content.length}`)
+    void logApiUsage('claude-haiku', `translate-exercises:${lang}`, message.usage.input_tokens, message.usage.output_tokens)
 
     const toolBlock = message.content.find(b => b.type === 'tool_use')
     if (!toolBlock || toolBlock.type !== 'tool_use') {
