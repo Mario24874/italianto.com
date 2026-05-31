@@ -99,6 +99,29 @@
   }
 }
 
+/* ─── Safelist: force-generate color utilities for AI-generated lesson HTML ─ */
+/* Tailwind v4 only compiles classes found in source files. Lesson content    */
+/* (stored in Supabase) uses these classes and must be explicitly safelisted.  */
+@source inline("
+  text-red-400 text-red-500 text-red-600 text-red-700
+  text-blue-400 text-blue-500 text-blue-600 text-blue-700
+  text-green-400 text-green-500 text-green-600 text-green-700
+  text-yellow-400 text-yellow-500 text-yellow-600 text-yellow-700
+  text-orange-400 text-orange-500 text-orange-600 text-orange-700
+  text-purple-400 text-purple-500 text-purple-600 text-purple-700
+  text-pink-400 text-pink-500 text-pink-600 text-pink-700
+  text-cyan-400 text-cyan-500 text-cyan-600 text-cyan-700
+  text-teal-400 text-teal-500 text-teal-600 text-teal-700
+  text-indigo-400 text-indigo-500 text-indigo-600 text-indigo-700
+  text-gray-400 text-gray-500 text-gray-600 text-gray-700 text-gray-800 text-gray-900
+  text-slate-400 text-slate-500 text-slate-600 text-slate-700 text-slate-800
+  text-black text-white
+  font-bold font-semibold font-medium italic
+  bg-red-100 bg-blue-100 bg-green-100 bg-yellow-100 bg-orange-100
+  bg-purple-100 bg-pink-100 bg-cyan-100 bg-teal-100 bg-gray-100
+  list-decimal list-disc
+");
+
 /* ─── Base styles ──────────────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
@@ -372,6 +395,29 @@ html:not(.dark) .prose-invert {
   --tw-prose-pre-bg: #f0faf0;
   --tw-prose-th-borders: #bbf7c2;
   --tw-prose-td-borders: #dcfce0;
+}
+
+/* ─── Lesson content: ensure lists and colored spans render correctly ─── */
+/* Overrides Tailwind preflight for HTML rendered via dangerouslySetInnerHTML */
+.lesson-prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.lesson-prose ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.lesson-prose li {
+  margin-bottom: 0.25rem;
+}
+.lesson-prose span {
+  display: inline;
+}
+/* Allow inline styles on spans to take effect (important for AI-colored content) */
+.lesson-prose span[style] {
+  display: inline !important;
 }
 
 /* ─── Animate on scroll (base) ─────────────────────────────────────────── */

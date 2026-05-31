@@ -62,6 +62,7 @@ const PROSE = [
   '[&_ul]:text-verde-800 dark:[&_ul]:text-verde-400 [&_ul]:space-y-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3',
   '[&_ol]:text-verde-800 dark:[&_ol]:text-verde-400 [&_ol]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3',
   '[&_li]:text-verde-800 dark:[&_li]:text-verde-400 [&_li]:leading-relaxed',
+  '[&_span]:inline',
   '[&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4 [&_img]:mx-auto [&_img]:block',
   '[&_img]:border [&_img]:border-verde-300/60 dark:[&_img]:border-verde-800/30',
   '[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm [&_table]:rounded-xl [&_table]:overflow-hidden',
@@ -267,7 +268,7 @@ export function LessonContentSwitcher({
               <div key={i}>
                 {/* HTML block for this section */}
                 <div
-                  className={PROSE}
+                  className={`lesson-prose ${PROSE}`}
                   dangerouslySetInnerHTML={{ __html: sec.html }}
                 />
                 {/* Audio clips assigned to this section — hidden when empty */}

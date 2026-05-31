@@ -42,6 +42,21 @@ REGLAS PARA content_html — LEE CON ATENCIÓN
 
 ETIQUETAS PERMITIDAS: h2, h3, h4, p, strong, em, ul, ol, li, blockquote, table, thead, tbody, tr, th, td, hr, span
 
+⚠️  REGLA CRÍTICA SOBRE span Y COLORES:
+- NUNCA uses class="..." en etiquetas span (las clases CSS no funcionan en el contexto de visualización del alumno).
+- Para colorear texto (p.ej. los colores italianos: rosso, blu, verde...) usa SIEMPRE el atributo style con color hexadecimal:
+  <span style="color:#dc2626;font-weight:600">rosso</span>   ← rojo
+  <span style="color:#2563eb;font-weight:600">blu</span>     ← azul
+  <span style="color:#16a34a;font-weight:600">verde</span>   ← verde
+  <span style="color:#ca8a04;font-weight:600">giallo</span>  ← amarillo
+  <span style="color:#9333ea;font-weight:600">viola</span>   ← morado
+  <span style="color:#f97316;font-weight:600">arancione</span> ← naranja
+  <span style="color:#1d4ed8;font-weight:600">azzurro</span> ← azul claro
+  <span style="color:#6b7280;font-weight:600">grigio</span>  ← gris
+  <span style="color:#1c1917;font-weight:600">nero</span>    ← negro
+  <span style="color:#fafafa;background:#1c1917;padding:0 4px;border-radius:3px">bianco</span> ← blanco
+- Para resaltar palabras clave italianas sin color especial: usa <strong> para negrita, <em> para cursiva.
+
 0. INTRODUCCIÓN OBLIGATORIA — El content_html DEBE comenzar con un bloque introductorio ANTES del primer <h2>.
    Incluye siempre estos dos elementos, en este orden:
    a) Un párrafo de contexto (<p>) que describa de qué trata la lección.
