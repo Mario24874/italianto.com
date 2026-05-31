@@ -98,12 +98,13 @@ Esquema exacto:
 ]
 
 Reglas:
-- Genera tantos ejercicios como contenga el material (mínimo 3, máximo 15)
-- Agrupa temáticamente con "section" (emoji + título) cuando haya varios temas
-- Solo el primer ejercicio de cada sección lleva "section"; los demás del mismo tema no
-- "answer" en fill_blank debe ser la respuesta normalizada (sin tildes, minúsculas)
-- Para dialogue, usa ___id___ como placeholders dentro de "text"
-- Llama a la herramienta save_exercises con el array generado`
+- El contenido puede venir como texto plano, HTML o formato mixto — interpreta la estructura e intención de cada ejercicio independientemente del formato de entrada.
+- Si el archivo ya tiene ejercicios definidos (con preguntas, respuestas, instrucciones), conviértelos directamente al esquema JSON sin inventar contenido nuevo.
+- Genera tantos ejercicios como haya en el material (sin límite mínimo — si hay 1, devuelve 1; si hay 20, devuelve 20).
+- Agrupa temáticamente con "section" (emoji + título) cuando haya varios temas. Solo el primer ejercicio de cada sección lleva "section".
+- "answer" en fill_blank: respuesta normalizada (sin tildes, minúsculas).
+- Para dialogue, usa ___id___ como placeholders en "text".
+- Llama a la herramienta save_exercises con el array completo.`
 }
 
 const EXERCISES_TOOL: Anthropic.Tool = {
@@ -160,23 +161,30 @@ export async function POST(req: NextRequest) {
     try {
       const mammoth = await import('mammoth')
       const buffer = Buffer.from(await file.arrayBuffer())
-      const { value: rawText } = await mammoth.extractRawText({ buffer })
-      contentText = rawText
+      // Use HTML conversion to preserve tables, lists and structure
+      const { value: htmlContent } = await mammoth.convertToHtml({ buffer })
+      // Fallback to raw text if HTML is empty
+      if (htmlContent.trim()) {
+        contentText = htmlContent
+      } else {
+        const { value: rawText } = await mammoth.extractRawText({ buffer })
+        contentText = rawText
+      }
+      console.log(`[import-exercises] DOCX extracted: ${contentText.length} chars`)
     } catch (e) {
       console.error('[DOCX parse error]', e)
       return NextResponse.json({ error: 'No se pudo leer el archivo .docx' }, { status: 400 })
     }
   } else if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
-    // PDF: use mammoth-like text extraction via pdf-parse if available, else reject
     return NextResponse.json({
-      error: 'PDF no soportado en este modo. Exporta el archivo como TXT o DOCX.',
+      error: 'PDF no soportado. Exporta el archivo como TXT o DOCX.',
     }, { status: 400 })
   } else {
     return NextResponse.json({ error: 'Formato no soportado. Usa TXT o DOCX.' }, { status: 400 })
   }
 
   if (!contentText.trim()) {
-    return NextResponse.json({ error: 'El archivo está vacío' }, { status: 400 })
+    return NextResponse.json({ error: 'El archivo está vacío o no se pudo leer su contenido.' }, { status: 400 })
   }
 
   try {
@@ -203,8 +211,12 @@ export async function POST(req: NextRequest) {
     const raw = toolBlock.input as any
     const exercises: Exercise[] = Array.isArray(raw.exercises) ? raw.exercises : []
 
+    console.log(`[import-exercises] generated ${exercises.length} exercises from ${contentText.length} chars`)
+
     if (!exercises.length) {
-      return NextResponse.json({ error: 'El archivo no contiene suficiente contenido para generar ejercicios.' }, { status: 422 })
+      return NextResponse.json({
+        error: 'No se generaron ejercicios. Verifica que el archivo contenga ejercicios con preguntas y respuestas definidas.',
+      }, { status: 422 })
     }
 
     return NextResponse.json({ exercises })
