@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 import { isAdmin } from '@/lib/admin'
 import type { Exercise } from '@/types'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  const chunkSize = 8192
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
-  }
-  return btoa(binary)
-}
 
 function buildPrompt(language: string): string {
   const langLabel = language === 'en' ? 'English' : language === 'it' ? 'italiano' : 'español'
@@ -22,8 +13,6 @@ function buildPrompt(language: string): string {
 
 IDIOMA DE LAS INSTRUCCIONES: ${langLabel}
 (El contenido italiano se mantiene en italiano; las instrucciones, etiquetas y explicaciones van en ${langLabel})
-
-Devuelve SOLO un JSON válido: un array de objetos Exercise. Sin markdown, sin texto adicional.
 
 Tipos de ejercicio disponibles:
 
@@ -71,7 +60,7 @@ Esquema exacto:
     "questions": [
       {
         "id": "q1",
-        "text": "\"Ciao!\"",
+        "text": "\\"Ciao!\\"",
         "options": [
           { "value": "Informal", "correct": true },
           { "value": "Formal", "correct": false },
@@ -79,7 +68,7 @@ Esquema exacto:
         ]
       }
     ],
-    "answerPanel": ["\"Ciao!\" → Informal"]
+    "answerPanel": ["\\"Ciao!\\" → Informal"]
   },
   {
     "id": "ej4",
@@ -109,12 +98,28 @@ Esquema exacto:
 ]
 
 Reglas:
-- Genera tantos ejercicios como contenga el material (mínimo 3, máximo 10)
+- Genera tantos ejercicios como contenga el material (mínimo 3, máximo 15)
 - Agrupa temáticamente con "section" (emoji + título) cuando haya varios temas
-- Solo la primera ejercicio de cada sección lleva "section"; los demás del mismo tema no
+- Solo el primer ejercicio de cada sección lleva "section"; los demás del mismo tema no
 - "answer" en fill_blank debe ser la respuesta normalizada (sin tildes, minúsculas)
 - Para dialogue, usa ___id___ como placeholders dentro de "text"
-- Devuelve SOLO el array JSON, nada más`
+- Llama a la herramienta save_exercises con el array generado`
+}
+
+const EXERCISES_TOOL: Anthropic.Tool = {
+  name: 'save_exercises',
+  description: 'Save the generated exercises array.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      exercises: {
+        type: 'array',
+        description: 'Array of Exercise objects following the schema provided.',
+        items: { type: 'object' as const },
+      },
+    },
+    required: ['exercises'],
+  },
 }
 
 export async function POST(req: NextRequest) {
@@ -122,9 +127,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY no configurada' }, { status: 500 })
+    return NextResponse.json({ error: 'ANTHROPIC_API_KEY no configurada' }, { status: 500 })
   }
 
   let formData: FormData
@@ -143,18 +148,11 @@ export async function POST(req: NextRequest) {
 
   const fileName = file.name.toLowerCase()
   const mimeType = file.type
-  const PROMPT = buildPrompt(language)
 
-  let contents: object[]
+  let contentText: string
 
-  if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
-    const base64 = arrayBufferToBase64(await file.arrayBuffer())
-    contents = [{
-      parts: [
-        { inline_data: { mime_type: 'application/pdf', data: base64 } },
-        { text: PROMPT },
-      ],
-    }]
+  if (mimeType === 'text/plain' || fileName.endsWith('.txt') || fileName.endsWith('.md')) {
+    contentText = await file.text()
   } else if (
     mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     fileName.endsWith('.docx')
@@ -163,69 +161,47 @@ export async function POST(req: NextRequest) {
       const mammoth = await import('mammoth')
       const buffer = Buffer.from(await file.arrayBuffer())
       const { value: rawText } = await mammoth.extractRawText({ buffer })
-      if (!rawText.trim()) {
-        return NextResponse.json({ error: 'El documento .docx está vacío' }, { status: 400 })
-      }
-      contents = [{ parts: [{ text: `${PROMPT}\n\nCONTENIDO:\n${rawText}` }] }]
+      contentText = rawText
     } catch (e) {
       console.error('[DOCX parse error]', e)
       return NextResponse.json({ error: 'No se pudo leer el archivo .docx' }, { status: 400 })
     }
-  } else if (mimeType === 'text/plain' || fileName.endsWith('.txt') || fileName.endsWith('.md')) {
-    const text = await file.text()
-    if (!text.trim()) {
-      return NextResponse.json({ error: 'El archivo está vacío' }, { status: 400 })
-    }
-    contents = [{ parts: [{ text: `${PROMPT}\n\nCONTENIDO:\n${text}` }] }]
+  } else if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
+    // PDF: use mammoth-like text extraction via pdf-parse if available, else reject
+    return NextResponse.json({
+      error: 'PDF no soportado en este modo. Exporta el archivo como TXT o DOCX.',
+    }, { status: 400 })
   } else {
-    return NextResponse.json({ error: 'Formato no soportado. Usa PDF, DOCX o TXT.' }, { status: 400 })
+    return NextResponse.json({ error: 'Formato no soportado. Usa TXT o DOCX.' }, { status: 400 })
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 25_000)
+  if (!contentText.trim()) {
+    return NextResponse.json({ error: 'El archivo está vacío' }, { status: 400 })
+  }
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            temperature: 0.3,
-            responseMimeType: 'application/json',
-          },
-        }),
-      }
-    )
+    const client = new Anthropic({ apiKey })
+    const prompt = buildPrompt(language)
 
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('[Gemini exercises error]', response.status, errText.slice(0, 500))
-      return NextResponse.json({ error: `Error de IA (${response.status}). Intenta de nuevo.` }, { status: 502 })
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8000,
+      tools: [EXERCISES_TOOL],
+      tool_choice: { type: 'tool', name: 'save_exercises' },
+      messages: [{
+        role: 'user',
+        content: `${prompt}\n\nCONTENIDO:\n${contentText}`,
+      }],
+    })
+
+    const toolBlock = message.content.find(b => b.type === 'tool_use')
+    if (!toolBlock || toolBlock.type !== 'tool_use') {
+      return NextResponse.json({ error: 'Error al generar ejercicios. Intenta de nuevo.' }, { status: 502 })
     }
 
-    const geminiData = await response.json()
-    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-
-    if (!rawText) {
-      return NextResponse.json({ error: 'La IA devolvió una respuesta vacía. Intenta de nuevo.' }, { status: 502 })
-    }
-
-    let jsonStr = rawText.trim()
-    const fenced = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (fenced) jsonStr = fenced[1].trim()
-
-    let exercises: Exercise[]
-    try {
-      const parsed = JSON.parse(jsonStr)
-      exercises = Array.isArray(parsed) ? parsed : parsed.exercises ?? []
-    } catch {
-      console.error('[Gemini exercises JSON parse error]', rawText.slice(0, 500))
-      return NextResponse.json({ error: 'No se pudo estructurar los ejercicios. Intenta con otro archivo.' }, { status: 502 })
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = toolBlock.input as any
+    const exercises: Exercise[] = Array.isArray(raw.exercises) ? raw.exercises : []
 
     if (!exercises.length) {
       return NextResponse.json({ error: 'El archivo no contiene suficiente contenido para generar ejercicios.' }, { status: 422 })
@@ -233,16 +209,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ exercises })
   } catch (err) {
-    if ((err as Error).name === 'AbortError') {
-      return NextResponse.json(
-        { error: 'El archivo tardó demasiado. Prueba con un archivo más corto en formato TXT.' },
-        { status: 504 }
-      )
-    }
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[POST /api/admin/lessons/import-exercises]', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
-  } finally {
-    clearTimeout(timeout)
   }
 }

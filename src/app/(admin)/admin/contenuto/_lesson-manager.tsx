@@ -167,11 +167,12 @@ function ExerciseImportPanel({
   onImport,
 }: {
   exerciseTranslations: ExerciseTranslations
-  onImport: (lang: 'es' | 'it' | 'en', exercises: Exercise[]) => void
+  onImport: (lang: 'es' | 'it' | 'en', exercises: Exercise[], mode: 'replace' | 'append') => void
 }) {
   const hasAny = EXERCISE_LANGS.some(l => (exerciseTranslations[l.value]?.length ?? 0) > 0)
   const [expanded, setExpanded] = useState(!hasAny)
   const [baseLang, setBaseLang] = useState<'es' | 'it' | 'en'>('it')
+  const [importMode, setImportMode] = useState<'replace' | 'append'>('replace')
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -179,9 +180,9 @@ function ExerciseImportPanel({
 
   const handleFile = async (file: File) => {
     const ext = file.name.toLowerCase()
-    const valid = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
-      .includes(file.type) || ext.endsWith('.pdf') || ext.endsWith('.docx') || ext.endsWith('.txt') || ext.endsWith('.md')
-    if (!valid) { setError('Usa PDF, DOCX o TXT.'); return }
+    const valid = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+      .includes(file.type) || ext.endsWith('.docx') || ext.endsWith('.txt') || ext.endsWith('.md')
+    if (!valid) { setError('Usa DOCX o TXT (PDF no soportado en este modo).'); return }
     if (file.size > 15 * 1024 * 1024) { setError('Máximo 15 MB.'); return }
 
     setFileName(file.name); setImporting(true); setError(null)
@@ -192,11 +193,11 @@ function ExerciseImportPanel({
       const res = await fetch('/api/admin/lessons/import-exercises', { method: 'POST', body: form })
       const ct = res.headers.get('content-type') ?? ''
       if (!ct.includes('application/json')) {
-        throw new Error(`Error del servidor (${res.status}). Prueba con un archivo TXT más corto.`)
+        throw new Error(`Error del servidor (${res.status}). Verifica la configuración.`)
       }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al generar ejercicios')
-      onImport(baseLang, data.exercises)
+      onImport(baseLang, data.exercises, importMode)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error')
     } finally { setImporting(false) }
@@ -214,10 +215,10 @@ function ExerciseImportPanel({
         <div className="flex items-center gap-2">
           <Dumbbell size={14} className="text-blue-400" />
           <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">
-            {hasAny ? 'Reimportar ejercicios base' : 'Importar ejercicios base'}
+            Importar ejercicios base
           </span>
           {hasAny && !expanded && (
-            <span className="text-[10px] text-blue-600">— clic para expandir</span>
+            <span className="text-[10px] text-blue-500">{existingCount} ejercicios — clic para agregar/reemplazar</span>
           )}
         </div>
         {expanded
@@ -227,33 +228,62 @@ function ExerciseImportPanel({
 
       {expanded && (
         <>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-blue-600">Idioma del archivo:</span>
-            <div className="flex gap-1">
-              {EXERCISE_LANGS.map(({ value, flag }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setBaseLang(value)}
-                  className={[
-                    'px-2 py-0.5 rounded-md border text-xs transition-all',
-                    baseLang === value
-                      ? 'border-blue-500/70 bg-blue-950/50 text-blue-200'
-                      : 'border-blue-900/30 text-blue-600 hover:text-blue-400',
-                  ].join(' ')}
-                >
-                  {flag}
-                </button>
-              ))}
+          {/* Language + mode row */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-blue-600">Idioma:</span>
+              <div className="flex gap-1">
+                {EXERCISE_LANGS.map(({ value, flag }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setBaseLang(value)}
+                    className={[
+                      'px-2 py-0.5 rounded-md border text-xs transition-all',
+                      baseLang === value
+                        ? 'border-blue-500/70 bg-blue-950/50 text-blue-200'
+                        : 'border-blue-900/30 text-blue-600 hover:text-blue-400',
+                    ].join(' ')}
+                  >
+                    {flag}
+                  </button>
+                ))}
+              </div>
             </div>
+            {existingCount > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-blue-600">Modo:</span>
+                <div className="flex gap-1">
+                  {(['replace', 'append'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setImportMode(mode)}
+                      className={[
+                        'px-2 py-0.5 rounded-md border text-xs transition-all',
+                        importMode === mode
+                          ? 'border-blue-500/70 bg-blue-950/50 text-blue-200'
+                          : 'border-blue-900/30 text-blue-600 hover:text-blue-400',
+                      ].join(' ')}
+                    >
+                      {mode === 'replace' ? '↺ Reemplazar' : '+ Agregar'}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[10px] text-blue-700">
+                  {importMode === 'append' ? `(se añaden a los ${existingCount} existentes)` : '(borra los existentes)'}
+                </span>
+              </div>
+            )}
           </div>
+
           <div
             onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
             onDragOver={e => e.preventDefault()}
             onClick={() => fileRef.current?.click()}
             className="flex flex-col items-center gap-2 py-4 rounded-lg border border-blue-800/30 bg-blue-950/20 cursor-pointer hover:bg-blue-900/20 hover:border-blue-700/40 transition-all group"
           >
-            <input ref={fileRef} type="file" className="hidden" accept=".pdf,.docx,.txt,.md"
+            <input ref={fileRef} type="file" className="hidden" accept=".docx,.txt,.md"
               onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
             {importing ? (
               <>
@@ -267,10 +297,12 @@ function ExerciseImportPanel({
               <>
                 <Upload size={20} className="text-blue-600 group-hover:text-blue-400 transition-colors" />
                 <p className="text-sm text-blue-400 group-hover:text-blue-300">
-                  Arrastra o haz clic — PDF, DOCX o TXT
+                  Arrastra o haz clic — DOCX o TXT
                 </p>
                 <p className="text-xs text-blue-600 text-center">
-                  Reemplazará los ejercicios {EXERCISE_LANGS.find(l => l.value === baseLang)?.flag} existentes
+                  {importMode === 'append' && existingCount > 0
+                    ? `Agregará ejercicios a los ${existingCount} existentes`
+                    : `Reemplazará los ejercicios ${EXERCISE_LANGS.find(l => l.value === baseLang)?.flag} existentes`}
                 </p>
               </>
             )}
@@ -1617,12 +1649,43 @@ function LessonModal({
             {/* ── Exercise Guide Import ── */}
             <ExerciseImportPanel
               exerciseTranslations={form.exercise_translations}
-              onImport={(lang, exercises) => {
-                setForm(f => ({
-                  ...f,
-                  exercise_translations: { ...f.exercise_translations, [lang]: exercises },
-                }))
-                setExTranslations(t => ({ ...t, [lang]: exercises }))
+              onImport={(lang, newExercises, mode) => {
+                setForm(f => {
+                  const existing = f.exercise_translations[lang] ?? []
+                  let merged: Exercise[]
+                  if (mode === 'append' && existing.length > 0) {
+                    // Renumber new exercises to continue from existing
+                    const offset = existing.length
+                    const renumbered = newExercises.map((ex, i) => ({
+                      ...ex,
+                      id: `${ex.id}_${Date.now()}_${i}`,
+                      number: offset + (ex.number ?? i + 1),
+                    }))
+                    merged = [...existing, ...renumbered]
+                  } else {
+                    merged = newExercises
+                  }
+                  return {
+                    ...f,
+                    exercise_translations: { ...f.exercise_translations, [lang]: merged },
+                  }
+                })
+                setExTranslations(t => {
+                  const existing = t[lang] ?? []
+                  let merged: Exercise[]
+                  if (mode === 'append' && existing.length > 0) {
+                    const offset = existing.length
+                    const renumbered = newExercises.map((ex, i) => ({
+                      ...ex,
+                      id: `${ex.id}_${Date.now()}_${i}`,
+                      number: offset + (ex.number ?? i + 1),
+                    }))
+                    merged = [...existing, ...renumbered]
+                  } else {
+                    merged = newExercises
+                  }
+                  return { ...t, [lang]: merged }
+                })
               }}
             />
 
