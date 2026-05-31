@@ -106,7 +106,7 @@ function InlineAudio({ clips, playing, onPlay }: InlineAudioProps) {
       <div className="flex items-center gap-1.5 mb-2.5">
         <Headphones size={13} className="text-amber-700 dark:text-amber-400" />
         <span className="text-xs font-semibold text-amber-800 dark:text-amber-400 uppercase tracking-wide">
-          Pronunciación
+          Pronuncia
         </span>
       </div>
       <div className="flex flex-col gap-2">
@@ -285,7 +285,7 @@ export function LessonContentSwitcher({
               <div className="flex items-center gap-1.5 mb-2.5">
                 <Headphones size={13} className="text-amber-700 dark:text-amber-400" />
                 <span className="text-xs font-semibold text-amber-800 dark:text-amber-400 uppercase tracking-wide">
-                  Pronunciación general
+                  Pronuncia — Audio della lezione
                 </span>
               </div>
               <div className="flex flex-col gap-2">
