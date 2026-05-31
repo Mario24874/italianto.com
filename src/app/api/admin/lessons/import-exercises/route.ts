@@ -6,6 +6,31 @@ import type { Exercise } from '@/types'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
+/** Convert HTML to readable plain text, preserving structure with newlines */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/td>/gi, '\t')
+    .replace(/<\/th>/gi, '\t')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<h[1-6][^>]*>/gi, '\n### ')
+    .replace(/<\/h[1-6]>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 function buildPrompt(language: string): string {
   const langLabel = language === 'en' ? 'English' : language === 'it' ? 'italiano' : 'español'
 
@@ -161,16 +186,16 @@ export async function POST(req: NextRequest) {
     try {
       const mammoth = await import('mammoth')
       const buffer = Buffer.from(await file.arrayBuffer())
-      // Use HTML conversion to preserve tables, lists and structure
+      // Convert to HTML first (preserves structure), then strip tags to clean text
       const { value: htmlContent } = await mammoth.convertToHtml({ buffer })
-      // Fallback to raw text if HTML is empty
       if (htmlContent.trim()) {
-        contentText = htmlContent
+        contentText = htmlToText(htmlContent)
       } else {
+        // Fallback: direct raw text extraction
         const { value: rawText } = await mammoth.extractRawText({ buffer })
         contentText = rawText
       }
-      console.log(`[import-exercises] DOCX extracted: ${contentText.length} chars`)
+      console.log(`[import-exercises] DOCX extracted: ${contentText.length} chars (preview: ${contentText.slice(0, 200).replace(/\n/g, '↵')})`)
     } catch (e) {
       console.error('[DOCX parse error]', e)
       return NextResponse.json({ error: 'No se pudo leer el archivo .docx' }, { status: 400 })
@@ -192,8 +217,8 @@ export async function POST(req: NextRequest) {
     const prompt = buildPrompt(language)
 
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8000,
+      model: 'claude-sonnet-4-5',
+      max_tokens: 10000,
       tools: [EXERCISES_TOOL],
       tool_choice: { type: 'tool', name: 'save_exercises' },
       messages: [{
@@ -211,7 +236,10 @@ export async function POST(req: NextRequest) {
     const raw = toolBlock.input as any
     const exercises: Exercise[] = Array.isArray(raw.exercises) ? raw.exercises : []
 
-    console.log(`[import-exercises] generated ${exercises.length} exercises from ${contentText.length} chars`)
+    console.log(`[import-exercises] generated ${exercises.length} exercises | stop_reason=${message.stop_reason} | input_keys=${Object.keys(raw).join(',')}`)
+    if (exercises.length === 0) {
+      console.log(`[import-exercises] content preview: ${contentText.slice(0, 500).replace(/\n/g, '↵')}`)
+    }
 
     if (!exercises.length) {
       return NextResponse.json({
