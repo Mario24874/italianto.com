@@ -21,6 +21,27 @@ function splitIntro(html: string): { intro: string; body: string } {
   return { intro: html.slice(0, idx).trim(), body: html.slice(idx) }
 }
 
+/**
+ * Return the best Spanish source HTML to translate from.
+ * lesson.content_html (Gemini import) may start directly at <h2> with no intro.
+ * In that case, use translations.es.content_html if it exists and has an intro,
+ * since a prior ES translation may contain the intro text.
+ */
+function getSourceHtml(lesson: LessonRow): string {
+  const raw = lesson.content_html ?? ''
+  if (splitIntro(raw).intro) return raw
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const esHtml = ((lesson as any).translations?.es?.content_html ?? '') as string
+  if (esHtml && splitIntro(esHtml).intro) return esHtml
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const itHtml = ((lesson as any).translations?.it?.content_html ?? '') as string
+  if (itHtml && splitIntro(itHtml).intro) return itHtml
+
+  return raw
+}
+
 /** Translate a short HTML snippet with a direct call — no tool use needed */
 async function translateHtmlSnippet(
   client: Anthropic,
@@ -116,7 +137,8 @@ async function processTranslation(
   try {
     const client = new Anthropic({ apiKey })
     const targetLang = LANG_NAMES[lang] ?? lang
-    const { intro, body } = splitIntro(lesson.content_html ?? '')
+    const sourceHtml = getSourceHtml(lesson)
+    const { intro, body } = splitIntro(sourceHtml)
 
     console.log(`[translate:${lang}] intro=${intro.length}chars body=${body.length}chars lesson=${lessonId}`)
 

@@ -42,6 +42,20 @@ REGLAS PARA content_html — LEE CON ATENCIÓN
 
 ETIQUETAS PERMITIDAS: h2, h3, h4, p, strong, em, ul, ol, li, blockquote, table, thead, tbody, tr, th, td, hr, span
 
+0. INTRODUCCIÓN OBLIGATORIA — El content_html DEBE comenzar con un bloque introductorio ANTES del primer <h2>.
+   Incluye siempre estos dos elementos, en este orden:
+   a) Un párrafo de contexto (<p>) que describa de qué trata la lección.
+   b) Una lista de objetivos (<p> + <ul>) con entre 4 y 7 ítems con emoji, uno por tema cubierto.
+   Ejemplo mínimo:
+   <p>Esta guía cubre los contenidos fundamentales de la lección. El alumno encontrará explicaciones claras, ejemplos prácticos y tablas de referencia.</p>
+   <p><strong>Objetivos de la lección:</strong></p>
+   <ul>
+     <li>🔤 Aprender el alfabeto italiano (21 letras + 5 extranjeras)</li>
+     <li>🔊 Dominar los sonidos especiales del italiano</li>
+     <li>📅 Memorizar los meses y los días de la semana</li>
+   </ul>
+   Este bloque NO lleva <h2>. Va directamente al inicio de content_html.
+
 1. SECCIONES — Cada sección temática debe tener un h2 con emoji:
    <h2>🔤 L'Alfabeto Italiano</h2>
    <h2>🔊 Pronunciazione</h2>
