@@ -190,18 +190,15 @@ export async function POST(
 
     const client = new Anthropic({ apiKey })
 
-    // Scale max_tokens with exercise count — each exercise needs ~400 output tokens
-    const outputTokens = Math.min(16000, Math.max(4000, source.exercises.length * 450))
-
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: outputTokens,
+      max_tokens: 16000,
       tools: [EXERCISES_TOOL],
       tool_choice: { type: 'tool', name: 'save_exercises' },
       messages: [{ role: 'user', content: buildPrompt(source.exercises, source.sourceLang, lang) }],
     })
 
-    console.log(`[translate-exercises:${lang}] stop_reason=${message.stop_reason} max_tokens=${outputTokens}`)
+    console.log(`[translate-exercises:${lang}] stop_reason=${message.stop_reason} blocks=${message.content.length}`)
 
     const toolBlock = message.content.find(b => b.type === 'tool_use')
     if (!toolBlock || toolBlock.type !== 'tool_use') {
