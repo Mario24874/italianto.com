@@ -344,6 +344,9 @@ function ExerciseTranslationsPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lang }),
       })
+      if (!res.headers.get('content-type')?.includes('application/json')) {
+        throw new Error(`Error del servidor (${res.status}). Verifica la configuración.`)
+      }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al traducir')
       onUpdate({ ...exerciseTranslations, [lang]: data.exercises })
