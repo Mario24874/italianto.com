@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/admin'
 import { createJob, resolveJob, rejectJob } from '../import-job/route'
+import { logApiUsage } from '@/lib/api-usage'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -145,6 +146,10 @@ async function processWithGemini(apiKey: string, contents: object[], jobId: stri
 
     const geminiData = await response.json()
     const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+
+    // Track Gemini token usage (cost = 0 on free tier, tokens still logged)
+    const usage = geminiData?.usageMetadata ?? {}
+    void logApiUsage('gemini', 'import-lesson', usage.promptTokenCount ?? 0, usage.candidatesTokenCount ?? 0)
 
     if (!rawText) {
       rejectJob(jobId, 'La IA devolvió una respuesta vacía. Intenta de nuevo.')
