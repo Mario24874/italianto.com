@@ -160,7 +160,7 @@ RULES:
 1. Preserve every HTML tag, attribute, class, id, and emoji verbatim.
 2. Emojis at the start of <h2> headings stay exactly as-is.
 3. Do NOT translate Italian standalone words, conjugation tables, or study-content phrases. Sentences that describe Italian ARE instructional and must be translated.
-4. Tables: translate column headers to ${targetLang} (Mes→Month/Mese, Lun→Mon/Lun, Nº→#). Leave Italian-word cells unchanged.
+4. CRITICAL — Translate EVERY <th> column header and descriptive label to ${targetLang}, even inside study tables (alphabet, sounds, articles, numbers, colors, plurals). These are NOT study content. Examples you MUST translate: Letra→Lettera/Letter, Nombre→Nome/Name, Letra Extranjera→Lettera Straniera/Foreign Letter, Combinación→Combinazione/Combination, Suena como→Suona come/Sounds like, Equivalente→Equivalente/Equivalent, Ejemplos→Esempi/Examples, Mes→Mese/Month, Singular→Singolare/Singular, Plural→Plurale/Plural, Significado→Significato/Meaning, Tipo de palabra→Tipo di parola/Word type. Only the actual Italian words/letters inside the data cells stay unchanged.
 5. Translate day/month abbreviations to ${targetLang} equivalents.
 6. Vocabulary: keep "word" and "example" (Italian) unchanged; translate only "translation".
 7. Call the save_translation tool with your result.`
