@@ -130,9 +130,33 @@ async function processTranslation(
       return
     }
 
-    // Reconstruct full content_html from the two separately-translated fields
-    const introHtml = (raw.intro_html ?? '').trim()
+    // Reconstruct full content_html from the two separately-translated fields.
+    // If the model returned empty intro_html despite the Spanish having an intro,
+    // make a second focused call to translate just the intro.
+    const { intro: spanishIntro } = splitIntro(lesson.content_html ?? '')
+    let introHtml = (raw.intro_html ?? '').trim()
     const bodyHtml = (raw.body_html ?? '').trim()
+
+    if (!introHtml && spanishIntro) {
+      console.warn('[translate] intro_html vacío — reintentando traducción del intro por separado')
+      try {
+        const introMsg = await client.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2000,
+          messages: [{
+            role: 'user',
+            content: `Translate this HTML snippet from Spanish to ${LANG_NAMES[lang] ?? lang}. Preserve ALL HTML tags, attributes, classes, and emojis exactly. Only translate the Spanish text content.\n\n${spanishIntro}`,
+          }],
+        })
+        const textBlock = introMsg.content.find(b => b.type === 'text')
+        if (textBlock && textBlock.type === 'text' && textBlock.text.trim()) {
+          introHtml = textBlock.text.trim()
+        }
+      } catch (e) {
+        console.error('[translate] fallo al traducir intro por separado:', e)
+      }
+    }
+
     const translation: LessonTranslation = {
       content_html: introHtml ? `${introHtml}\n${bodyHtml}` : bodyHtml,
       grammar_notes: raw.grammar_notes ?? '',
