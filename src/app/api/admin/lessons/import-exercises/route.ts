@@ -151,12 +151,17 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey })
     const prompt = buildPrompt(language)
 
+    // Truncate content to avoid slow responses — 12K chars covers any realistic exercise file
+    const trimmedContent = contentText.length > 12000
+      ? contentText.slice(0, 12000) + '\n\n[contenido truncado]'
+      : contentText
+
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 16000,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8000,
       messages: [{
         role: 'user',
-        content: `${prompt}\n\nCONTENIDO:\n${contentText}`,
+        content: `${prompt}\n\nCONTENIDO:\n${trimmedContent}`,
       }],
     })
 
