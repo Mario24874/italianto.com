@@ -83,6 +83,8 @@ export async function sendContentNotification(opts: {
   contentType: string
   url: string
 }): Promise<void> {
+  if (!resend) { noResend('sendContentNotification'); return }
+
   const typeLabel = opts.type ? (ACTIVITY_TYPE_LABELS[opts.type] ?? opts.type) : opts.contentType
   const subject = `Nuovo contenuto su Italianto: ${opts.title}`
   const html = `<!DOCTYPE html>
@@ -113,7 +115,24 @@ export async function sendContentNotification(opts: {
 </body>
 </html>`
 
-  await sendNewsletter({ subject, html, name: `Contenuto: ${opts.title}` })
+  // Always notify admin directly — independent of broadcast/segment config
+  const adminResult = await resend.emails.send({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject: `[Admin] Contenuto pubblicato: ${opts.title}`,
+    html,
+  })
+  if (adminResult.error) {
+    console.error('[email] Admin notification failed:', adminResult.error)
+  } else {
+    console.log('[email] Admin notified:', adminResult.data?.id)
+  }
+
+  // Also broadcast to subscribers if segment is configured
+  if (SEGMENT_ID) {
+    sendNewsletter({ subject, html, name: `Contenuto: ${opts.title}` })
+      .catch(err => console.error('[email] Broadcast failed:', err))
+  }
 }
 
 /**

@@ -24,20 +24,20 @@ function splitIntro(html: string): { intro: string; body: string } {
 /**
  * Return the best Spanish source HTML to translate from.
  * lesson.content_html (Gemini import) may start directly at <h2> with no intro.
- * In that case, use translations.es.content_html if it exists and has an intro,
- * since a prior ES translation may contain the intro text.
+ * Falls back to another language's translation that has an intro — but NEVER
+ * to the target language itself (that would be circular: translating ES→ES).
  */
-function getSourceHtml(lesson: LessonRow): string {
+function getSourceHtml(lesson: LessonRow, targetLang: string): string {
   const raw = lesson.content_html ?? ''
   if (splitIntro(raw).intro) return raw
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const esHtml = ((lesson as any).translations?.es?.content_html ?? '') as string
-  if (esHtml && splitIntro(esHtml).intro) return esHtml
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const itHtml = ((lesson as any).translations?.it?.content_html ?? '') as string
-  if (itHtml && splitIntro(itHtml).intro) return itHtml
+  // Check other translations for one that has an intro, skipping the target language
+  for (const lang of ['it', 'es', 'en'] as const) {
+    if (lang === targetLang) continue  // never use the target as its own source
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const html = ((lesson as any).translations?.[lang]?.content_html ?? '') as string
+    if (html && splitIntro(html).intro) return html
+  }
 
   return raw
 }
@@ -137,7 +137,7 @@ async function processTranslation(
   try {
     const client = new Anthropic({ apiKey })
     const targetLang = LANG_NAMES[lang] ?? lang
-    const sourceHtml = getSourceHtml(lesson)
+    const sourceHtml = getSourceHtml(lesson, lang)
     const { intro, body } = splitIntro(sourceHtml)
 
     console.log(`[translate:${lang}] intro=${intro.length}chars body=${body.length}chars lesson=${lessonId}`)
