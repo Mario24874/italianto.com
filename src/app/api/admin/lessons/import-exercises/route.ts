@@ -64,7 +64,22 @@ Reglas:
 - No inventes contenido nuevo; usa el material exactamente como está.
 - "answer" en fill_blank: minúsculas, sin tildes.
 - Para dialogue usa ___id___ como placeholders.
-- Agrega "section" solo al primer ejercicio de cada grupo temático (ej: "section": "Preposiciones articuladas").`
+- Agrega "section" solo al primer ejercicio de cada grupo temático (ej: "section": "Preposiciones articuladas").
+- IMPORTANTE: Si no puedes determinar el tipo exacto, usa fill_blank. NUNCA devuelvas un array vacío — si el material tiene al menos una pregunta o ítem, genera al menos un ejercicio.`
+}
+
+/** Extract the first JSON array from a text string (for fallback parsing) */
+function extractJsonArray(text: string): unknown[] | null {
+  const start = text.indexOf('[')
+  if (start === -1) return null
+  const end = text.lastIndexOf(']')
+  if (end === -1 || end <= start) return null
+  try {
+    const parsed = JSON.parse(text.slice(start, end + 1))
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
 }
 
 const EXERCISES_TOOL: Anthropic.Tool = {
@@ -76,7 +91,100 @@ const EXERCISES_TOOL: Anthropic.Tool = {
       exercises: {
         type: 'array',
         description: 'Array of interactive exercises converted from the source material.',
-        items: { type: 'object' as const },
+        items: {
+          type: 'object' as const,
+          additionalProperties: true,
+          properties: {
+            id:          { type: 'string', description: 'Unique exercise id, e.g. "ej1"' },
+            type:        { type: 'string', enum: ['fill_blank', 'choice', 'dialogue', 'free_write'] },
+            number:      { type: 'number' },
+            title:       { type: 'string' },
+            instruction: { type: 'string' },
+            section:     { type: 'string', description: 'Optional section heading shown above this exercise' },
+            answerPanel: { type: 'array', items: { type: 'string' } },
+            // fill_blank items
+            items: {
+              type: 'array',
+              items: {
+                type: 'object' as const,
+                additionalProperties: true,
+                properties: {
+                  id:          { type: 'string' },
+                  label:       { type: 'string' },
+                  answer:      { type: 'string' },
+                  placeholder: { type: 'string' },
+                },
+              },
+            },
+            // choice – flat single-question
+            multiSelect: { type: 'boolean' },
+            options: {
+              type: 'array',
+              items: {
+                type: 'object' as const,
+                additionalProperties: true,
+                properties: {
+                  value:   { type: 'string' },
+                  correct: { type: 'boolean' },
+                },
+              },
+            },
+            // choice – grouped sub-questions
+            questions: {
+              type: 'array',
+              items: {
+                type: 'object' as const,
+                additionalProperties: true,
+                properties: {
+                  id:   { type: 'string' },
+                  text: { type: 'string' },
+                  options: {
+                    type: 'array',
+                    items: {
+                      type: 'object' as const,
+                      additionalProperties: true,
+                      properties: {
+                        value:   { type: 'string' },
+                        correct: { type: 'boolean' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            // dialogue
+            wordBank: { type: 'array', items: { type: 'string' } },
+            lines: {
+              type: 'array',
+              items: {
+                type: 'object' as const,
+                additionalProperties: true,
+                properties: {
+                  speaker: { type: 'string' },
+                  text:    { type: 'string' },
+                },
+              },
+            },
+            answers: {
+              type: 'object' as const,
+              additionalProperties: { type: 'string' },
+            },
+            // free_write
+            fields: {
+              type: 'array',
+              items: {
+                type: 'object' as const,
+                additionalProperties: true,
+                properties: {
+                  id:          { type: 'string' },
+                  prefix:      { type: 'string' },
+                  placeholder: { type: 'string' },
+                },
+              },
+            },
+          },
+          required: ['id', 'type', 'number', 'title', 'instruction'],
+        },
       },
     },
     required: ['exercises'],
@@ -195,7 +303,9 @@ export async function POST(req: NextRequest) {
       ? contentText.slice(0, 12000) + '\n\n[contenido truncado]'
       : contentText
 
-    console.log(`[import-exercises] calling Claude haiku, content ${trimmedContent.length} chars`)
+    // Step 3a: log what Claude sees (first 300 chars)
+    console.log(`[import-exercises] Claude input preview (300): ${trimmedContent.slice(0, 300).replace(/\n/g, '↵')}`)
+    console.log(`[import-exercises] calling Claude haiku tool_use, content ${trimmedContent.length} chars`)
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -219,15 +329,40 @@ export async function POST(req: NextRequest) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const raw = toolBlock.input as any
-    const exercises: Exercise[] = Array.isArray(raw.exercises) ? raw.exercises : []
+    let exercises: Exercise[] = Array.isArray(raw.exercises) ? raw.exercises : []
 
-    console.log(`[import-exercises] generated ${exercises.length} exercises | stop_reason=${message.stop_reason}`)
+    console.log(`[import-exercises] tool_use generated ${exercises.length} exercises | stop_reason=${message.stop_reason}`)
 
+    // Step 5: fallback — if tool_use returned empty array, retry without tool_use
     if (!exercises.length) {
-      console.log(`[import-exercises] content preview: ${contentText.slice(0, 500).replace(/\n/g, '↵')}`)
-      return NextResponse.json({
-        error: 'No se generaron ejercicios. Verifica que el archivo contenga ejercicios con preguntas y respuestas definidas.',
-      }, { status: 422 })
+      console.warn('[import-exercises] tool_use returned empty — attempting plain-text fallback')
+      const fallbackMsg = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 8000,
+        system: 'You extract exercises from Italian lesson material and return ONLY a JSON array. No explanations.',
+        messages: [{
+          role: 'user',
+          content: `Extract exercises from this content as a JSON array. Use type "fill_blank" for any question with a blank answer. Return ONLY the JSON array.\n\n${trimmedContent}`,
+        }],
+      })
+
+      const fallbackText = fallbackMsg.content
+        .filter(b => b.type === 'text')
+        .map(b => (b as { type: 'text'; text: string }).text)
+        .join('')
+
+      console.log(`[import-exercises] fallback raw (200): ${fallbackText.slice(0, 200).replace(/\n/g, '↵')}`)
+
+      const parsed = extractJsonArray(fallbackText)
+      if (parsed && parsed.length > 0) {
+        exercises = parsed as Exercise[]
+        console.log(`[import-exercises] fallback produced ${exercises.length} exercises`)
+      } else {
+        console.error('[import-exercises] fallback also returned empty. content preview:', contentText.slice(0, 500).replace(/\n/g, '↵'))
+        return NextResponse.json({
+          error: 'No se generaron ejercicios. Verifica que el archivo contenga ejercicios con preguntas y respuestas definidas.',
+        }, { status: 422 })
+      }
     }
 
     return NextResponse.json({ exercises })
