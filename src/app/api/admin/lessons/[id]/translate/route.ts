@@ -52,16 +52,18 @@ function buildSystemPrompt(lang: string): string {
 Translate the Spanish instructional text into ${targetLang}.
 
 RULES:
-- Copy every HTML tag, attribute, class, id, and emoji verbatim.
-- DO NOT translate Italian words, phrases, or example sentences.
-- In tables: translate only Spanish explanation cells.
-- Vocabulary: translate only the "translation" field; keep "word" and "example" unchanged.
-- You MUST call the save_translation tool with your result.`
+1. Copy every HTML tag, attribute, class, id, and emoji verbatim — do NOT change HTML structure.
+2. Emojis at the start of <h2> headings must stay exactly as-is.
+3. DO NOT translate Italian words in the lesson body — they are the study subject.
+4. In tables: translate Spanish column headers and labels (e.g. "Mes"→"Month", "Lun"→"Mon", "Nº"→"#"). Leave cells that contain Italian words/phrases unchanged.
+5. Translate Spanish day and month abbreviations to ${targetLang} equivalents (Lun→Mon, Mar→Tue, Mié→Wed, Jue→Thu, Vie→Fri, Sáb→Sat, Dom→Sun, etc.).
+6. Vocabulary array: keep "word" (Italian) and "example" (Italian sentence) unchanged; translate only "translation" to ${targetLang}.
+7. You MUST call the save_translation tool with your result.`
 }
 
-function buildUserMessage(lesson: LessonRow): string {
+function buildUserMessage(lesson: LessonRow, lang: string): string {
   const vocabJson = JSON.stringify(lesson.vocabulary ?? [])
-  return `Translate this Italian lesson from Spanish to ${LANG_NAMES[lesson.level as string] ?? 'English'}.
+  return `Translate this Italian lesson from Spanish to ${LANG_NAMES[lang] ?? lang}.
 
 content_html:
 ${lesson.content_html}
@@ -91,7 +93,7 @@ async function processTranslation(
       tools: [TRANSLATION_TOOL],
       tool_choice: { type: 'tool', name: 'save_translation' },
       messages: [
-        { role: 'user', content: buildUserMessage(lesson) },
+        { role: 'user', content: buildUserMessage(lesson, lang) },
       ],
     })
 

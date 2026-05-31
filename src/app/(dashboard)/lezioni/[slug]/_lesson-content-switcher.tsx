@@ -179,11 +179,17 @@ export function LessonContentSwitcher({
   // Split content into sections at <h2> boundaries
   const sections = contentHtml ? splitAtH2(contentHtml) : []
 
+  // Always use the default (Spanish) content headings for audio matching.
+  // When language changes, section headings change too ("Suoni" → "Sounds"),
+  // breaking fuzzy match. Index-based fallback keeps clips in the right section.
+  const defaultSections = defaultContent ? splitAtH2(defaultContent) : sections
+
   // Compute which clips match inline (so the rest can be shown at the end)
   const matchedIds = new Set<string>()
-  for (const sec of sections) {
-    for (const c of clipsFor(audioClips, sec.heading)) matchedIds.add(c.id)
-  }
+  sections.forEach((_, i) => {
+    const referenceHeading = defaultSections[i]?.heading ?? sections[i]?.heading
+    for (const c of clipsFor(audioClips, referenceHeading)) matchedIds.add(c.id)
+  })
   // "Global" = clips with no section + clips whose section didn't match any heading
   const globalAudio = audioClips.filter(c => !matchedIds.has(c.id))
 
@@ -216,7 +222,7 @@ export function LessonContentSwitcher({
     <div className="space-y-5">
       {/* ── Language tabs ── */}
       {available.length > 1 && (
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-verde-950/40 border border-verde-800/30 w-fit">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-verde-100 dark:bg-verde-950/40 border border-verde-200 dark:border-verde-800/30 w-fit">
           {available.map(l => {
             const meta = LANG_LABELS[l]
             if (!meta) return null
@@ -228,7 +234,7 @@ export function LessonContentSwitcher({
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                   activeLang === l
                     ? 'bg-verde-700 text-white shadow-sm'
-                    : 'text-verde-500 hover:text-verde-300 hover:bg-verde-900/40',
+                    : 'text-verde-700 dark:text-verde-500 hover:text-verde-900 dark:hover:text-verde-300 hover:bg-verde-200 dark:hover:bg-verde-900/40',
                 ].join(' ')}
               >
                 <span>{meta.flag}</span>
@@ -255,7 +261,8 @@ export function LessonContentSwitcher({
       {sections.length > 0 && (
         <div>
           {sections.map((sec, i) => {
-            const inlineClips = clipsFor(audioClips, sec.heading)
+            const referenceHeading = defaultSections[i]?.heading ?? sec.heading
+            const inlineClips = clipsFor(audioClips, referenceHeading)
             return (
               <div key={i}>
                 {/* HTML block for this section */}
