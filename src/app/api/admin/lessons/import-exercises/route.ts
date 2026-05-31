@@ -34,118 +34,53 @@ function htmlToText(html: string): string {
 function buildPrompt(language: string): string {
   const langLabel = language === 'en' ? 'English' : language === 'it' ? 'italiano' : 'español'
 
-  return `Eres un experto en didáctica del italiano. Analiza el siguiente material de ejercicios y genera ejercicios interactivos estructurados en formato JSON.
+  return `Eres un experto en didáctica del italiano. Convierte el siguiente material de ejercicios en un JSON array de ejercicios interactivos.
 
 IDIOMA DE LAS INSTRUCCIONES: ${langLabel}
-(El contenido italiano se mantiene en italiano; las instrucciones, etiquetas y explicaciones van en ${langLabel})
+(El contenido italiano se mantiene en italiano; instrucciones y etiquetas van en ${langLabel})
 
-Tipos de ejercicio disponibles:
+Tipos disponibles: fill_blank | choice | dialogue | free_write
 
-1. fill_blank — rellena el espacio en blanco con texto libre
-2. choice — elige entre opciones (único o múltiple)
-3. dialogue — completa un diálogo
-4. free_write — escritura libre, sin corrección automática
+Ejemplos mínimos de cada tipo:
 
-Esquema exacto:
+fill_blank:
+{"id":"ej1","type":"fill_blank","number":1,"title":"Completa","instruction":"Escribe la forma correcta.","items":[{"id":"q1","label":"Vado ___ scuola","answer":"alla","placeholder":"preposición..."}],"answerPanel":["Vado alla scuola"]}
 
-[
-  {
-    "id": "ej1",
-    "type": "fill_blank",
-    "number": 1,
-    "section": "🔤 El Alfabeto",
-    "title": "¿Cómo se llama cada letra?",
-    "instruction": "Escribe el nombre en italiano de cada letra.",
-    "items": [
-      { "id": "q1", "label": "La letra H", "answer": "acca", "placeholder": "nombre en italiano..." }
-    ],
-    "answerPanel": ["H → acca", "G → gi"]
-  },
-  {
-    "id": "ej2",
-    "type": "choice",
-    "number": 2,
-    "section": "🔊 Pronunciación",
-    "title": "Selecciona las letras extranjeras",
-    "instruction": "Selecciona TODAS las letras consideradas extranjeras en italiano.",
-    "multiSelect": true,
-    "options": [
-      { "value": "J", "correct": true },
-      { "value": "A", "correct": false }
-    ],
-    "answerPanel": ["J (i lunga), K (cappa), W (vu doppia), X (ics), Y (ipsilon)"]
-  },
-  {
-    "id": "ej3",
-    "type": "choice",
-    "number": 3,
-    "title": "¿Formal o informal?",
-    "instruction": "Para cada saludo, elige si es formal, informal o ambos.",
-    "multiSelect": false,
-    "questions": [
-      {
-        "id": "q1",
-        "text": "\\"Ciao!\\"",
-        "options": [
-          { "value": "Informal", "correct": true },
-          { "value": "Formal", "correct": false },
-          { "value": "Ambos", "correct": false }
-        ]
-      }
-    ],
-    "answerPanel": ["\\"Ciao!\\" → Informal"]
-  },
-  {
-    "id": "ej4",
-    "type": "dialogue",
-    "number": 4,
-    "title": "Completa el diálogo",
-    "instruction": "Completa el diálogo con las palabras del recuadro: ciao, stai, sto, grazie, bene",
-    "wordBank": ["ciao", "stai", "sto", "grazie", "bene"],
-    "lines": [
-      { "speaker": "Lucia", "text": "___d1___ Alberto!" },
-      { "speaker": "Alberto", "text": "Ciao Lucia, come ___d2___?" }
-    ],
-    "answers": { "d1": "ciao", "d2": "stai" },
-    "answerPanel": ["Lucia: Ciao Alberto!", "Alberto: Ciao Lucia, come stai?"]
-  },
-  {
-    "id": "ej5",
-    "type": "free_write",
-    "number": 5,
-    "title": "Preséntate en italiano",
-    "instruction": "Completa las frases con tu información personal.",
-    "fields": [
-      { "id": "f1", "prefix": "Mi chiamo", "placeholder": "tu nombre..." },
-      { "id": "f2", "prefix": "Sono di", "placeholder": "tu ciudad de origen..." }
-    ]
-  }
-]
+choice (flat, una pregunta):
+{"id":"ej2","type":"choice","number":2,"title":"Elige","instruction":"Selecciona la opción correcta.","multiSelect":false,"options":[{"value":"alla","correct":true},{"value":"del","correct":false}],"answerPanel":["alla"]}
+
+choice (sub-preguntas):
+{"id":"ej3","type":"choice","number":3,"title":"Formal o informal","instruction":"Elige para cada saludo.","multiSelect":false,"questions":[{"id":"q1","text":"Ciao","options":[{"value":"Informal","correct":true},{"value":"Formal","correct":false}]}],"answerPanel":["Ciao → Informal"]}
+
+dialogue:
+{"id":"ej4","type":"dialogue","number":4,"title":"Completa el diálogo","instruction":"Usa las palabras del recuadro.","wordBank":["ciao","stai"],"lines":[{"speaker":"Lucia","text":"___d1___ Alberto!"},{"speaker":"Alberto","text":"Come ___d2___?"}],"answers":{"d1":"ciao","d2":"stai"},"answerPanel":["Lucia: Ciao Alberto!","Alberto: Come stai?"]}
+
+free_write:
+{"id":"ej5","type":"free_write","number":5,"title":"Preséntate","instruction":"Completa con tu información.","fields":[{"id":"f1","prefix":"Mi chiamo","placeholder":"tu nombre..."}]}
 
 Reglas:
-- El contenido puede venir como texto plano, HTML o formato mixto — interpreta la estructura e intención de cada ejercicio independientemente del formato de entrada.
-- Si el archivo ya tiene ejercicios definidos (con preguntas, respuestas, instrucciones), conviértelos directamente al esquema JSON sin inventar contenido nuevo.
-- Genera tantos ejercicios como haya en el material (sin límite mínimo — si hay 1, devuelve 1; si hay 20, devuelve 20).
-- Agrupa temáticamente con "section" (emoji + título) cuando haya varios temas. Solo el primer ejercicio de cada sección lleva "section".
-- "answer" en fill_blank: respuesta normalizada (sin tildes, minúsculas).
-- Para dialogue, usa ___id___ como placeholders en "text".
-- Llama a la herramienta save_exercises con el array completo.`
+- Convierte TODOS los ejercicios del material, sin omitir ninguno.
+- No inventes contenido nuevo; usa el material exactamente como está.
+- "answer" en fill_blank: minúsculas, sin tildes.
+- Para dialogue usa ___id___ como placeholders.
+- Agrega "section" solo al primer ejercicio de cada grupo temático (ej: "section": "Preposiciones articuladas").
+- Devuelve ÚNICAMENTE el JSON array, sin markdown, sin explicaciones, sin texto adicional.`
 }
 
-const EXERCISES_TOOL: Anthropic.Tool = {
-  name: 'save_exercises',
-  description: 'Save the generated exercises array.',
-  input_schema: {
-    type: 'object' as const,
-    properties: {
-      exercises: {
-        type: 'array',
-        description: 'Array of Exercise objects following the schema provided.',
-        items: { type: 'object' as const },
-      },
-    },
-    required: ['exercises'],
-  },
+/** Extract a JSON array from a text response that may include markdown fences */
+function extractJsonArray(text: string): unknown[] {
+  // Try fenced code block first
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  const candidate = fenced ? fenced[1].trim() : text.trim()
+
+  // Find the outermost [ ... ] block
+  const start = candidate.indexOf('[')
+  const end = candidate.lastIndexOf(']')
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error('No JSON array found in response')
+  }
+
+  return JSON.parse(candidate.slice(start, end + 1)) as unknown[]
 }
 
 export async function POST(req: NextRequest) {
@@ -217,26 +152,33 @@ export async function POST(req: NextRequest) {
     const prompt = buildPrompt(language)
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 10000,
-      tools: [EXERCISES_TOOL],
-      tool_choice: { type: 'tool', name: 'save_exercises' },
+      model: 'claude-sonnet-4-6',
+      max_tokens: 16000,
       messages: [{
         role: 'user',
         content: `${prompt}\n\nCONTENIDO:\n${contentText}`,
       }],
     })
 
-    const toolBlock = message.content.find(b => b.type === 'tool_use')
-    if (!toolBlock || toolBlock.type !== 'tool_use') {
+    const textBlock = message.content.find(b => b.type === 'text')
+    if (!textBlock || textBlock.type !== 'text' || !textBlock.text.trim()) {
+      console.error('[import-exercises] No text block in response. stop_reason=' + message.stop_reason)
       return NextResponse.json({ error: 'Error al generar ejercicios. Intenta de nuevo.' }, { status: 502 })
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = toolBlock.input as any
-    const exercises: Exercise[] = Array.isArray(raw.exercises) ? raw.exercises : []
+    let exercises: Exercise[]
+    try {
+      const parsed = extractJsonArray(textBlock.text)
+      exercises = parsed as Exercise[]
+    } catch (parseErr) {
+      const preview = textBlock.text.slice(0, 300).replace(/\n/g, '↵')
+      console.error(`[import-exercises] JSON parse failed: ${parseErr instanceof Error ? parseErr.message : parseErr}. Response preview: ${preview}`)
+      return NextResponse.json({
+        error: 'La respuesta no contiene JSON válido. Intenta de nuevo.',
+      }, { status: 502 })
+    }
 
-    console.log(`[import-exercises] generated ${exercises.length} exercises | stop_reason=${message.stop_reason} | input_keys=${Object.keys(raw).join(',')}`)
+    console.log(`[import-exercises] generated ${exercises.length} exercises | stop_reason=${message.stop_reason}`)
     if (exercises.length === 0) {
       console.log(`[import-exercises] content preview: ${contentText.slice(0, 500).replace(/\n/g, '↵')}`)
     }
