@@ -32,9 +32,19 @@ function hasAccess(userPlan: PlanType, required: PlanType): boolean {
   return PLAN_HIERARCHY.indexOf(userPlan) >= PLAN_HIERARCHY.indexOf(required)
 }
 
+// Tester/admin accounts: full access to every lesson (review as a student)
+const TESTER_EMAILS = ['mmoreno248@gmail.com', 'marioivanmorenopineda@gmail.com']
+
 export default async function LezioniPage() {
   const user = await currentUser()
   if (!user) redirect('/sign-in')
+
+  const userEmail = (
+    user.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+    ?? user.emailAddresses?.[0]?.emailAddress
+    ?? ''
+  ).toLowerCase()
+  const isTester = TESTER_EMAILS.includes(userEmail)
 
   const supabase = getSupabaseAdmin()
   const { data: subCheck } = await supabase
@@ -44,7 +54,7 @@ export default async function LezioniPage() {
     .eq('status', 'active')
     .maybeSingle()
   const planCheck = (subCheck?.plan_type ?? 'free') as PlanType
-  if (planCheck === 'free') redirect('/precios')
+  if (planCheck === 'free' && !isTester) redirect('/precios')
 
   const { t } = await getServerLang()
 
@@ -135,7 +145,7 @@ export default async function LezioniPage() {
                   {levelLessons.map(lesson => {
                     const planOk = hasAccess(userPlan, lesson.plan_required as PlanType)
                     const unlocked = sequentialUnlocked[lesson.id]
-                    const accessible = planOk && unlocked
+                    const accessible = isTester || (planOk && unlocked)
                     const progress = progressMap[lesson.id]
                     const vocabCount = Array.isArray(lesson.vocabulary) ? lesson.vocabulary.length : 0
 
