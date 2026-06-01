@@ -33,16 +33,33 @@ function normSec(text: string) {
     .trim()
 }
 
-/** Returns clips whose section fuzzy-matches the given heading.
- *  "Los Meses" matches "📅 Meses y Días" if either contains the other after normalization. */
+// Stop-words ignored when matching audio sections to headings (articles/prepositions, ES/IT/EN)
+const SEC_STOPWORDS = new Set([
+  'el', 'la', 'los', 'las', 'le', 'lo', 'gli', 'i', 'il', 'un', 'una', 'the',
+  'de', 'del', 'della', 'dell', 'dei', 'degli', 'delle', 'di', 'da', 'e', 'y',
+  'and', 'en', 'in', 'anno', 'settimana',
+])
+
+/** Significant words (length ≥ 3, not stop-words) of a normalised section string */
+function sigWords(norm: string): string[] {
+  return norm.split(' ').filter(w => w.length >= 3 && !SEC_STOPWORDS.has(w))
+}
+
+/** Returns clips whose section matches the given heading.
+ *  Matches by full inclusion OR by sharing a significant keyword, so Italian clip
+ *  sections ("I mesi dell'anno", "I saluti") match Spanish/Italian headings
+ *  ("Mesi e Giorni", "I Saluti e le Presentazioni"). */
 function clipsFor(clips: AudioClip[], heading: string | null): AudioClip[] {
   if (!heading) return []
   const nh = normSec(heading)
   if (!nh) return []
+  const hWords = new Set(sigWords(nh))
   return clips.filter(c => {
     const ns = normSec(c.section ?? '')
     if (!ns) return false
-    return nh === ns || nh.includes(ns) || ns.includes(nh)
+    if (nh === ns || nh.includes(ns) || ns.includes(nh)) return true
+    // keyword overlap: any significant word shared between clip section and heading
+    return sigWords(ns).some(w => hWords.has(w))
   })
 }
 

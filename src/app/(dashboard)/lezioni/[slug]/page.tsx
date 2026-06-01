@@ -70,9 +70,19 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const lesson = lessonResult.data as LessonRow
   const userPlan = (subResult.data?.plan_type ?? 'free') as PlanType
 
+  // Tester/admin accounts: full access to every lesson (bypass plan, quota and
+  // sequential unlock) so content can be reviewed as a student sees it.
+  const userEmail = (
+    user.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+    ?? user.emailAddresses?.[0]?.emailAddress
+    ?? ''
+  ).toLowerCase()
+  const TESTER_EMAILS = ['mmoreno248@gmail.com', 'marioivanmorenopineda@gmail.com']
+  const isTester = TESTER_EMAILS.includes(userEmail)
+
   // Plan access check — redirect to pricing if lesson requires a higher plan
   const planOk = PLAN_HIERARCHY.indexOf(userPlan) >= PLAN_HIERARCHY.indexOf(lesson.plan_required as PlanType)
-  if (!planOk) redirect('/precios')
+  if (!planOk && !isTester) redirect('/precios')
 
   const weekLimit = WEEKLY_LIMITS[userPlan]
   const weekStart = currentWeekStart()
@@ -106,7 +116,10 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   let quotaExhausted = false
   let lockedByProgress = false
 
-  if (!sequentiallyUnlocked) {
+  if (isTester) {
+    // Tester/admin: unconditional access, no quota consumed
+    accessible = true
+  } else if (!sequentiallyUnlocked) {
     accessible = false
     lockedByProgress = true
   } else if (isFreeLesson) {
