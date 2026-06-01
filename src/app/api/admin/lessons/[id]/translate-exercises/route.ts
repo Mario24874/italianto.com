@@ -6,7 +6,9 @@ import type { Exercise, ExerciseTranslations, LessonRow } from '@/types'
 import { logApiUsage } from '@/lib/api-usage'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 120
+export const maxDuration = 300
+
+const BATCH_SIZE = 5
 
 const LANG_NAMES: Record<string, string> = {
   en: 'English',
@@ -191,30 +193,35 @@ export async function POST(
 
     const client = new Anthropic({ apiKey })
 
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 16000,
-      tools: [EXERCISES_TOOL],
-      tool_choice: { type: 'tool', name: 'save_exercises' },
-      messages: [{ role: 'user', content: buildPrompt(source.exercises, source.sourceLang, lang) }],
-    })
-
-    console.log(`[translate-exercises:${lang}] stop_reason=${message.stop_reason} blocks=${message.content.length}`)
-    void logApiUsage('claude-haiku', `translate-exercises:${lang}`, message.usage.input_tokens, message.usage.output_tokens)
-
-    const toolBlock = message.content.find(b => b.type === 'tool_use')
-    if (!toolBlock || toolBlock.type !== 'tool_use') {
-      return NextResponse.json({ error: 'Error al traducir. Intenta de nuevo.' }, { status: 502 })
+    // Split into batches to avoid token/timeout limits on large exercise sets
+    const batches: Exercise[][] = []
+    for (let i = 0; i < source.exercises.length; i += BATCH_SIZE) {
+      batches.push(source.exercises.slice(i, i + BATCH_SIZE))
     }
+    console.log(`[translate-exercises:${lang}] ${source.exercises.length} exercises → ${batches.length} batch(es)`)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = toolBlock.input as any
-    const translated: Exercise[] = Array.isArray(raw.exercises) ? raw.exercises : []
+    const batchResults = await Promise.all(batches.map(async (batch, idx) => {
+      const msg = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 8000,
+        tools: [EXERCISES_TOOL],
+        tool_choice: { type: 'tool', name: 'save_exercises' },
+        messages: [{ role: 'user', content: buildPrompt(batch, source.sourceLang, lang) }],
+      })
+      console.log(`[translate-exercises:${lang}] batch ${idx} stop=${msg.stop_reason}`)
+      void logApiUsage('claude-haiku', `translate-exercises:${lang}`, msg.usage.input_tokens, msg.usage.output_tokens)
+      const toolBlock = msg.content.find(b => b.type === 'tool_use')
+      if (!toolBlock || toolBlock.type !== 'tool_use') throw new Error(`Batch ${idx} sin tool_use (stop: ${msg.stop_reason})`)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = toolBlock.input as any
+      return (Array.isArray(raw.exercises) ? raw.exercises : []) as Exercise[]
+    }))
 
+    const translated: Exercise[] = batchResults.flat()
     console.log(`[translate-exercises:${lang}] translated ${translated.length}/${source.exercises.length} exercises`)
 
     if (!translated.length) {
-      return NextResponse.json({ error: 'No se generaron ejercicios traducidos.' }, { status: 502 })
+      return NextResponse.json({ error: 'No se generaron ejercicios traducidos. Intenta de nuevo.' }, { status: 502 })
     }
 
     const existingTr = ((lesson.exercise_translations ?? {}) as ExerciseTranslations)
