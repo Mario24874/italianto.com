@@ -1147,7 +1147,7 @@ export const translations = {
       hero: {
         badge: '🚀 Settimana di Lancio • 2 Giu 2026',
         title1: 'Parla Italiano con',
-        title2: 'Intelligenza Artificiale',
+        title2: 'Intelligenza',
         subtitle: 'Impara con il tuo Tutor IA personale, lezioni strutturate, canzoni, giochi e molto altro.',
         subtitleHighlight: 'Inizia gratis oggi.',
         offerLabel: "L'offerta speciale termina tra:",

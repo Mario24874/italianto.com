@@ -36,8 +36,8 @@ export default function LancioPage() {
             priority
             quality={85}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-bg-dark/70 via-bg-dark/60 to-bg-dark" />
-          <div className="absolute inset-0 bg-gradient-to-r from-bg-dark/80 via-transparent to-bg-dark/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/95" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-transparent to-black/70" />
         </div>
 
         {/* Aurora effect */}
@@ -60,14 +60,14 @@ export default function LancioPage() {
               <span className="gradient-text">{lc.hero.title2}</span>
             </h1>
 
-            <p className="text-lg sm:text-xl text-verde-300/90 max-w-2xl leading-relaxed mb-8">
+            <p className="text-lg sm:text-xl text-white/85 max-w-2xl leading-relaxed mb-8">
               {lc.hero.subtitle}{' '}
-              <em className="not-italic font-semibold text-verde-200">{lc.hero.subtitleHighlight}</em>
+              <em className="not-italic font-semibold text-verde-300">{lc.hero.subtitleHighlight}</em>
             </p>
 
             {/* Countdown */}
             <div className="mb-8">
-              <p className="text-xs text-verde-500 uppercase tracking-widest font-semibold mb-3">
+              <p className="text-xs text-verde-300 uppercase tracking-widest font-semibold mb-3">
                 {lc.hero.offerLabel}
               </p>
               <CountdownTimer />
@@ -75,11 +75,11 @@ export default function LancioPage() {
 
             {/* Promo code highlight */}
             <div className="inline-flex flex-wrap items-center gap-3 bg-verde-950/70 border border-verde-700/60 rounded-2xl px-5 py-3 mb-10">
-              <span className="text-sm text-verde-300">
+              <span className="text-sm text-white/80">
                 {lc.hero.promoLabel}
               </span>
               <PromoCodeCopy code="LANCIO10" />
-              <span className="text-sm text-verde-400">
+              <span className="text-sm text-verde-200">
                 {lc.hero.promoDetail}
               </span>
             </div>
@@ -258,12 +258,12 @@ export default function LancioPage() {
         {/* Launch banner */}
         <div className="bg-gradient-to-r from-verde-900/80 via-verde-800/60 to-verde-900/80 border-y border-verde-700/40 py-4">
           <div className="mx-auto max-w-7xl px-4 text-center">
-            <p className="text-sm sm:text-base font-semibold text-verde-100">
-              <span className="font-extrabold text-verde-50">{lc.pricing.offerBanner}</span>
+            <p className="text-sm sm:text-base font-semibold text-verde-900 dark:text-verde-100">
+              <span className="font-extrabold text-verde-900 dark:text-verde-50">{lc.pricing.offerBanner}</span>
               {' '}· {lc.pricing.offerDetail.split('·')[0].trim()} ·{' '}
               Usa{' '}
-              <span className="font-mono bg-verde-800/60 border border-verde-600/50 rounded px-2 py-0.5 text-verde-200">LANCIO10</span>
-              {' '}· <span className="text-verde-300 font-bold">{lc.pricing.offerDetail.split('·').slice(-1)[0].trim()}</span>
+              <span className="font-mono bg-verde-800/60 border border-verde-600/50 rounded px-2 py-0.5 text-verde-900 dark:text-verde-200">LANCIO10</span>
+              {' '}· <span className="text-verde-700 dark:text-verde-300 font-bold">{lc.pricing.offerDetail.split('·').slice(-1)[0].trim()}</span>
             </p>
           </div>
         </div>
