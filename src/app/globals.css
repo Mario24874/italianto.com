@@ -323,6 +323,25 @@ html:not(.dark) .text-verde-700 { color: #166534 !important; }
 html:not(.dark) .text-verde-800 { color: #14532d !important; }
 html:not(.dark) .text-verde-900 { color: #14532d !important; }
 
+/* Opacity variants — Tailwind /XX modifiers generate separate classes not
+   caught by the rules above (.text-verde-300 ≠ .text-verde-300\/90).
+   Attribute selector [class*="..."] catches ALL opacity suffixes at once. */
+html:not(.dark) [class*="text-verde-50/"]  { color: #14532d !important; }
+html:not(.dark) [class*="text-verde-100/"] { color: #14532d !important; }
+html:not(.dark) [class*="text-verde-200/"] { color: #166534 !important; }
+html:not(.dark) [class*="text-verde-300/"] { color: #15803d !important; }
+html:not(.dark) [class*="text-verde-400/"] { color: #15803d !important; }
+html:not(.dark) [class*="text-verde-500/"] { color: #16a34a !important; }
+html:not(.dark) [class*="text-verde-600/"] { color: #15803d !important; }
+html:not(.dark) [class*="text-verde-700/"] { color: #166534 !important; }
+html:not(.dark) [class*="text-verde-800/"] { color: #14532d !important; }
+html:not(.dark) [class*="text-verde-900/"] { color: #14532d !important; }
+
+/* White text with opacity (text-white/85, /80, /70 etc.) — used as soft text,
+   invisible on light backgrounds. Plain text-white is NOT overridden here
+   because it's typically used on colored buttons/primary elements. */
+html:not(.dark) [class*="text-white/"]     { color: #1a3a1a !important; }
+
 /* Light text colors → dark readable equivalents in light mode */
 /* Greens */
 html:not(.dark) .text-emerald-300 { color: #065f46 !important; }
@@ -419,6 +438,27 @@ html:not(.dark) .prose-invert {
 .lesson-prose span[style] {
   display: inline !important;
 }
+
+/* ─── Lesson text color palette (light + dark mode safe) ───────────────── */
+/* Applied by the rich editor color picker. Each class has two values:      */
+/* a dark variant (readable on white) and a light variant (readable on dark) */
+.lc-blue   { color: #1d4ed8; }
+.lc-green  { color: #15803d; }
+.lc-red    { color: #b91c1c; }
+.lc-purple { color: #7c3aed; }
+.lc-teal   { color: #0f766e; }
+.lc-orange { color: #c2410c; }
+.lc-amber  { color: #92400e; }
+.lc-rose   { color: #9f1239; }
+
+:where(.dark) .lc-blue   { color: #93c5fd; }
+:where(.dark) .lc-green  { color: #86efac; }
+:where(.dark) .lc-red    { color: #fca5a5; }
+:where(.dark) .lc-purple { color: #c4b5fd; }
+:where(.dark) .lc-teal   { color: #5eead4; }
+:where(.dark) .lc-orange { color: #fdba74; }
+:where(.dark) .lc-amber  { color: #fcd34d; }
+:where(.dark) .lc-rose   { color: #fda4af; }
 
 /* ─── Animate on scroll (base) ─────────────────────────────────────────── */
 .aos-hidden {

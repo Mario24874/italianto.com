@@ -61,8 +61,8 @@ export function Hero() {
           </div>
         ))}
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-bg-dark/60 via-bg-dark/50 to-bg-dark" />
-        <div className="absolute inset-0 bg-gradient-to-r from-bg-dark/80 via-transparent to-bg-dark/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/65 to-black/95" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-transparent to-black/70" />
       </motion.div>
 
       {/* Aurora dots overlay */}
