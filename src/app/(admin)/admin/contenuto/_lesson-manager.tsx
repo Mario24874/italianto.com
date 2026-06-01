@@ -1263,12 +1263,16 @@ function ExerciseFormPanel({
 }
 
 // ── Main exercise list ────────────────────────────────────────────────────────
+const EX_LANG_FLAG: Record<string, string> = { it: '🇮🇹', es: '🇪🇸', en: '🇬🇧' }
+
 function ExerciseEditor({
   exercises,
   onChange,
+  sourceLang,
 }: {
   exercises: Exercise[]
   onChange: (exercises: Exercise[]) => void
+  sourceLang?: string
 }) {
   const [editIdx, setEditIdx] = useState<number | null>(null)
 
@@ -1330,7 +1334,7 @@ function ExerciseEditor({
         <div className="flex items-center gap-2">
           <ListOrdered size={14} className="text-verde-500" />
           <span className="text-xs font-semibold text-verde-400 uppercase tracking-wide">
-            Ejercicios legacy ({exercises.length})
+            {sourceLang ? `Ejercicios ${EX_LANG_FLAG[sourceLang] ?? ''} (${exercises.length})` : `Ejercicios legacy (${exercises.length})`}
           </span>
         </div>
         <button type="button" onClick={addExercise}
@@ -1755,10 +1759,37 @@ function LessonModal({
             )}
 
             {/* ── Exercise Editor ── */}
-            <ExerciseEditor
-              exercises={form.exercises}
-              onChange={exercises => setField('exercises', exercises)}
-            />
+            {(() => {
+              // Same source-picking logic as translate-exercises/findSource:
+              // prefer the exercise_translations key with the most entries.
+              const trLangs = ['it', 'es', 'en'] as const
+              const bestLang = trLangs.reduce<typeof trLangs[number]>((best, lang) => {
+                const c = form.exercise_translations[lang]?.length ?? 0
+                const b = form.exercise_translations[best]?.length ?? 0
+                return c > b ? lang : best
+              }, 'it')
+              const trExercises = form.exercise_translations[bestLang] ?? []
+              const useTranslations = trExercises.length > 0
+
+              return (
+                <ExerciseEditor
+                  exercises={useTranslations ? trExercises : form.exercises}
+                  sourceLang={useTranslations ? bestLang : undefined}
+                  onChange={exs => {
+                    if (useTranslations) {
+                      // Write back to exercise_translations[bestLang]
+                      setForm(f => ({
+                        ...f,
+                        exercise_translations: { ...f.exercise_translations, [bestLang]: exs },
+                      }))
+                      setExTranslations(t => ({ ...t, [bestLang]: exs }))
+                    } else {
+                      setField('exercises', exs)
+                    }
+                  }}
+                />
+              )
+            })()}
 
             {error && (
               <p className="text-xs text-red-400 bg-red-950/30 border border-red-800/40 rounded-xl px-3 py-2">{error}</p>
