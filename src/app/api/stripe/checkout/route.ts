@@ -62,15 +62,17 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://italianto.com'
 
-    let discounts: { promotion_code: string }[] | undefined
-    if (promoCode) {
-      try {
-        const promoCodes = await stripe.promotionCodes.list({ code: promoCode.toUpperCase(), active: true, limit: 1 })
-        if (promoCodes.data.length > 0) {
-          discounts = [{ promotion_code: promoCodes.data[0].id }]
-        }
-      } catch (e) {
-        console.warn('[checkout] promoCode lookup failed:', e instanceof Error ? e.message : e)
+    // Apply launch discount when LANCIO10 is requested and the coupon ID is configured.
+    // We use the coupon ID directly (not a promotion code) because promotionCodes.create()
+    // is broken in Stripe API 2025-12-15.clover (parameter rename). The coupon is created
+    // via POST /api/admin/init-launch-coupon and its ID stored as STRIPE_LANCIO10_COUPON_ID.
+    let discounts: { coupon: string }[] | undefined
+    const LANCIO10_COUPON = process.env.STRIPE_LANCIO10_COUPON_ID
+    if (promoCode?.toUpperCase() === 'LANCIO10' && LANCIO10_COUPON) {
+      const now = Date.now()
+      const launchEnd = new Date('2026-06-09T23:59:59Z').getTime()
+      if (now <= launchEnd) {
+        discounts = [{ coupon: LANCIO10_COUPON }]
       }
     }
 
