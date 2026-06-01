@@ -168,16 +168,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Falta el texto de la guía (campo "guide") o es muy corto.' }, { status: 400 })
     }
 
+    console.log(`[rebuild-es] lesson=${id} guide=${guide.length}chars — calling haiku`)
     const client = new Anthropic({ apiKey })
     const msg = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 20000,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 16000,
       system: SYSTEM,
       tools: [TOOL],
       tool_choice: { type: 'tool', name: 'save_content' },
       messages: [{ role: 'user', content: `Guía de estudio (español):\n\n${guide}` }],
     })
-    void logApiUsage('claude-sonnet', 'rebuild-es', msg.usage.input_tokens, msg.usage.output_tokens)
+    void logApiUsage('claude-haiku', 'rebuild-es', msg.usage.input_tokens, msg.usage.output_tokens)
+    console.log(`[rebuild-es] stop_reason=${msg.stop_reason}`)
 
     const tool = msg.content.find(b => b.type === 'tool_use')
     if (!tool || tool.type !== 'tool_use') {
