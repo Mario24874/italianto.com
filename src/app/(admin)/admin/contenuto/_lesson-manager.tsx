@@ -1330,7 +1330,7 @@ function ExerciseEditor({
         <div className="flex items-center gap-2">
           <ListOrdered size={14} className="text-verde-500" />
           <span className="text-xs font-semibold text-verde-400 uppercase tracking-wide">
-            Ejercicios ({exercises.length})
+            Ejercicios legacy ({exercises.length})
           </span>
         </div>
         <button type="button" onClick={addExercise}
@@ -1414,6 +1414,7 @@ function LessonModal({
     } : emptyForm()
   )
   const [saving, setSaving] = useState(false)
+  const [savingExercises, setSavingExercises] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editorKey, setEditorKey] = useState(0)
   const [translations, setTranslations] = useState<LessonTranslations>(lesson?.translations ?? {})
@@ -1456,41 +1457,89 @@ function LessonModal({
     setEditorKey(k => k + 1)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Guarda contenido de la lección (nunca toca exercises ni exercise_translations)
+  const handleSaveLesson = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true); setError(null)
     try {
-      const url = lesson ? `/api/admin/lessons/${lesson.id}` : '/api/admin/lessons'
-      const method = lesson ? 'PUT' : 'POST'
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.title,
-          slug: form.slug,
-          level: form.level,
-          status: form.status,
-          plan_required: form.plan_required,
-          content_html: form.content_html,
-          grammar_notes: form.grammar_notes,
-          vocabulary: form.vocabulary.filter(v => v.word.trim()),
-          intro_video_url: form.intro_video_url || null,
-          video_subtitles: {
-            ...(form.video_subtitles.es && { es: form.video_subtitles.es }),
-            ...(form.video_subtitles.en && { en: form.video_subtitles.en }),
-            ...(form.video_subtitles.it && { it: form.video_subtitles.it }),
-          },
-          exercises: form.exercises,
-          exercise_translations: form.exercise_translations,
-          audio_clips: form.audio_clips,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al guardar')
-      onSave(data.lesson); onClose()
+      if (lesson) {
+        // UPDATE: solo campos de contenido, jamás ejercicios
+        const res = await fetch(`/api/admin/lessons/${lesson.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: form.title,
+            slug: form.slug,
+            level: form.level,
+            status: form.status,
+            plan_required: form.plan_required,
+            content_html: form.content_html,
+            grammar_notes: form.grammar_notes,
+            vocabulary: form.vocabulary.filter(v => v.word.trim()),
+            intro_video_url: form.intro_video_url || null,
+            video_subtitles: {
+              ...(form.video_subtitles.es && { es: form.video_subtitles.es }),
+              ...(form.video_subtitles.en && { en: form.video_subtitles.en }),
+              ...(form.video_subtitles.it && { it: form.video_subtitles.it }),
+            },
+            audio_clips: form.audio_clips,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Error al guardar lección')
+        onSave(data.lesson); onClose()
+      } else {
+        // CREATE: incluye todo (nueva lección, sin riesgo de footgun)
+        const res = await fetch('/api/admin/lessons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: form.title,
+            slug: form.slug,
+            level: form.level,
+            status: form.status,
+            plan_required: form.plan_required,
+            content_html: form.content_html,
+            grammar_notes: form.grammar_notes,
+            vocabulary: form.vocabulary.filter(v => v.word.trim()),
+            intro_video_url: form.intro_video_url || null,
+            video_subtitles: {
+              ...(form.video_subtitles.es && { es: form.video_subtitles.es }),
+              ...(form.video_subtitles.en && { en: form.video_subtitles.en }),
+              ...(form.video_subtitles.it && { it: form.video_subtitles.it }),
+            },
+            exercises: form.exercises,
+            exercise_translations: form.exercise_translations,
+            audio_clips: form.audio_clips,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Error al crear lección')
+        onSave(data.lesson); onClose()
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally { setSaving(false) }
+  }
+
+  // Guarda ejercicios de forma independiente (nunca toca content_html ni campos de lección)
+  const handleSaveExercises = async () => {
+    if (!lesson) return
+    setSavingExercises(true); setError(null)
+    try {
+      const res = await fetch(`/api/admin/lessons/${lesson.id}/exercises`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exercises: form.exercises,
+          exercise_translations: form.exercise_translations,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al guardar ejercicios')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido')
+    } finally { setSavingExercises(false) }
   }
 
   return (
@@ -1521,7 +1570,7 @@ function LessonModal({
             />
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSaveLesson} className="space-y-5">
             {/* ── Title (prominent) ── */}
             <div>
               <label className="block text-xs font-medium text-verde-400 mb-1.5">Título de la lección *</label>
@@ -1715,12 +1764,39 @@ function LessonModal({
               <p className="text-xs text-red-400 bg-red-950/30 border border-red-800/40 rounded-xl px-3 py-2">{error}</p>
             )}
 
-            <div className="flex gap-3 pt-1">
-              <Button type="button" variant="ghost" className="flex-1" onClick={onClose} disabled={saving}>Cancelar</Button>
-              <Button type="submit" className="flex-1" disabled={saving}>
-                {saving ? <><Loader2 size={14} className="animate-spin" /> Guardando...</> : lesson ? 'Actualizar' : 'Crear lección'}
-              </Button>
-            </div>
+            {lesson ? (
+              /* Lección existente: dos botones independientes */
+              <div className="space-y-2 pt-1">
+                <div className="flex gap-3">
+                  <Button type="button" variant="ghost" className="flex-1" onClick={onClose} disabled={saving || savingExercises}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={saving || savingExercises}>
+                    {saving ? <><Loader2 size={14} className="animate-spin" /> Guardando...</> : 'Guardar lección'}
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full border border-blue-700/40 text-blue-300 hover:bg-blue-950/30"
+                  onClick={handleSaveExercises}
+                  disabled={saving || savingExercises}
+                >
+                  {savingExercises ? <><Loader2 size={14} className="animate-spin" /> Guardando ejercicios...</> : '💾 Guardar ejercicios'}
+                </Button>
+                <p className="text-[10px] text-verde-700 text-center">
+                  «Guardar lección» nunca toca ejercicios · «Guardar ejercicios» nunca toca el contenido
+                </p>
+              </div>
+            ) : (
+              /* Nueva lección: un solo botón (crea todo junto) */
+              <div className="flex gap-3 pt-1">
+                <Button type="button" variant="ghost" className="flex-1" onClick={onClose} disabled={saving}>Cancelar</Button>
+                <Button type="submit" className="flex-1" disabled={saving}>
+                  {saving ? <><Loader2 size={14} className="animate-spin" /> Creando...</> : 'Crear lección'}
+                </Button>
+              </div>
+            )}
           </form>
         </div>
       </div>
