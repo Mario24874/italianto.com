@@ -129,7 +129,7 @@ export function RichEditor({
     editor.focus()
     const sel = window.getSelection()
 
-    // Restore saved selection if current selection is collapsed/lost
+    // Restore saved selection if browser lost it when picker opened
     if (savedRangeRef.current && sel) {
       sel.removeAllRanges()
       sel.addRange(savedRangeRef.current)
@@ -139,22 +139,14 @@ export function RichEditor({
     const range = sel.getRangeAt(0)
     if (range.collapsed) return
 
-    try {
-      // Remove existing color classes from any spans within the selection
-      const span = document.createElement('span')
-      span.className = cls
-      range.surroundContents(span)
-    } catch {
-      // Selection spans multiple elements — wrap text content only
-      const text = range.toString()
-      if (text) {
-        range.deleteContents()
-        const span = document.createElement('span')
-        span.className = cls
-        span.textContent = text
-        range.insertNode(span)
-      }
-    }
+    // Clone selection HTML to preserve nested formatting (bold, italic, etc.)
+    const fragment = range.cloneContents()
+    const tmp = document.createElement('div')
+    tmp.appendChild(fragment)
+    const selectedHTML = tmp.innerHTML
+
+    // execCommand('insertHTML') goes into the browser undo stack → Ctrl+Z works
+    document.execCommand('insertHTML', false, `<span class="${cls}">${selectedHTML}</span>`)
     onChange(editor.innerHTML)
     savedRangeRef.current = null
   }
@@ -169,8 +161,9 @@ export function RichEditor({
       sel.removeAllRanges()
       sel.addRange(savedRangeRef.current)
     }
-    // unwrapColor removes lc-* spans within selection
-    exec('removeFormat')
+    // execCommand('removeFormat') is undoable via Ctrl+Z
+    document.execCommand('removeFormat')
+    onChange(editor.innerHTML)
     savedRangeRef.current = null
   }
 

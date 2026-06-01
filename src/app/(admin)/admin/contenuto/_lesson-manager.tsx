@@ -1336,6 +1336,7 @@ function ExerciseEditor({
           <span className="text-xs font-semibold text-verde-400 uppercase tracking-wide">
             {sourceLang ? `Ejercicios ${EX_LANG_FLAG[sourceLang] ?? ''} (${exercises.length})` : `Ejercicios legacy (${exercises.length})`}
           </span>
+          <span className="text-[10px] text-verde-700">— ✏️ edita · luego «Guardar ejercicios»</span>
         </div>
         <button type="button" onClick={addExercise}
           className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-verde-900/40 hover:bg-verde-800/40 text-verde-300 transition-colors">
@@ -1978,11 +1979,18 @@ export function LessonManager() {
                                 <Video size={11} /> Video
                               </span>
                             )}
-                            {(lesson.exercises?.length ?? 0) > 0 && (
-                              <span className="flex items-center gap-1 text-[10px] text-blue-400 bg-blue-950/30 border border-blue-800/20 px-1.5 py-0.5 rounded">
-                                <Dumbbell size={11} /> {lesson.exercises.length} ej.
-                              </span>
-                            )}
+                            {(() => {
+                              const tr = (lesson.exercise_translations ?? {}) as ExerciseTranslations
+                              const exCount = Math.max(
+                                ...(['it', 'es', 'en'] as const).map(l => tr[l]?.length ?? 0),
+                                lesson.exercises?.length ?? 0,
+                              )
+                              return exCount > 0 ? (
+                                <span className="flex items-center gap-1 text-[10px] text-blue-400 bg-blue-950/30 border border-blue-800/20 px-1.5 py-0.5 rounded">
+                                  <Dumbbell size={11} /> {exCount} ej.
+                                </span>
+                              ) : null
+                            })()}
                             {(lesson.audio_clips?.length ?? 0) > 0 && (
                               <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-950/30 border border-amber-800/20 px-1.5 py-0.5 rounded">
                                 <Headphones size={11} /> {lesson.audio_clips!.length} audio
