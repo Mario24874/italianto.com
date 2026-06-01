@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await req.json()
-  const { planType, billingInterval }: { planType: PlanType; billingInterval: BillingInterval } = body
+  const body = await req.json() as { planType: PlanType; billingInterval: BillingInterval; promoCode?: string }
+  const { planType, billingInterval, promoCode } = body
 
   const plan = getPlanById(planType)
   if (!plan || planType === 'free') {
@@ -62,6 +62,18 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://italianto.com'
 
+    let discounts: { promotion_code: string }[] | undefined
+    if (promoCode) {
+      try {
+        const promoCodes = await stripe.promotionCodes.list({ code: promoCode.toUpperCase(), active: true, limit: 1 })
+        if (promoCodes.data.length > 0) {
+          discounts = [{ promotion_code: promoCodes.data[0].id }]
+        }
+      } catch (e) {
+        console.warn('[checkout] promoCode lookup failed:', e instanceof Error ? e.message : e)
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId || undefined,
@@ -70,7 +82,7 @@ export async function POST(req: NextRequest) {
       cancel_url: `${appUrl}/precios?canceled=true`,
       metadata: { userId },
       subscription_data: { metadata: { userId } },
-      allow_promotion_codes: true,
+      ...(discounts ? { discounts } : { allow_promotion_codes: true }),
       billing_address_collection: 'auto',
     })
 
