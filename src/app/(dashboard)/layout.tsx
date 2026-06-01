@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar'
