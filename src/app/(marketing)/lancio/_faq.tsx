@@ -4,33 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-
-const FAQ_ITEMS = [
-  {
-    q: '¿Necesito experiencia previa en italiano?',
-    a: 'No. Comenzamos desde cero (nivel A1) con pronunciación, alfabeto y vocabulario básico. El Tutor IA adapta el ritmo a tu nivel.',
-  },
-  {
-    q: '¿En qué se diferencia de Duolingo?',
-    a: 'Italianto tiene un Tutor IA conversacional real, lecciones en profundidad (no solo ejercicios de frases), y un ecosistema completo con apps especializadas como Dialoghi Studio e ItaliantoApp.',
-  },
-  {
-    q: '¿Qué incluye el plan gratis?',
-    a: 'Acceso básico: 3 diálogos por mes, conjugador de 20 verbos, traductor básico y contenido introductorio. Sin tarjeta de crédito requerida.',
-  },
-  {
-    q: '¿Cómo aplico el descuento LANCIO10?',
-    a: 'Al hacer clic en "Comprar plan", introduce el código LANCIO10 en el campo de código de promoción de Stripe. 10% de descuento en el primer pago. Válido solo hasta el 9 de junio.',
-  },
-  {
-    q: '¿Hay contrato mínimo?',
-    a: 'No. Suscripción mensual o anual. Cancela en cualquier momento desde tu panel de configuración sin penalización.',
-  },
-  {
-    q: '¿Dialoghi Studio e ItaliantoApp cuestan extra?',
-    a: 'No, están incluidas en los planes Avanzado y Maestro sin costo adicional.',
-  },
-]
+import { useLanguage } from '@/contexts/language-context'
 
 function FAQItem({ question, answer, isOpen, onToggle }: {
   question: string
@@ -39,15 +13,15 @@ function FAQItem({ question, answer, isOpen, onToggle }: {
   onToggle: () => void
 }) {
   return (
-    <div className="border border-verde-800/30 rounded-xl overflow-hidden">
+    <div className="border border-verde-200 dark:border-verde-800/30 rounded-xl overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-verde-950/40 transition-colors"
+        className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-verde-50 dark:hover:bg-verde-950/40 transition-colors"
       >
-        <span className="text-base font-semibold text-verde-100">{question}</span>
+        <span className="text-base font-semibold text-verde-800 dark:text-verde-100">{question}</span>
         <ChevronDown
           size={18}
-          className={`text-verde-500 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-verde-600 dark:text-verde-500 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
       <AnimatePresence initial={false}>
@@ -59,7 +33,7 @@ function FAQItem({ question, answer, isOpen, onToggle }: {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
           >
-            <div className="px-6 pb-5 text-sm text-verde-400 leading-relaxed border-t border-verde-800/20">
+            <div className="px-6 pb-5 text-sm text-verde-700 dark:text-verde-400 leading-relaxed border-t border-verde-100 dark:border-verde-800/20">
               <div className="pt-4">{answer}</div>
             </div>
           </motion.div>
@@ -70,6 +44,9 @@ function FAQItem({ question, answer, isOpen, onToggle }: {
 }
 
 export function FAQ() {
+  const { t } = useLanguage()
+  const faq = t.lancio.faq
+
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   function toggle(i: number) {
@@ -89,11 +66,11 @@ export function FAQ() {
           transition={{ duration: 0.6 }}
         >
           <Badge variant="brand" className="mb-4">
-            Preguntas frecuentes
+            {faq.badge}
           </Badge>
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-verde-50 tracking-tight">
-            ¿Tienes{' '}
-            <span className="gradient-text">dudas?</span>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-verde-900 dark:text-verde-50 tracking-tight">
+            {faq.title}{' '}
+            <span className="gradient-text">{faq.highlight}</span>
           </h2>
         </motion.div>
 
@@ -104,7 +81,7 @@ export function FAQ() {
           viewport={{ once: true, margin: '-60px' }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          {FAQ_ITEMS.map((item, i) => (
+          {faq.items.map((item, i) => (
             <FAQItem
               key={i}
               question={item.q}

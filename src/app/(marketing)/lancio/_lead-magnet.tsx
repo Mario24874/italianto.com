@@ -5,10 +5,14 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Mail, ArrowRight } from 'lucide-react'
+import { useLanguage } from '@/contexts/language-context'
 
 type FormState = 'idle' | 'loading' | 'success' | 'error'
 
 export function LeadMagnet() {
+  const { t } = useLanguage()
+  const lm = t.lancio.leadMagnet
+
   const [email, setEmail] = useState('')
   const [state, setState] = useState<FormState>('idle')
   const [errorMsg, setErrorMsg] = useState('')
@@ -43,7 +47,7 @@ export function LeadMagnet() {
   }
 
   return (
-    <section className="py-24 relative overflow-hidden bg-verde-950/30">
+    <section className="py-24 relative overflow-hidden bg-verde-50/80 dark:bg-verde-900/40">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-verde-700/40 to-transparent" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
@@ -60,25 +64,23 @@ export function LeadMagnet() {
           transition={{ duration: 0.6 }}
         >
           <Badge variant="brand" className="mb-5 text-sm px-4 py-1.5">
-            🎁 Regalo de Lanzamiento
+            {lm.badge}
           </Badge>
 
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-verde-50 mb-4 tracking-tight">
-            Guía Gratis:{' '}
-            <span className="gradient-text">Los 100 Verbos</span>
-            <br />
-            Más Usados en Italiano
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-verde-900 dark:text-verde-50 mb-4 tracking-tight">
+            {lm.title}{' '}
+            <span className="gradient-text">{lm.titleHighlight}</span>
           </h2>
 
-          <p className="text-lg text-verde-400 max-w-xl mx-auto mb-10 leading-relaxed">
-            Infinitivo, significado, conjugación y ejemplo. El recurso esencial para todo estudiante de italiano.{' '}
-            <span className="text-verde-300 font-semibold">Totalmente gratis.</span>
+          <p className="text-lg text-verde-700 dark:text-verde-400 max-w-xl mx-auto mb-10 leading-relaxed">
+            {lm.description}{' '}
+            <span className="text-verde-700 dark:text-verde-300 font-semibold">{lm.descriptionHighlight}</span>
           </p>
 
           {state === 'success' ? (
-            <div className="flex items-center justify-center gap-3 bg-verde-950/60 border border-verde-700/50 rounded-2xl px-8 py-6 text-verde-300 text-lg font-semibold">
+            <div className="flex items-center justify-center gap-3 bg-verde-100/60 dark:bg-verde-950/60 border border-verde-300 dark:border-verde-700/50 rounded-2xl px-8 py-6 text-verde-700 dark:text-verde-300 text-lg font-semibold">
               <span>✅</span>
-              <span>¡Enviado! Revisa tu correo.</span>
+              <span>{lm.success}</span>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
@@ -88,9 +90,9 @@ export function LeadMagnet() {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="tu@email.com"
+                  placeholder={lm.placeholder}
                   required
-                  className="w-full h-14 pl-11 pr-4 rounded-xl bg-verde-950/60 border border-verde-700/50 text-verde-100 placeholder:text-verde-600 focus:outline-none focus:border-verde-500 focus:ring-1 focus:ring-verde-500 transition-all text-base"
+                  className="w-full h-14 pl-11 pr-4 rounded-xl bg-white/80 dark:bg-verde-950/60 border border-verde-300 dark:border-verde-700/50 text-verde-900 dark:text-verde-100 placeholder:text-verde-500 dark:placeholder:text-verde-600 focus:outline-none focus:border-verde-500 focus:ring-1 focus:ring-verde-500 transition-all text-base"
                 />
               </div>
               <Button
@@ -99,7 +101,7 @@ export function LeadMagnet() {
                 loading={state === 'loading'}
                 className="h-14 px-7 text-base font-bold whitespace-nowrap"
               >
-                Recibir mi Guía
+                {lm.cta}
                 {state !== 'loading' && <ArrowRight size={16} />}
               </Button>
             </form>
@@ -110,7 +112,7 @@ export function LeadMagnet() {
           )}
 
           <p className="mt-5 text-xs text-verde-600">
-            Sin spam. Solo recibirás la guía y novedades de Italianto.
+            {lm.privacy}
           </p>
         </motion.div>
       </div>

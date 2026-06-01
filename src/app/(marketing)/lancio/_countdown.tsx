@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLanguage } from '@/contexts/language-context'
 
 const LAUNCH_END = new Date('2026-06-09T23:59:59Z')
 
@@ -22,6 +23,9 @@ function getTimeLeft(): TimeLeft {
 }
 
 export function CountdownTimer() {
+  const { t } = useLanguage()
+  const cd = t.lancio.countdown
+
   const [mounted, setMounted] = useState(false)
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
@@ -35,10 +39,10 @@ export function CountdownTimer() {
   if (!mounted) return null
 
   const units = [
-    { value: timeLeft.days, label: 'días' },
-    { value: timeLeft.hours, label: 'horas' },
-    { value: timeLeft.minutes, label: 'min' },
-    { value: timeLeft.seconds, label: 'seg' },
+    { value: timeLeft.days, label: cd.days },
+    { value: timeLeft.hours, label: cd.hours },
+    { value: timeLeft.minutes, label: cd.min },
+    { value: timeLeft.seconds, label: cd.sec },
   ]
 
   return (

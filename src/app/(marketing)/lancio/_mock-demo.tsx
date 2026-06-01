@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
+import { useLanguage } from '@/contexts/language-context'
 
 function TypingDots() {
   return (
@@ -264,6 +265,9 @@ function MockPassatempi() {
 }
 
 export function MockDemo() {
+  const { t } = useLanguage()
+  const demo = t.lancio.demo
+
   return (
     <section className="py-24 relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-verde-700/40 to-transparent" />
@@ -278,14 +282,14 @@ export function MockDemo() {
           transition={{ duration: 0.6 }}
         >
           <Badge variant="brand" className="mb-4">
-            Plataforma completa
+            {demo.sectionBadge}
           </Badge>
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-verde-50 mb-4 tracking-tight">
-            Descubre la{' '}
-            <span className="gradient-text">plataforma</span>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-verde-900 dark:text-verde-50 mb-4 tracking-tight">
+            {demo.sectionTitle}{' '}
+            <span className="gradient-text">{demo.sectionHighlight}</span>
           </h2>
-          <p className="text-lg text-verde-400 max-w-2xl mx-auto">
-            Todo lo que necesitas para hablar italiano, en un solo lugar.
+          <p className="text-lg text-verde-700 dark:text-verde-400 max-w-2xl mx-auto">
+            {demo.sectionSubtitle}
           </p>
         </motion.div>
 
@@ -300,7 +304,7 @@ export function MockDemo() {
             transition={{ duration: 0.5 }}
           >
             <div className="mb-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-verde-500">Tutor IA Personal</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-verde-600 dark:text-verde-500">{demo.tutorLabel}</span>
             </div>
             <MockTutorChat />
           </motion.div>
@@ -313,7 +317,7 @@ export function MockDemo() {
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <div className="mb-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-verde-500">Lecciones Estructuradas</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-verde-600 dark:text-verde-500">{demo.lessonsLabel}</span>
             </div>
             <MockLessonViewer />
           </motion.div>
@@ -326,7 +330,7 @@ export function MockDemo() {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <div className="mb-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-verde-500">Canzoni Italiane</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-verde-600 dark:text-verde-500">{demo.songsLabel}</span>
             </div>
             <MockCanzoni />
           </motion.div>
@@ -339,7 +343,7 @@ export function MockDemo() {
             transition={{ duration: 0.5, delay: 0.3 }}
           >
             <div className="mb-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-verde-500">Passatempi — Juegos</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-verde-600 dark:text-verde-500">{demo.gamesLabel}</span>
             </div>
             <MockPassatempi />
           </motion.div>

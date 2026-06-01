@@ -2,15 +2,19 @@
 
 import { motion } from 'framer-motion'
 import { Users, BookOpen, Star, Zap } from 'lucide-react'
-
-const STATS = [
-  { icon: Users, value: '10K+', label: 'Estudiantes' },
-  { icon: BookOpen, value: '3', label: 'Apps' },
-  { icon: Star, value: '4.9★', label: 'Valoración' },
-  { icon: Zap, value: '100+', label: 'Lecciones' },
-]
+import { useLanguage } from '@/contexts/language-context'
 
 export function HeroClient() {
+  const { t } = useLanguage()
+  const stats = t.lancio.stats
+
+  const STATS = [
+    { icon: Users, value: '10K+', label: stats.students },
+    { icon: BookOpen, value: '3', label: stats.apps },
+    { icon: Star, value: '4.9★', label: stats.rating },
+    { icon: Zap, value: '100+', label: stats.lessons },
+  ]
+
   return (
     <motion.div
       className="flex flex-wrap gap-8"
