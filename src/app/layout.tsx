@@ -7,6 +7,12 @@ import { Analytics } from '@/components/analytics'
 import { Toaster } from 'sonner'
 import './globals.css'
 
+// Prevent static pre-rendering at build time: ClerkProvider (in Providers) needs
+// NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY baked in at build. Using force-dynamic ensures
+// all pages render at request time when env vars are available, avoiding build failures
+// when the key is not configured as a Docker build ARG.
+export const dynamic = 'force-dynamic'
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://italianto.com'
 
 export const metadata: Metadata = {
