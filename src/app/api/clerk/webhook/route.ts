@@ -3,6 +3,7 @@ import { Webhook } from 'svix'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { addContactToAudience, removeContactFromAudience } from '@/lib/email'
 import { notifyAdmin } from '@/lib/admin-notifications'
+import { sendOnboardingSequence } from '@/lib/onboarding-emails'
 import type { WebhookEvent } from '@clerk/nextjs/server'
 
 export async function POST(req: NextRequest) {
@@ -65,6 +66,10 @@ export async function POST(req: NextRequest) {
       if (email) {
         await addContactToAudience(email, first_name ?? '').catch(err =>
           console.warn('[clerk-webhook] addContactToAudience failed:', err)
+        )
+
+        sendOnboardingSequence(email, first_name ?? '').catch(err =>
+          console.warn('[clerk-webhook] onboarding sequence failed:', err)
         )
       }
 
