@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from './supabase'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = 'Italianto <noreply@italianto.com>'
-const NOTIFY_EMAIL = 'italianto@gmail.com'
+const NOTIFY_EMAIL = 'italiantonline@gmail.com'
 
 interface AdminEvent {
   type: string
