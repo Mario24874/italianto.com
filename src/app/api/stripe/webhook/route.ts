@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { notifyAdmin } from '@/lib/admin-notifications'
 import type Stripe from 'stripe'
 import type { PlanType, SubscriptionStatus } from '@/types'
 
@@ -132,6 +133,28 @@ export async function POST(req: NextRequest) {
             cancel_at_period_end: sub.cancel_at_period_end,
             updated_at: new Date().toISOString(),
           })
+
+          const planLabels: Record<string, string> = { essenziale: 'Essenziale', avanzato: 'Avanzato', maestro: 'Maestro' }
+          const planLabel = planLabels[planType] ?? planType
+          const billingInterval = sub.items.data[0]?.price.recurring?.interval || 'month'
+          const amount = sub.items.data[0]?.price.unit_amount || 0
+          const amountDisplay = `$${(amount / 100).toFixed(2)} ${sub.currency.toUpperCase()}`
+          const now = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })
+
+          notifyAdmin({
+            type: 'new_subscription',
+            title: `Nueva suscripción ${planLabel}`,
+            message: `${email} se suscribió al plan ${planLabel} (${amountDisplay})`,
+            metadata: { email, plan: planType, amount, subscription_id: sub.id, user_id: userId },
+            emailSubject: `[Italianto] 🎉 Nueva suscripción — ${planLabel} (${email})`,
+            emailRows: [
+              ['Email', email],
+              ['Plan', planLabel],
+              ['Monto', amountDisplay],
+              ['Período', billingInterval === 'year' ? 'Anual' : 'Mensual'],
+              ['Fecha', now],
+            ],
+          }).catch(err => console.warn('[stripe-webhook] notifyAdmin failed:', err))
         }
         break
       }

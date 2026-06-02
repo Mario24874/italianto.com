@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { notifyAdmin } from '@/lib/admin-notifications'
 
 // SQL to create the table (run in Supabase Dashboard):
 // CREATE TABLE IF NOT EXISTS leads (
@@ -141,7 +142,24 @@ export async function POST(req: NextRequest) {
     console.error('[leads/lancio] supabase catch:', err)
   }
 
-  // 2. Send guide email via Resend (always — even if already registered, they get the guide)
+  // 2. Notify admin for new leads (skip duplicates)
+  if (!alreadyRegistered) {
+    const now = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })
+    notifyAdmin({
+      type: 'new_lead',
+      title: 'Nuevo lead en /lancio',
+      message: `${email} solicitó la guía de los 100 verbos`,
+      metadata: { email, source: 'lancio' },
+      emailSubject: `[Italianto] Nuevo lead — ${email}`,
+      emailRows: [
+        ['Email', email],
+        ['Fuente', '/lancio — Guía 100 verbos'],
+        ['Fecha', now],
+      ],
+    }).catch(err => console.warn('[leads/lancio] notifyAdmin failed:', err))
+  }
+
+  // 3. Send guide email via Resend (always — even if already registered, they get the guide)
   if (resend) {
     try {
       const { error: sendError } = await resend.emails.send({

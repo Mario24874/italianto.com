@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Webhook } from 'svix'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { addContactToAudience, removeContactFromAudience } from '@/lib/email'
+import { notifyAdmin } from '@/lib/admin-notifications'
 import type { WebhookEvent } from '@clerk/nextjs/server'
 
 export async function POST(req: NextRequest) {
@@ -66,6 +67,23 @@ export async function POST(req: NextRequest) {
           console.warn('[clerk-webhook] addContactToAudience failed:', err)
         )
       }
+
+      const fullName = [first_name, last_name].filter(Boolean).join(' ') || '(sin nombre)'
+      const now = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })
+      notifyAdmin({
+        type: 'new_user',
+        title: 'Nuevo usuario gratuito',
+        message: `${fullName} (${email ?? 'sin email'}) se registró`,
+        metadata: { email, user_id: id, full_name: fullName },
+        emailSubject: `[Italianto] Nuevo usuario — ${email ?? id}`,
+        emailRows: [
+          ['Nombre', fullName],
+          ['Email', email ?? '(sin email)'],
+          ['Plan', 'Gratuito'],
+          ['Fecha', now],
+        ],
+      }).catch(err => console.warn('[clerk-webhook] notifyAdmin failed:', err))
+
       break
     }
 
