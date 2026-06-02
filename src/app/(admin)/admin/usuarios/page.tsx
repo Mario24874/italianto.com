@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { requireAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { formatDate, formatRelativeTime, getInitials } from '@/lib/utils'
 import { Users, Search, Filter, Download } from 'lucide-react'
 import type { UserRow, SubscriptionRow } from '@/types'
@@ -52,10 +51,14 @@ export default async function AdminUsuariosPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <a
+            href="/api/admin/users/export-csv"
+            download
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-verde-800/40 text-sm text-verde-400 hover:text-verde-200 hover:border-verde-700/50 transition-all bg-verde-950/20"
+          >
             <Download size={14} />
-            Exportar CSV
-          </Button>
+            Exportar CSV (Meta)
+          </a>
         </div>
       </div>
 
@@ -69,10 +72,10 @@ export default async function AdminUsuariosPage() {
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-verde-950/40 border border-verde-900/50 text-sm text-verde-200 placeholder:text-verde-600 focus:outline-none focus:border-verde-700 transition-colors"
           />
         </div>
-        <Button variant="outline" size="sm">
+        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-verde-800/40 text-sm text-verde-400 hover:text-verde-200 hover:border-verde-700/50 transition-all bg-verde-950/20">
           <Filter size={14} />
           Filtrar
-        </Button>
+        </button>
       </div>
 
       {/* Table */}
