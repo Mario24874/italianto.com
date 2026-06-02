@@ -214,10 +214,10 @@ export async function sendStudyReminder(opts: {
   await resend.emails.send({
     from: FROM,
     to,
-    subject: `⏰ Recordatorio: ${sessionTitle} en ${reminderMinutes} min`,
+    subject: `⏰ Promemoria: ${sessionTitle} tra ${reminderMinutes} min`,
     html: `
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="background:#0a0f0a;color:#e8f5e9;font-family:system-ui,sans-serif;margin:0;padding:0">
   <div style="max-width:520px;margin:0 auto;padding:32px 16px">
@@ -229,10 +229,10 @@ export async function sendStudyReminder(opts: {
     <div style="background:#132213;border:1px solid #1e3a1e;border-radius:16px;padding:28px">
       <div style="font-size:40px;text-align:center;margin-bottom:12px">${emoji}</div>
       <h2 style="color:#e8f5e9;font-size:18px;font-weight:700;text-align:center;margin:0 0 8px">
-        ¡Tu sesión de estudio comienza pronto!
+        La tua sessione di studio inizia presto!
       </h2>
       <p style="color:#81c784;text-align:center;font-size:14px;margin:0 0 24px">
-        Hola ${userName}, tienes una sesión programada en <strong>${reminderMinutes} minutos</strong>.
+        Ciao ${userName}, hai una sessione programmata tra <strong>${reminderMinutes} minuti</strong>.
       </p>
       <div style="background:#0a1a0a;border-radius:12px;padding:20px;margin-bottom:20px">
         <div style="color:#e8f5e9;font-size:16px;font-weight:700;margin-bottom:4px">${sessionTitle}</div>
@@ -241,12 +241,12 @@ export async function sendStudyReminder(opts: {
       <a href="https://italianto.com/orario"
          style="display:block;background:#2e7d32;color:#fff;text-decoration:none;border-radius:12px;
                 padding:14px;text-align:center;font-weight:700;font-size:15px">
-        Ver mi horario →
+        Vedi il mio orario →
       </a>
     </div>
     <p style="color:#2e7d32;text-align:center;font-size:11px;margin-top:20px">
       © ${new Date().getFullYear()} Italianto ·
-      <a href="https://italianto.com/impostazioni" style="color:#388e3c">Gestionar notificaciones</a>
+      <a href="https://italianto.com/impostazioni" style="color:#388e3c">Gestisci le notifiche</a>
     </p>
   </div>
 </body>
