@@ -27,6 +27,7 @@ import {
   BrainCircuit,
   Bell,
   Mail,
+  Banknote,
 } from 'lucide-react'
 
 interface AdminSidebarProps {
@@ -48,6 +49,7 @@ export function AdminSidebar({ onClose, isMobile }: AdminSidebarProps) {
     { label: t.admin.nav.subscriptions, href: '/admin/suscripciones',  icon: CreditCard },
     { label: t.admin.nav.analytics,     href: '/admin/analiticas',     icon: BarChart3 },
     { label: t.admin.nav.sales,         href: '/admin/ventas',         icon: TrendingUp },
+    { label: 'Cobranza',                 href: '/admin/cobranza',       icon: Banknote },
     { label: t.admin.nav.coupons,       href: '/admin/cupones',        icon: Tag },
     { label: t.admin.nav.content,       href: '/admin/contenuto',      icon: FileText },
     { label: t.admin.nav.tutorAI,       href: '/admin/tutor',          icon: BrainCircuit },

@@ -2,8 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { notifyAdmin } from '@/lib/admin-notifications'
+import { sendPaymentFailedEmail } from '@/lib/payment-emails'
 import type Stripe from 'stripe'
 import type { PlanType, SubscriptionStatus } from '@/types'
+
+// El id de suscripción puede venir en invoice.subscription (API clásica) o en
+// invoice.parent.subscription_details (API 2025+), según la versión del evento.
+function invoiceSubscriptionId(inv: Stripe.Invoice): string | null {
+  const direct = inv.subscription
+  if (typeof direct === 'string') return direct
+  if (direct && typeof direct === 'object') return direct.id
+  const parent = (inv as unknown as {
+    parent?: { subscription_details?: { subscription?: string | { id: string } } }
+  }).parent
+  const nested = parent?.subscription_details?.subscription
+  if (typeof nested === 'string') return nested
+  if (nested && typeof nested === 'object') return nested.id
+  return null
+}
 
 const toISO = (ts: number | null | undefined): string | null =>
   ts ? new Date(ts * 1000).toISOString() : null
@@ -91,6 +107,97 @@ export async function POST(req: NextRequest) {
           .from('users')
           .update({ plan_type: 'free', updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', sub.customer)
+        break
+      }
+
+      case 'invoice.payment_failed': {
+        const inv = event.data.object as Stripe.Invoice
+        const customerId = inv.customer as string | null
+        const subscriptionId = invoiceSubscriptionId(inv)
+        const failureType =
+          inv.billing_reason === 'subscription_create' ? 'initial' : 'renewal'
+
+        // Datos del usuario y su plan para enriquecer el registro
+        const { data: user } = customerId
+          ? await supabase
+              .from('users')
+              .select('id, email, full_name, plan_type')
+              .eq('stripe_customer_id', customerId)
+              .maybeSingle()
+          : { data: null }
+
+        const email = inv.customer_email || user?.email || null
+        const lastError =
+          (inv as unknown as { last_finalization_error?: { message?: string } })
+            .last_finalization_error?.message || null
+
+        await supabase.from('payment_failures').upsert(
+          {
+            source: 'stripe',
+            stripe_invoice_id: inv.id,
+            stripe_subscription_id: subscriptionId,
+            stripe_customer_id: customerId,
+            user_id: user?.id ?? null,
+            email,
+            plan_type: user?.plan_type ?? null,
+            amount: inv.amount_due,
+            currency: inv.currency,
+            failure_type: failureType,
+            failure_message: lastError,
+            attempt_count: inv.attempt_count,
+            next_retry_at: toISO(inv.next_payment_attempt),
+            status: 'open',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'stripe_invoice_id' }
+        )
+
+        const amountDisplay = `$${(inv.amount_due / 100).toFixed(2)} ${inv.currency.toUpperCase()}`
+        notifyAdmin({
+          type: 'payment_failed',
+          severity: 'warning',
+          title: `Fallo de cobro ${failureType === 'initial' ? 'inicial' : 'de renovación'}`,
+          message: `${email ?? customerId} — ${amountDisplay} (intento ${inv.attempt_count})`,
+          metadata: { invoice_id: inv.id, subscription_id: subscriptionId, email, attempt: inv.attempt_count },
+          emailSubject: `[Italianto] ⚠️ Fallo de cobro — ${email ?? customerId}`,
+          emailRows: [
+            ['Email', email ?? '—'],
+            ['Tipo', failureType === 'initial' ? 'Suscripción inicial' : 'Renovación'],
+            ['Monto', amountDisplay],
+            ['Intento', String(inv.attempt_count)],
+            ['Próximo reintento', inv.next_payment_attempt ? new Date(inv.next_payment_attempt * 1000).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '—'],
+          ],
+        }).catch(err => console.warn('[stripe-webhook] notifyAdmin failed:', err))
+
+        // Avisar al cliente solo en el primer intento para no hacer spam:
+        // Stripe reintenta solo y cada reintento dispara este evento de nuevo.
+        if (email && inv.attempt_count <= 1) {
+          sendPaymentFailedEmail({
+            to: email,
+            name: user?.full_name ?? null,
+            planType: user?.plan_type ?? 'essenziale',
+            isRenewal: failureType === 'renewal',
+          }).catch(err => console.warn('[stripe-webhook] payment failed email error:', err))
+        }
+        break
+      }
+
+      case 'invoice.paid': {
+        const inv = event.data.object as Stripe.Invoice
+        const subscriptionId = invoiceSubscriptionId(inv)
+        // Recuperado: cerrar fallos abiertos de esta factura o de su suscripción
+        const orFilter = subscriptionId
+          ? `stripe_invoice_id.eq.${inv.id},stripe_subscription_id.eq.${subscriptionId}`
+          : `stripe_invoice_id.eq.${inv.id}`
+        await supabase
+          .from('payment_failures')
+          .update({
+            status: 'recovered',
+            resolved_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('status', 'open')
+          .or(orFilter)
         break
       }
 

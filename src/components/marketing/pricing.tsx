@@ -7,14 +7,16 @@ import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, X, Zap, Crown } from 'lucide-react'
+import { CheckCircle2, X, Zap, Crown, CreditCard, Smartphone, Landmark } from 'lucide-react'
 import { PLANS, type PlanType } from '@/lib/plans'
 import { formatCurrency } from '@/lib/utils'
 import { useLanguage } from '@/contexts/language-context'
+import { PaymentMethodDialog } from './payment-method-dialog'
 
 export function Pricing() {
   const [isAnnual, setIsAnnual] = useState(true)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const [payingPlan, setPayingPlan] = useState<PlanType | null>(null)
   const { isSignedIn } = useUser()
   const router = useRouter()
   const ref = useRef(null)
@@ -23,7 +25,7 @@ export function Pricing() {
 
   const planTranslations = t.pricing.plans
 
-  async function handlePlanClick(planId: string) {
+  function handlePlanClick(planId: string) {
     if (planId === 'free') {
       router.push('/sign-up')
       return
@@ -33,6 +35,11 @@ export function Pricing() {
       router.push(`/sign-up?plan=${planId}&billing=${billing}`)
       return
     }
+    setPayingPlan(planId as PlanType)
+  }
+
+  async function startStripeCheckout(planId: string) {
+    setPayingPlan(null)
     setLoadingPlan(planId)
     try {
       const res = await fetch('/api/stripe/checkout', {
@@ -220,10 +227,44 @@ export function Pricing() {
           })}
         </div>
 
-        <p className="text-center text-xs text-verde-600 mt-8">
+        {/* Métodos de pago disponibles */}
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+          <span className="text-xs font-bold uppercase tracking-widest text-verde-500">
+            {t.pricing.payment.methodsTitle}
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-verde-400">
+            <CreditCard size={14} className="text-verde-500" />
+            {t.pricing.payment.methodsStripe}
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-verde-400">
+            <Smartphone size={14} className="text-verde-500" />
+            {t.pricing.payment.methodsPagoMovil}
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-verde-400">
+            <Landmark size={14} className="text-verde-500" />
+            {t.pricing.payment.methodsZelle}
+          </span>
+        </div>
+
+        <p className="text-center text-xs text-verde-600 mt-6">
           {t.pricing.footer}
         </p>
       </div>
+
+      {payingPlan && (() => {
+        const plan = PLANS.find(pl => pl.id === payingPlan)
+        if (!plan) return null
+        return (
+          <PaymentMethodDialog
+            planId={payingPlan}
+            planName={plan.nameIt}
+            amountUsd={isAnnual ? plan.annualPrice : plan.monthlyPrice}
+            billingInterval={isAnnual ? 'year' : 'month'}
+            onStripe={() => startStripeCheckout(payingPlan)}
+            onClose={() => setPayingPlan(null)}
+          />
+        )
+      })()}
     </section>
   )
 }
