@@ -19,6 +19,7 @@ interface ManualPayment {
   method: string
   reference: string
   amount_usd: number | null
+  payer_name: string | null
   payer_phone: string | null
   payer_bank: string | null
   note: string | null
@@ -182,6 +183,9 @@ export default async function AdminCobranzaPage() {
                         {payment.method === 'pago_movil' ? 'Pago Móvil' : 'Zelle'}
                         {payment.payer_bank && (
                           <span className="block text-verde-600">{payment.payer_bank} {payment.payer_phone}</span>
+                        )}
+                        {payment.payer_name && (
+                          <span className="block text-verde-600">Envía: {payment.payer_name}</span>
                         )}
                       </td>
                       <td className="px-4 py-3.5 font-mono text-xs text-verde-300">{payment.reference}</td>

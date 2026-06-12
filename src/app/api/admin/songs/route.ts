@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase.from('songs').insert(body).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  if (data) {
+  // Notificar solo si se crea ya publicada; los borradores notifican al publicarse (PUT)
+  if (data?.status === 'published') {
     sendContentNotification({
       title: data.title ?? 'Nuova canzone',
       type: data.genre,

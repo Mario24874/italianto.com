@@ -28,6 +28,7 @@ export function PaymentMethodDialog({ planId, planName, amountUsd, billingInterv
   const [step, setStep] = useState<Step>('method')
   const [info, setInfo] = useState<ManualInfo | null>(null)
   const [reference, setReference] = useState('')
+  const [payerName, setPayerName] = useState('')
   const [payerPhone, setPayerPhone] = useState('')
   const [payerBank, setPayerBank] = useState('')
   const [note, setNote] = useState('')
@@ -61,6 +62,7 @@ export function PaymentMethodDialog({ planId, planName, amountUsd, billingInterv
           billingInterval,
           method,
           reference,
+          payerName: payerName || undefined,
           payerPhone: payerPhone || undefined,
           payerBank: payerBank || undefined,
           note: note || undefined,
@@ -201,6 +203,17 @@ export function PaymentMethodDialog({ planId, planName, amountUsd, billingInterv
                   className="w-full rounded-lg bg-bg-dark-2 border border-verde-900/50 px-3 py-2 text-sm text-verde-100 placeholder:text-verde-700 focus:border-verde-600 focus:outline-none"
                 />
               </div>
+              {step === 'zelle' && (
+                <div>
+                  <label className="block text-xs text-verde-500 mb-1">{p.senderName} *</label>
+                  <input
+                    value={payerName}
+                    onChange={e => setPayerName(e.target.value)}
+                    placeholder={p.senderNamePh}
+                    className="w-full rounded-lg bg-bg-dark-2 border border-verde-900/50 px-3 py-2 text-sm text-verde-100 placeholder:text-verde-700 focus:border-verde-600 focus:outline-none"
+                  />
+                </div>
+              )}
               {step === 'pago_movil' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -237,7 +250,7 @@ export function PaymentMethodDialog({ planId, planName, amountUsd, billingInterv
 
             <Button
               className="w-full mt-5"
-              disabled={submitting || reference.trim().length < 4}
+              disabled={submitting || reference.trim().length < 4 || (step === 'zelle' && payerName.trim().length < 3)}
               onClick={() => submit(step)}
             >
               {submitting ? p.submitting : p.submit}

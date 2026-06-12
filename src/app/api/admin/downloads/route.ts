@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase.from('downloads').insert(body).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  // Downloads are public on creation — always notify
-  if (data) {
+  // Notificar solo si se crea ya publicado; los borradores notifican al publicarse (PUT)
+  if (data?.status === 'published') {
     sendContentNotification({
       title: data.title ?? 'Nuovo download',
       type: data.type,

@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     billingInterval?: BillingInterval
     method?: string
     reference?: string
+    payerName?: string
     payerPhone?: string
     payerBank?: string
     note?: string
@@ -47,6 +48,14 @@ export async function POST(req: NextRequest) {
   if (!cleanReference || cleanReference.length < 4 || cleanReference.length > 60) {
     return NextResponse.json(
       { error: 'Referencia de pago inválida (mínimo 4 caracteres)' },
+      { status: 400 }
+    )
+  }
+  // En Zelle el receptor identifica el pago por el nombre del remitente
+  const cleanPayerName = body.payerName?.trim() || null
+  if (method === 'zelle' && (!cleanPayerName || cleanPayerName.length < 3 || cleanPayerName.length > 80)) {
+    return NextResponse.json(
+      { error: 'Indica el nombre del titular que envía el Zelle' },
       { status: 400 }
     )
   }
@@ -101,6 +110,7 @@ export async function POST(req: NextRequest) {
       method,
       reference: cleanReference,
       amount_usd: amountUsd,
+      payer_name: cleanPayerName,
       payer_phone: body.payerPhone?.trim() || null,
       payer_bank: body.payerBank?.trim() || null,
       note: body.note?.trim() || null,
@@ -128,6 +138,7 @@ export async function POST(req: NextRequest) {
       ['Monto', `$${amountUsd} USD`],
       ['Método', methodLabel],
       ['Referencia', cleanReference],
+      ...(cleanPayerName ? [['Envía (titular)', cleanPayerName] as [string, string]] : []),
       ['Revisar', 'https://italianto.com/admin/cobranza'],
     ],
   }).catch(err => console.warn('[payments/manual] notifyAdmin failed:', err))
