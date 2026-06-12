@@ -23,6 +23,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${APP_URL}/regalo`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
       url: `${APP_URL}/sobre-nosotros`,
       lastModified: new Date(),
       changeFrequency: 'monthly',

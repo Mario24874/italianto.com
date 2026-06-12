@@ -203,6 +203,63 @@ export async function POST(req: NextRequest) {
 
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+
+        // Gift card comprada (pago único, sin cuenta): activar y enviar emails
+        if (session.mode === 'payment' && session.metadata?.giftCardId) {
+          const giftCardId = session.metadata.giftCardId
+          const paidAt = new Date()
+          const expiresAt = new Date(paidAt)
+          expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+
+          // Guard sobre status pending: el webhook puede llegar duplicado
+          const { data: activated } = await supabase
+            .from('gift_cards')
+            .update({
+              status: 'active',
+              paid_at: paidAt.toISOString(),
+              expires_at: expiresAt.toISOString(),
+              updated_at: paidAt.toISOString(),
+            })
+            .eq('id', giftCardId)
+            .eq('status', 'pending')
+            .select('*')
+
+          const card = activated?.[0]
+          if (card) {
+            const { sendGiftCardToRecipient, sendGiftCardReceipt } = await import('@/lib/gift-emails')
+            const emailData = {
+              code: card.code,
+              planType: card.plan_type,
+              months: card.months,
+              buyerEmail: card.buyer_email,
+              buyerName: card.buyer_name,
+              recipientEmail: card.recipient_email,
+              recipientName: card.recipient_name,
+              message: card.message,
+              lang: card.lang,
+              expiresAt: card.expires_at,
+            }
+            sendGiftCardReceipt(emailData).catch(err => console.warn('[stripe-webhook] gift receipt email failed:', err))
+            sendGiftCardToRecipient(emailData).catch(err => console.warn('[stripe-webhook] gift recipient email failed:', err))
+
+            notifyAdmin({
+              type: 'gift_card_sold',
+              title: 'Gift card vendida',
+              message: `${card.buyer_email} compró ${card.plan_type} x${card.months} meses ($${card.amount_usd})`,
+              metadata: { gift_card_id: card.id, code: card.code, buyer: card.buyer_email },
+              emailSubject: `[Italianto] 🎁 Gift card vendida — $${card.amount_usd} (${card.buyer_email})`,
+              emailRows: [
+                ['Comprador', card.buyer_email],
+                ['Destinatario', card.recipient_email ?? '(el mismo comprador)'],
+                ['Plan', `${card.plan_type} (${card.months} meses)`],
+                ['Monto', `$${card.amount_usd} USD`],
+                ['Código', card.code],
+              ],
+            }).catch(err => console.warn('[stripe-webhook] notifyAdmin failed:', err))
+          }
+          break
+        }
+
         if (session.mode === 'subscription' && session.subscription && session.metadata?.userId) {
           const userId = session.metadata.userId
           const email = session.customer_details?.email || ''

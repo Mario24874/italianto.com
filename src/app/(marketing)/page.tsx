@@ -3,6 +3,7 @@ import { Hero } from '@/components/marketing/hero'
 import { Features } from '@/components/marketing/features'
 import { AppsShowcase } from '@/components/marketing/apps-showcase'
 import { Pricing } from '@/components/marketing/pricing'
+import { GiftCardPromo } from '@/components/marketing/gift-card-promo'
 import { SocialCta } from '@/components/marketing/social-cta'
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ export default function LandingPage() {
       <Features />
       <AppsShowcase />
       <Pricing />
+      <GiftCardPromo />
       <SocialCta />
     </>
   )

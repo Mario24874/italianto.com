@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pricing } from '@/components/marketing/pricing'
+import { GiftCardPromo } from '@/components/marketing/gift-card-promo'
 import { CountdownTimer } from './_countdown'
 import { MockDemo } from './_mock-demo'
 import { LeadMagnet } from './_lead-magnet'
@@ -269,6 +270,9 @@ export default function LancioPage() {
         </div>
         <Pricing />
       </section>
+
+      {/* F2. GIFT CARDS */}
+      <GiftCardPromo />
 
       {/* G. LEAD MAGNET */}
       <LeadMagnet />

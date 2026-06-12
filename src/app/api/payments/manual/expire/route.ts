@@ -32,10 +32,11 @@ export async function POST(req: NextRequest) {
   let expired = 0
 
   // 1. Recordatorios de renovación (vencen entre 2 y 3 días)
+  // Cubre suscripciones manuales (Pago Móvil/Zelle) y de gift cards canjeadas
   const { data: expiring } = await supabase
     .from('subscriptions')
     .select('id, user_id, plan_type, current_period_end')
-    .like('id', 'manual_%')
+    .or('id.like.manual_%,id.like.gift_%')
     .eq('status', 'active')
     .gt('current_period_end', in2d)
     .lte('current_period_end', in3d)
@@ -56,11 +57,11 @@ export async function POST(req: NextRequest) {
     reminded++
   }
 
-  // 2. Suscripciones manuales vencidas
+  // 2. Suscripciones manuales o de regalo vencidas
   const { data: overdue } = await supabase
     .from('subscriptions')
     .select('id, user_id, plan_type, billing_interval, amount, current_period_end')
-    .like('id', 'manual_%')
+    .or('id.like.manual_%,id.like.gift_%')
     .eq('status', 'active')
     .lt('current_period_end', nowISO)
 
