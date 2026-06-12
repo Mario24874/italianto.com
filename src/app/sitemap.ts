@@ -17,6 +17,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${APP_URL}/lancio`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
       url: `${APP_URL}/sobre-nosotros`,
       lastModified: new Date(),
       changeFrequency: 'monthly',

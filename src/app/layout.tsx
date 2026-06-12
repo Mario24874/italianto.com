@@ -51,25 +51,16 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'es_ES',
     alternateLocale: ['it_IT', 'en_US'],
-    url: APP_URL,
     siteName: 'Italianto',
     title: 'Italianto — Aprende Italiano con Inteligencia Artificial',
     description:
       'La plataforma integral para aprender italiano. Traductor, conjugador, práctica de pronunciación y tutor con IA.',
-    images: [
-      {
-        url: '/logo_Italianto.png',
-        width: 512,
-        height: 512,
-        alt: 'Italianto — Plataforma de aprendizaje de italiano',
-      },
-    ],
+    // La imagen og:image (1200x630) la genera src/app/opengraph-image.tsx
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Italianto — Aprende Italiano con IA',
     description: 'La plataforma integral para aprender italiano.',
-    images: ['/logo_Italianto.png'],
   },
   icons: {
     icon: [
@@ -79,14 +70,9 @@ export const metadata: Metadata = {
     shortcut: '/logo_Italianto.png',
   },
   manifest: '/manifest.json',
-  alternates: {
-    canonical: APP_URL,
-    languages: {
-      'es-ES': `${APP_URL}/es`,
-      'it-IT': `${APP_URL}/it`,
-      'en-US': `${APP_URL}/en`,
-    },
-  },
+  // Sin canonical ni hreflang globales: el canonical lo declara cada página
+  // (un canonical heredado aquí marcaría todas las rutas como duplicado de la home),
+  // y el i18n es client-side — no existen rutas /es /it /en.
 }
 
 export const viewport: Viewport = {
