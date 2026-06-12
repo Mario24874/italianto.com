@@ -50,7 +50,8 @@ export async function sendNewsletter(opts: {
     from: FROM,
     subject: opts.subject,
     html: opts.html,
-    name: opts.name ?? opts.subject,
+    // Resend rejects broadcast names longer than 70 chars (422 validation_error)
+    name: (opts.name ?? opts.subject).slice(0, 70),
     ...(opts.previewText ? { previewText: opts.previewText } : {}),
   })
   if (createResult.error) throw new Error(JSON.stringify(createResult.error))

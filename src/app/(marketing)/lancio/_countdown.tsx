@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useLanguage } from '@/contexts/language-context'
 
-const LAUNCH_END = new Date('2026-06-09T23:59:59Z')
+const LAUNCH_END = new Date('2026-06-30T23:59:59Z')
 
 interface TimeLeft {
   days: number

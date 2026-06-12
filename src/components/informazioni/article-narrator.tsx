@@ -30,9 +30,18 @@ export function ArticleNarrator({ text }: ArticleNarratorProps) {
     }
 
     loadVoices()
-    window.speechSynthesis.addEventListener('voiceschanged', loadVoices)
+    // WebKit antiguo expone speechSynthesis sin addEventListener — usar onvoiceschanged
+    if (typeof window.speechSynthesis.addEventListener === 'function') {
+      window.speechSynthesis.addEventListener('voiceschanged', loadVoices)
+    } else {
+      window.speechSynthesis.onvoiceschanged = loadVoices
+    }
     return () => {
-      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices)
+      if (typeof window.speechSynthesis.removeEventListener === 'function') {
+        window.speechSynthesis.removeEventListener('voiceschanged', loadVoices)
+      } else {
+        window.speechSynthesis.onvoiceschanged = null
+      }
       window.speechSynthesis.cancel()
     }
   }, [])

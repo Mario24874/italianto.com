@@ -62,17 +62,38 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://italianto.com'
 
-    // Apply launch discount when LANCIO10 is requested and the coupon ID is configured.
-    // We use the coupon ID directly (not a promotion code) because promotionCodes.create()
-    // is broken in Stripe API 2025-12-15.clover (parameter rename). The coupon is created
-    // via POST /api/admin/init-launch-coupon and its ID stored as STRIPE_LANCIO10_COUPON_ID.
+    // Apply launch discount when LANCIO10 is requested. We use the coupon ID directly
+    // (not a promotion code) because promotionCodes.create() is broken in Stripe API
+    // 2025-12-15.clover (parameter rename). The coupon is created via
+    // POST /api/admin/init-launch-coupon and its ID stored as STRIPE_LANCIO10_COUPON_ID.
+    // Stripe coupons' redeem_by is immutable: extending the campaign means a NEW coupon,
+    // so if the env var points to an expired one we fall back to the valid campaign
+    // coupon (metadata.campaign === 'lancio-2026') instead of failing the checkout.
     let discounts: { coupon: string }[] | undefined
-    const LANCIO10_COUPON = process.env.STRIPE_LANCIO10_COUPON_ID
-    if (promoCode?.toUpperCase() === 'LANCIO10' && LANCIO10_COUPON) {
+    if (promoCode?.toUpperCase() === 'LANCIO10') {
       const now = Date.now()
-      const launchEnd = new Date('2026-06-09T23:59:59Z').getTime()
+      const launchEnd = new Date('2026-06-30T23:59:59Z').getTime()
       if (now <= launchEnd) {
-        discounts = [{ coupon: LANCIO10_COUPON }]
+        let couponId = process.env.STRIPE_LANCIO10_COUPON_ID || null
+        if (couponId) {
+          try {
+            const coupon = await stripe.coupons.retrieve(couponId)
+            if (!coupon.valid) couponId = null
+          } catch {
+            couponId = null
+          }
+        }
+        if (!couponId) {
+          const coupons = await stripe.coupons.list({ limit: 20 })
+          couponId = coupons.data.find(
+            c => c.metadata?.campaign === 'lancio-2026' && c.valid
+          )?.id ?? null
+        }
+        if (couponId) {
+          discounts = [{ coupon: couponId }]
+        } else {
+          console.error('LANCIO10 requested but no valid lancio-2026 coupon found in Stripe')
+        }
       }
     }
 

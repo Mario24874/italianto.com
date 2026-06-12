@@ -9,7 +9,7 @@ export function HeroClient() {
   const stats = t.lancio.stats
 
   const STATS = [
-    { icon: Users, value: '10K+', label: stats.students },
+    { icon: Users, value: '24/7', label: stats.students },
     { icon: BookOpen, value: '3', label: stats.apps },
     { icon: Star, value: '4.9★', label: stats.rating },
     { icon: Zap, value: '100+', label: stats.lessons },

@@ -29,7 +29,6 @@ export function Footer() {
     soporte: [
       { label: t.footer.about,   href: '/sobre-nosotros' },
       { label: t.footer.contact, href: '/contacto' },
-      { label: t.footer.blog,    href: '/blog' },
     ],
     legal: [
       { label: t.footer.privacy, href: '/privacidad' },

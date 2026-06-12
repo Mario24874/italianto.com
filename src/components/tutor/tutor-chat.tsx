@@ -266,7 +266,15 @@ export function TutorChat({
     utter.pitch = effectiveGender === 'male' ? 0.8 : 1.1
     const setVoice = () => { const v = resolveVoice(); if (v) utter.voice = v }
     if (window.speechSynthesis.getVoices().length > 0) setVoice()
-    else window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true })
+    // WebKit antiguo expone speechSynthesis sin addEventListener — usar onvoiceschanged
+    else if (typeof window.speechSynthesis.addEventListener === 'function') {
+      window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true })
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        setVoice()
+        window.speechSynthesis.onvoiceschanged = null
+      }
+    }
     utter.onend = () => { utterRef.current = null; setStatus('idle') }
     utter.onerror = () => { utterRef.current = null; setStatus('idle') }
     utterRef.current = utter

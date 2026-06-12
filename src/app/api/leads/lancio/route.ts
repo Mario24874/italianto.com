@@ -55,7 +55,7 @@ const GUIDE_EMAIL_HTML = `<!DOCTYPE html>
     <!-- Launch offer reminder -->
     <div style="background:#0a1a0a;border:1px solid #1b5e20;border-radius:14px;padding:20px;margin-bottom:24px">
       <p style="color:#66bb6a;font-size:13px;font-weight:700;margin:0 0 8px">
-        🚀 Offerta di lancio — Solo fino al 9 giugno
+        🚀 Offerta di lancio — Solo fino al 30 giugno
       </p>
       <p style="color:#a5d6a7;font-size:13px;margin:0 0 12px;line-height:1.5">
         Usa il codice <strong style="color:#fff;font-family:monospace;background:#1b3a1b;padding:2px 8px;border-radius:6px">LANCIO10</strong>

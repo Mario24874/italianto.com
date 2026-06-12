@@ -10,7 +10,10 @@ export function VisitTracker() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        session_id: crypto.randomUUID(),
+        // crypto.randomUUID no existe en Safari < 15.4 ni en contextos no seguros
+        session_id: typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`,
         page: window.location.pathname,
         referrer: document.referrer || null,
       }),

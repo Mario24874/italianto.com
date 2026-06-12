@@ -42,7 +42,7 @@ export const translations = {
       subtitleHighlight: 'italiano fluido',
       cta: 'Comenzar gratis',
       ctaSub: 'Ver las apps',
-      stats: { students: 'Estudiantes', apps: 'Apps', rating: 'Rating', lessons: 'Lecciones' },
+      stats: { students: 'Tutor IA', apps: 'Apps', rating: 'Rating', lessons: 'Lecciones' },
     },
     features: {
       badge: 'Funcionalidades',
@@ -518,14 +518,14 @@ export const translations = {
     },
     lancio: {
       hero: {
-        badge: '🚀 Semana de Lanzamiento • 2 Jun 2026',
+        badge: '🚀 Oferta de Lanzamiento • Hasta el 30 Jun 2026',
         title1: 'Habla Italiano con',
         title2: 'Inteligencia Artificial',
         subtitle: 'Aprende con tu Tutor IA personal, lecciones estructuradas, canciones, juegos y mucho más.',
         subtitleHighlight: 'Empieza gratis hoy.',
         offerLabel: 'La oferta especial termina en:',
         promoLabel: '🎁 Código de lanzamiento:',
-        promoDetail: '10% de descuento · Solo hasta el 9 de junio',
+        promoDetail: '10% de descuento · Solo hasta el 30 de junio',
         ctaPrimary: 'Empieza Gratis',
         ctaSecondary: 'Ver planes',
       },
@@ -536,7 +536,7 @@ export const translations = {
         sec: 'seg',
       },
       stats: {
-        students: 'Estudiantes',
+        students: 'Tutor IA',
         apps: 'Apps',
         rating: 'Valoración',
         lessons: 'Lecciones',
@@ -592,7 +592,7 @@ export const translations = {
           { text: 'La sección de canciones es adictiva. Aprender con Volare y Azzurro fue una experiencia completamente diferente.', name: 'Ana L.', country: 'Colombia' },
         ],
         stats: [
-          { value: '10,000+', label: 'Estudiantes' },
+          { value: '24/7', label: 'Tutor IA' },
           { value: '4.9/5', label: 'Estrellas' },
           { value: '3', label: 'Apps integradas' },
           { value: '100+', label: 'Lecciones' },
@@ -600,7 +600,7 @@ export const translations = {
       },
       pricing: {
         offerBanner: '🎉 OFERTA DE LANZAMIENTO',
-        offerDetail: 'Semana 2–9 Jun 2026 · Usa LANCIO10 al pagar · 10% de descuento',
+        offerDetail: 'Hasta el 30 Jun 2026 · Usa LANCIO10 al pagar · 10% de descuento',
       },
       leadMagnet: {
         badge: '🎁 Regalo de Lanzamiento',
@@ -621,7 +621,7 @@ export const translations = {
           { q: '¿Necesito experiencia previa en italiano?', a: 'No. Comenzamos desde cero (nivel A1) con pronunciación, alfabeto y vocabulario básico. El Tutor IA adapta el ritmo a tu nivel.' },
           { q: '¿En qué se diferencia de Duolingo?', a: 'Italianto tiene un Tutor IA conversacional real, lecciones en profundidad y un ecosistema completo con apps especializadas como Dialoghi Studio e ItaliantoApp.' },
           { q: '¿Qué incluye el plan gratis?', a: 'Acceso básico: 3 diálogos por mes, conjugador de 20 verbos, traductor básico y contenido introductorio. Sin tarjeta de crédito requerida.' },
-          { q: '¿Cómo aplico el descuento LANCIO10?', a: 'Al hacer clic en "Comprar plan", el descuento del 10% se aplica automáticamente durante la semana de lanzamiento (hasta el 9 de junio).' },
+          { q: '¿Cómo aplico el descuento LANCIO10?', a: 'Al hacer clic en "Comprar plan", el descuento del 10% se aplica automáticamente durante la oferta de lanzamiento (hasta el 30 de junio).' },
           { q: '¿Hay contrato mínimo?', a: 'No. Suscripción mensual o anual. Cancela en cualquier momento desde tu panel de configuración.' },
           { q: '¿Dialoghi Studio e ItaliantoApp cuestan extra?', a: 'No, están incluidas en los planes Avanzado y Maestro sin costo adicional.' },
         ],
@@ -629,7 +629,7 @@ export const translations = {
       cta: {
         title: '¿Listo para',
         highlight: 'hablar italiano?',
-        subtitle: 'Únete a más de 10,000 estudiantes. Empieza gratis, sin tarjeta de crédito.',
+        subtitle: 'Únete a la comunidad de Italianto. Empieza gratis, sin tarjeta de crédito.',
         offerReminder: 'La oferta termina en:',
         codeLine: 'Código:',
         primary: 'Crear cuenta gratis',
@@ -669,7 +669,7 @@ export const translations = {
       subtitleHighlight: 'italiano fluente',
       cta: 'Inizia gratis',
       ctaSub: 'Vedi le app',
-      stats: { students: 'Studenti', apps: 'App', rating: 'Valutazione', lessons: 'Lezioni' },
+      stats: { students: 'Tutor IA', apps: 'App', rating: 'Valutazione', lessons: 'Lezioni' },
     },
     features: {
       badge: 'Funzionalità',
@@ -1145,14 +1145,14 @@ export const translations = {
     },
     lancio: {
       hero: {
-        badge: '🚀 Settimana di Lancio • 2 Giu 2026',
+        badge: '🚀 Offerta di Lancio • Fino al 30 Giu 2026',
         title1: 'Parla Italiano con',
         title2: 'Intelligenza',
         subtitle: 'Impara con il tuo Tutor IA personale, lezioni strutturate, canzoni, giochi e molto altro.',
         subtitleHighlight: 'Inizia gratis oggi.',
         offerLabel: "L'offerta speciale termina tra:",
         promoLabel: '🎁 Codice di lancio:',
-        promoDetail: '10% di sconto · Solo fino al 9 giugno',
+        promoDetail: '10% di sconto · Solo fino al 30 giugno',
         ctaPrimary: 'Inizia Gratis',
         ctaSecondary: 'Vedi i piani',
       },
@@ -1163,7 +1163,7 @@ export const translations = {
         sec: 'sec',
       },
       stats: {
-        students: 'Studenti',
+        students: 'Tutor IA',
         apps: 'App',
         rating: 'Valutazione',
         lessons: 'Lezioni',
@@ -1219,7 +1219,7 @@ export const translations = {
           { text: "La sezione canzoni è incredibile. Imparare con Volare e Azzurro è stata un'esperienza completamente diversa.", name: 'Ana L.', country: 'Colombia' },
         ],
         stats: [
-          { value: '10,000+', label: 'Studenti' },
+          { value: '24/7', label: 'Tutor IA' },
           { value: '4.9/5', label: 'Stelle' },
           { value: '3', label: 'App integrate' },
           { value: '100+', label: 'Lezioni' },
@@ -1227,7 +1227,7 @@ export const translations = {
       },
       pricing: {
         offerBanner: '🎉 OFFERTA DI LANCIO',
-        offerDetail: 'Settimana 2–9 Giu 2026 · Usa LANCIO10 al pagamento · 10% di sconto',
+        offerDetail: 'Fino al 30 Giu 2026 · Usa LANCIO10 al pagamento · 10% di sconto',
       },
       leadMagnet: {
         badge: '🎁 Regalo di Lancio',
@@ -1248,7 +1248,7 @@ export const translations = {
           { q: 'Ho bisogno di esperienza previa in italiano?', a: 'No. Partiamo da zero (livello A1) con pronuncia, alfabeto e vocabolario di base. Il Tutor IA adatta il ritmo al tuo livello.' },
           { q: 'In che cosa si differenzia da Duolingo?', a: 'Italianto ha un Tutor IA conversazionale reale, lezioni approfondite e un ecosistema completo con app specializzate come Dialoghi Studio e ItaliantoApp.' },
           { q: 'Cosa include il piano gratuito?', a: 'Accesso base: 3 dialoghi al mese, coniugatore di 20 verbi, traduttore base e contenuto introduttivo. Nessuna carta di credito richiesta.' },
-          { q: 'Come applico il codice LANCIO10?', a: "Cliccando su \"Acquista piano\", lo sconto del 10% viene applicato automaticamente durante la settimana di lancio (fino al 9 giugno)." },
+          { q: 'Come applico il codice LANCIO10?', a: "Cliccando su \"Acquista piano\", lo sconto del 10% viene applicato automaticamente durante l'offerta di lancio (fino al 30 giugno)." },
           { q: "C'è un contratto minimo?", a: 'No. Abbonamento mensile o annuale. Annulla in qualsiasi momento dal tuo pannello delle impostazioni.' },
           { q: 'Dialoghi Studio e ItaliantoApp costano extra?', a: 'No, sono incluse nei piani Avanzato e Maestro senza costo aggiuntivo.' },
         ],
@@ -1256,7 +1256,7 @@ export const translations = {
       cta: {
         title: 'Pronto a',
         highlight: 'parlare italiano?',
-        subtitle: 'Unisciti a più di 10.000 studenti. Inizia gratis, senza carta di credito.',
+        subtitle: 'Unisciti alla comunità di Italianto. Inizia gratis, senza carta di credito.',
         offerReminder: "L'offerta termina tra:",
         codeLine: 'Codice:',
         primary: 'Crea account gratis',
@@ -1296,7 +1296,7 @@ export const translations = {
       subtitleHighlight: 'fluent Italian',
       cta: 'Start for free',
       ctaSub: 'See the apps',
-      stats: { students: 'Students', apps: 'Apps', rating: 'Rating', lessons: 'Lessons' },
+      stats: { students: 'AI Tutor', apps: 'Apps', rating: 'Rating', lessons: 'Lessons' },
     },
     features: {
       badge: 'Features',
@@ -1772,14 +1772,14 @@ export const translations = {
     },
     lancio: {
       hero: {
-        badge: '🚀 Launch Week • Jun 2, 2026',
+        badge: '🚀 Launch Offer • Until Jun 30, 2026',
         title1: 'Speak Italian with',
         title2: 'Artificial Intelligence',
         subtitle: 'Learn with your personal AI Tutor, structured lessons, songs, games and much more.',
         subtitleHighlight: 'Start free today.',
         offerLabel: 'Special offer ends in:',
         promoLabel: '🎁 Launch code:',
-        promoDetail: '10% discount · Only until June 9',
+        promoDetail: '10% discount · Only until June 30',
         ctaPrimary: 'Start Free',
         ctaSecondary: 'View plans',
       },
@@ -1790,7 +1790,7 @@ export const translations = {
         sec: 'sec',
       },
       stats: {
-        students: 'Students',
+        students: 'AI Tutor',
         apps: 'Apps',
         rating: 'Rating',
         lessons: 'Lessons',
@@ -1846,7 +1846,7 @@ export const translations = {
           { text: 'The songs section is addictive. Learning with Volare and Azzurro was a completely different experience.', name: 'Ana L.', country: 'Colombia' },
         ],
         stats: [
-          { value: '10,000+', label: 'Students' },
+          { value: '24/7', label: 'AI Tutor' },
           { value: '4.9/5', label: 'Stars' },
           { value: '3', label: 'Integrated apps' },
           { value: '100+', label: 'Lessons' },
@@ -1854,7 +1854,7 @@ export const translations = {
       },
       pricing: {
         offerBanner: '🎉 LAUNCH OFFER',
-        offerDetail: 'Week Jun 2–9, 2026 · Use LANCIO10 at checkout · 10% discount',
+        offerDetail: 'Until Jun 30, 2026 · Use LANCIO10 at checkout · 10% discount',
       },
       leadMagnet: {
         badge: '🎁 Launch Gift',
@@ -1875,7 +1875,7 @@ export const translations = {
           { q: 'Do I need previous Italian experience?', a: 'No. We start from scratch (A1 level) with pronunciation, alphabet and basic vocabulary. The AI Tutor adapts the pace to your level.' },
           { q: 'How is it different from Duolingo?', a: 'Italianto has a real conversational AI Tutor, in-depth lessons and a complete ecosystem with specialized apps like Dialoghi Studio and ItaliantoApp.' },
           { q: 'What does the free plan include?', a: 'Basic access: 3 dialogues per month, 20-verb conjugator, basic translator and introductory content. No credit card required.' },
-          { q: 'How do I apply the LANCIO10 discount?', a: 'When clicking "Buy plan", the 10% discount is applied automatically during the launch week (until June 9).' },
+          { q: 'How do I apply the LANCIO10 discount?', a: 'When clicking "Buy plan", the 10% discount is applied automatically during the launch offer (until June 30).' },
           { q: 'Is there a minimum contract?', a: 'No. Monthly or annual subscription. Cancel at any time from your settings panel.' },
           { q: 'Do Dialoghi Studio and ItaliantoApp cost extra?', a: 'No, they are included in the Avanzato and Maestro plans at no additional cost.' },
         ],
@@ -1883,7 +1883,7 @@ export const translations = {
       cta: {
         title: 'Ready to',
         highlight: 'speak Italian?',
-        subtitle: 'Join more than 10,000 students. Start free, no credit card required.',
+        subtitle: 'Join the Italianto community. Start free, no credit card required.',
         offerReminder: 'Offer ends in:',
         codeLine: 'Code:',
         primary: 'Create free account',

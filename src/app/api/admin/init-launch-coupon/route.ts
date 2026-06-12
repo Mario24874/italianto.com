@@ -28,7 +28,7 @@ export async function POST() {
       name: 'Lanzamiento 10% — LANCIO10',
       percent_off: 10,
       duration: 'once',
-      redeem_by: Math.floor(new Date('2026-06-09T23:59:59Z').getTime() / 1000),
+      redeem_by: Math.floor(new Date('2026-06-30T23:59:59Z').getTime() / 1000),
       metadata: { created_by: 'launch-campaign', campaign: 'lancio-2026' },
     })
 

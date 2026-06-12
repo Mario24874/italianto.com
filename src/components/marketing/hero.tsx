@@ -20,7 +20,7 @@ const LANDMARKS = [
 export function Hero() {
   const { t } = useLanguage()
   const STATS = [
-    { icon: Users, value: '10K+', label: t.hero.stats.students },
+    { icon: Users, value: '24/7', label: t.hero.stats.students },
     { icon: BookOpen, value: '3', label: t.hero.stats.apps },
     { icon: Star, value: '4.9', label: t.hero.stats.rating },
     { icon: Zap, value: '100+', label: t.hero.stats.lessons },
