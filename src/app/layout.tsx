@@ -4,6 +4,7 @@ import { GeistMono } from 'geist/font/mono'
 import { Providers } from '@/components/providers'
 import { CookieCheck } from '@/components/cookie-check'
 import { Analytics } from '@/components/analytics'
+import { PageViewTracker } from '@/components/analytics/page-view-tracker'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -96,6 +97,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       >
         <Providers>
           <Analytics />
+          <PageViewTracker />
           <CookieCheck />
           {children}
           <Toaster

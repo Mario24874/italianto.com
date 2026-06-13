@@ -3,8 +3,12 @@ import { requireAdmin } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { StatsCard } from '@/components/admin/stats-card'
 import { formatDate } from '@/lib/utils'
-import { BookOpen, TrendingUp, Users, CheckCircle2, BarChart3, Activity, Eye, Star } from 'lucide-react'
+import { BookOpen, TrendingUp, Users, CheckCircle2, BarChart3, Activity, Star } from 'lucide-react'
 import { ApiUsageWidget } from './_api-usage-widget'
+import { fetchPageViews, aggregateBySection, aggregateUsers, uniqueVisitors } from '@/lib/analytics/queries'
+import { GeneralPanel } from '@/components/admin/analytics/general-panel'
+import { UserList } from '@/components/admin/analytics/user-list'
+import type { DrilldownUser } from '@/components/admin/analytics/user-drilldown'
 
 export const metadata: Metadata = { title: 'Analíticas — Admin' }
 export const dynamic = 'force-dynamic'
@@ -24,8 +28,6 @@ async function getAnalytics() {
     // Per-student progress: identify by user_id → join with users.email
     { data: allProgress },
     { data: allUsers },
-    // Page visits
-    { data: visitsLast30 },
     // Platform reviews
     { data: reviews },
   ] = await Promise.all([
@@ -39,8 +41,6 @@ async function getAnalytics() {
     supabase.from('lesson_progress').select('user_id, status, created_at').order('created_at', { ascending: false }).limit(2000),
     // Users to resolve emails — only those with activity
     supabase.from('users').select('id, email, full_name'),
-    // Page visits (last 30 days)
-    supabase.from('page_visits').select('session_id, page, created_at').gte('created_at', thirtyDaysAgo),
     // Platform reviews
     supabase.from('platform_reviews').select('id, rating, comment, reviewer_name, status, created_at').order('created_at', { ascending: false }).limit(50),
   ])
@@ -106,28 +106,48 @@ async function getAnalytics() {
   const studentStats = Array.from(studentMap.values())
     .sort((a, b) => b.lastAt.localeCompare(a.lastAt))
 
-  // ── Page visits ────────────────────────────────────────────────────────────
-  const visits30 = visitsLast30 ?? []
-  const uniqueSessions30 = new Set(visits30.map((v: { session_id: string }) => v.session_id)).size
-  const pageCount: Record<string, number> = {}
-  for (const v of visits30) {
-    const page = (v as { page: string }).page
-    pageCount[page] = (pageCount[page] ?? 0) + 1
-  }
-  const topPages = Object.entries(pageCount).sort(([, a], [, b]) => b - a).slice(0, 5)
-
   // ── Platform reviews ───────────────────────────────────────────────────────
   const reviewList = (reviews ?? []) as { id: string; rating: number; comment: string | null; reviewer_name: string | null; status: string; created_at: string }[]
   const avgRating = reviewList.length > 0
     ? (reviewList.reduce((s, r) => s + r.rating, 0) / reviewList.length).toFixed(1)
     : '—'
 
+  // ── Navegación (page_views) ──────────────────────────────────────────────
+  const nowISO = new Date().toISOString()
+  const pvRows = await fetchPageViews(thirtyDaysAgo, nowISO)
+  const navSections = aggregateBySection(pvRows)
+  const navUserAggs = aggregateUsers(pvRows)
+  const navByService = (() => {
+    const m = new Map<string, number>()
+    for (const r of pvRows) m.set(r.service, (m.get(r.service) ?? 0) + 1)
+    return Array.from(m.entries()).map(([service, visits]) => ({ service, visits }))
+  })()
+  // sesiones por usuario desde app_sessions (sessionsLast30 ya se consulta arriba)
+  const navSessionCount = new Map<string, number>()
+  for (const s of (sessionsLast30 ?? []) as { user_id: string }[]) {
+    navSessionCount.set(s.user_id, (navSessionCount.get(s.user_id) ?? 0) + 1)
+  }
+  const navDrilldownUsers: DrilldownUser[] = navUserAggs.map(a => {
+    const info = userMap.get(a.userId)
+    return {
+      ...a,
+      email: info?.email ?? a.userId.slice(0, 10),
+      fullName: info?.full_name ?? null,
+      sessions: navSessionCount.get(a.userId) ?? 0,
+      services: new Set(pvRows.filter(r => r.user_id === a.userId).map(r => r.service)).size,
+      timeline: pvRows.filter(r => r.user_id === a.userId).map(r => ({ entered_at: r.entered_at, section: r.section, duration_seconds: r.duration_seconds })),
+    }
+  })
+
   return {
     totalAttempts, totalPassed, passRate, uniqueUsers30, uniqueUsers7, avgDuration,
     sessions30Count: sessions30.length, topLessonsList, levelDist,
     studentStats,
-    visitsTotal: visits30.length, uniqueSessions30, topPages,
     reviewList, avgRating,
+    navSections, navByService, navDrilldownUsers,
+    navVisitsTotal: pvRows.length,
+    navUniqueVisitors: uniqueVisitors(pvRows),
+    navActiveUsers: navUserAggs.length,
   }
 }
 
@@ -165,6 +185,8 @@ export default async function AdminAnaliticasPage() {
           <h1 className="text-2xl font-extrabold text-verde-50">Analíticas</h1>
           <p className="text-sm text-verde-500">Métricas de aprendizaje, visitas y valoraciones</p>
         </div>
+        <a href="/api/admin/analytics/report?scope=general&format=pdf" className="ml-auto text-xs font-semibold text-verde-200 border border-verde-800/50 rounded-xl px-3 py-2 hover:bg-verde-950/30">Reporte general PDF</a>
+        <a href="/api/admin/analytics/report?scope=general&format=csv" className="text-xs font-semibold text-verde-300 border border-verde-900/40 rounded-xl px-3 py-2 hover:bg-verde-950/30">CSV</a>
       </div>
 
       {/* Learning KPIs */}
@@ -176,6 +198,16 @@ export default async function AdminAnaliticasPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <ApiUsageWidget />
       </div>
+
+      {/* Navigation analytics — GeneralPanel */}
+      <GeneralPanel
+        visitsTotal={data.navVisitsTotal}
+        uniqueVisitors={data.navUniqueVisitors}
+        activeUsers={data.navActiveUsers}
+        avgSessionSeconds={data.avgDuration}
+        sections={data.navSections}
+        byService={data.navByService}
+      />
 
       {/* Sessions + Top Lessons + Level Dist */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -247,40 +279,8 @@ export default async function AdminAnaliticasPage() {
         </div>
       </div>
 
-      {/* Page visits + Platform reviews */}
+      {/* Platform Reviews */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Page Visits */}
-        <div className="rounded-2xl border border-verde-900/40 bg-bg-dark-2/70 p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <Eye size={16} className="text-blue-400" />
-            <h3 className="text-sm font-semibold text-verde-200">Visitas a la Web (30 días)</h3>
-          </div>
-          <div className="flex gap-6 pb-2 border-b border-verde-900/30">
-            <div>
-              <p className="text-2xl font-bold text-verde-100">{data.visitsTotal}</p>
-              <p className="text-xs text-verde-600">visitas totales</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-verde-100">{data.uniqueSessions30}</p>
-              <p className="text-xs text-verde-600">sesiones únicas</p>
-            </div>
-          </div>
-          {data.topPages.length === 0 ? (
-            <p className="text-xs text-verde-600">Sin visitas registradas aún</p>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-verde-500 uppercase tracking-wide">Páginas más visitadas</p>
-              {data.topPages.map(([page, count]) => (
-                <div key={page} className="flex items-center justify-between">
-                  <span className="text-xs text-verde-400 truncate max-w-[200px] font-mono">{page}</span>
-                  <span className="text-xs font-semibold text-verde-300">{count}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Platform Reviews */}
         <div className="rounded-2xl border border-verde-900/40 bg-bg-dark-2/70 p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Star size={16} className="text-amber-400" />
@@ -317,6 +317,9 @@ export default async function AdminAnaliticasPage() {
           )}
         </div>
       </div>
+
+      {/* Per-user navigation drilldown */}
+      <UserList users={data.navDrilldownUsers} />
 
       {/* Per-student progress */}
       <div className="rounded-2xl border border-verde-900/40 bg-bg-dark-2/70 overflow-hidden">
