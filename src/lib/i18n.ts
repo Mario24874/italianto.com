@@ -11,6 +11,12 @@ export const LANGUAGES = [
 // ── Traducciones de la UI ────────────────────────────────────
 export const translations = {
   es: {
+    worldCup: {
+      badge: 'Mundial 2026',
+      title: 'Del gol a la clase',
+      subtitle: 'Aprende el idioma de la selección tetracampeona y siente la fiebre mundialista como un auténtico fanático.',
+      cta: 'Empieza gratis',
+    },
     nav: {
       home: 'Inicio',
       features: 'Funciones',
@@ -718,6 +724,12 @@ export const translations = {
     },
   },
   it: {
+    worldCup: {
+      badge: 'Mondiali 2026',
+      title: 'Dal gol alla lezione',
+      subtitle: 'Impara la lingua della nazionale quattro volte campione del mondo e vivi la febbre mondiale come un vero tifoso.',
+      cta: 'Inizia gratis',
+    },
     nav: {
       home: 'Home',
       features: 'Funzioni',
@@ -1425,6 +1437,12 @@ export const translations = {
     },
   },
   en: {
+    worldCup: {
+      badge: 'World Cup 2026',
+      title: 'From goal to class',
+      subtitle: 'Learn the language of the four-time world champions and feel the World Cup fever like a true fan.',
+      cta: 'Start for free',
+    },
     nav: {
       home: 'Home',
       features: 'Features',
