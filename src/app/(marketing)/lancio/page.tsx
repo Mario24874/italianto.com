@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pricing } from '@/components/marketing/pricing'
 import { GiftCardPromo } from '@/components/marketing/gift-card-promo'
+import { CertificatePromo } from '@/components/marketing/certificate-promo'
+import { WorldCupBanner } from '@/components/marketing/world-cup-banner'
 import { CountdownTimer } from './_countdown'
 import { MockDemo } from './_mock-demo'
 import { LeadMagnet } from './_lead-magnet'
@@ -107,6 +109,9 @@ export default function LancioPage() {
 
       {/* B. PLATFORM DEMO MOCK */}
       <MockDemo />
+
+      {/* B2. MUNDIAL 2026 — banner estacional */}
+      <WorldCupBanner />
 
       {/* C. FEATURES GRID */}
       <section className="py-24 bg-bg-dark/30 relative overflow-hidden">
@@ -270,6 +275,9 @@ export default function LancioPage() {
         </div>
         <Pricing />
       </section>
+
+      {/* F1b. CERTIFICADO POR NIVEL */}
+      <CertificatePromo />
 
       {/* F2. GIFT CARDS */}
       <GiftCardPromo />
