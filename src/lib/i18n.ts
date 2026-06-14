@@ -17,6 +17,11 @@ export const translations = {
       subtitle: 'Aprende el idioma de la selección tetracampeona y siente la fiebre mundialista como un auténtico fanático.',
       cta: 'Empieza gratis',
     },
+    certificate: {
+      badge: 'Certificado oficial',
+      title: 'Un certificado por cada nivel',
+      subtitle: 'Al completar cada nivel recibes un certificado digital de Italianto que acredita tu progreso, siguiendo el Marco Común Europeo. De A1 a C2.',
+    },
     nav: {
       home: 'Inicio',
       features: 'Funciones',
@@ -730,6 +735,11 @@ export const translations = {
       subtitle: 'Impara la lingua della nazionale quattro volte campione del mondo e vivi la febbre mondiale come un vero tifoso.',
       cta: 'Inizia gratis',
     },
+    certificate: {
+      badge: 'Certificato ufficiale',
+      title: 'Un certificato per ogni livello',
+      subtitle: 'Completando ogni livello ricevi un certificato digitale di Italianto che attesta i tuoi progressi, secondo il Quadro Comune Europeo. Dall’A1 al C2.',
+    },
     nav: {
       home: 'Home',
       features: 'Funzioni',
@@ -1442,6 +1452,11 @@ export const translations = {
       title: 'From goal to class',
       subtitle: 'Learn the language of the four-time world champions and feel the World Cup fever like a true fan.',
       cta: 'Start for free',
+    },
+    certificate: {
+      badge: 'Official certificate',
+      title: 'A certificate for every level',
+      subtitle: 'When you complete each level you receive a digital Italianto certificate that proves your progress, following the Common European Framework. From A1 to C2.',
     },
     nav: {
       home: 'Home',
