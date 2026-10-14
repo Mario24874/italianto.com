@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { geminiGenerate } from '@/lib/gemini'
 
 export const dynamic = 'force-dynamic'
 
@@ -117,22 +118,14 @@ Se l'utente è principiante (A1-A2), puoi dare brevi spiegazioni in spagnolo o i
   }))
 
   try {
-    // CORRECCIÓN: URL envuelta en backticks y usando endpoint v1
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents,
-          generationConfig: {
-            temperature: 0.8,
-            maxOutputTokens: 200,
-          },
-        }),
-      }
-    )
+    const response = await geminiGenerate('gemini-2.5-flash', {
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents,
+      generationConfig: {
+        temperature: 0.8,
+        maxOutputTokens: 200,
+      },
+    }, 'tutor-chat')
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));

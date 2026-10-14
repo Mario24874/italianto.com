@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import type { TestQuestion } from '@/types'
+import { geminiGenerate } from '@/lib/gemini'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,20 +72,13 @@ ${lesson.grammar_notes}
 
 Genera domande che testino: comprensione del vocabolario, regole grammaticali, comprensione della lettura e traduzioni. Varia i tipi di domande.`
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.9,
-            responseMimeType: 'application/json',
-          },
-        }),
-      }
-    )
+    const response = await geminiGenerate('gemini-2.5-flash-lite', {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.9,
+        responseMimeType: 'application/json',
+      },
+    }, 'lessons-test')
 
     if (!response.ok) {
       const errText = await response.text()

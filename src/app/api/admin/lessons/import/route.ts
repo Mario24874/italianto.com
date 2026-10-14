@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/admin'
 import { createJob, resolveJob, rejectJob } from '../import-job/route'
 import { logApiUsage } from '@/lib/api-usage'
+import { geminiGenerate } from '@/lib/gemini'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -120,22 +121,15 @@ REGLAS GENERALES
 - Responde SOLO el JSON, absolutamente nada más`
 
 /** Background Gemini processing — called fire-and-forget from POST */
-async function processWithGemini(apiKey: string, contents: object[], jobId: string) {
+async function processWithGemini(contents: object[], jobId: string) {
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            temperature: 0.3,
-            responseMimeType: 'application/json',
-          },
-        }),
-      }
-    )
+    const response = await geminiGenerate('gemini-2.5-flash-lite', {
+      contents,
+      generationConfig: {
+        temperature: 0.3,
+        responseMimeType: 'application/json',
+      },
+    }, 'lessons-import')
 
     if (!response.ok) {
       const errText = await response.text()
@@ -252,6 +246,6 @@ export async function POST(req: NextRequest) {
 
   // Create job, start processing in background, return immediately
   const jobId = createJob()
-  void processWithGemini(apiKey, contents, jobId)
+  void processWithGemini(contents, jobId)
   return NextResponse.json({ jobId })
 }
